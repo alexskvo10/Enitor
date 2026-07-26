@@ -1,86 +1,86 @@
-# Архитектура
+# Architecture
 
-## Принципы
+## Principles
 
-1. **Feature-first.** Код сгруппирован по фичам, а не по слоям. Каждая фича (`today`, `goals`, `stats`, …) содержит свои экраны и провайдеры. Это упрощает поиск кода и удаление целых фич.
-2. **Тонкие виджеты, толстые репозитории.** Виджеты только описывают UI и подписываются на провайдеры. Вся бизнес-логика — в репозиториях.
-3. **Один источник правды — Riverpod.** Провайдеры объявляются рядом с фичей (`*_providers.dart`) или в `data/repositories/`.
-4. **Всё локально.** Приложение не требует аккаунта и не синхронизируется с сервером — репозитории читают/пишут только на устройство. Единственный способ перенести данные на другое устройство — ручной экспорт/импорт бэкапа.
+1. **Feature-first.** Code is grouped by feature, not by layer. Each feature (`today`, `goals`, `stats`, …) contains its own screens and providers. This makes code easy to find and whole features easy to remove.
+2. **Thin widgets, thick repositories.** Widgets only describe the UI and subscribe to providers. All business logic lives in repositories.
+3. **Riverpod as the single source of truth.** Providers are declared next to their feature (`*_providers.dart`) or in `data/repositories/`.
+4. **Everything is local.** The app doesn't require an account and doesn't sync with a server — repositories only read/write on-device. The only way to move data to another device is a manual backup export/import.
 
-## Слои
+## Layers
 
 ```
 ┌──────────────────────────────────────┐
-│ UI (features/, widgets/)              │  ← ConsumerWidget, подписывается на провайдеры
+│ UI (features/, widgets/)              │  ← ConsumerWidget, subscribes to providers
 ├──────────────────────────────────────┤
 │ Providers (Riverpod)                  │  ← state + side effects
 ├──────────────────────────────────────┤
-│ Repositories (data/repositories/)     │  ← бизнес-логика, расчёты, перенос/бэклог
+│ Repositories (data/repositories/)     │  ← business logic, calculations, transfer/backlog
 ├──────────────────────────────────────┤
-│ Storage (SharedPreferences, JSON)     │  ← локальное хранилище
+│ Storage (SharedPreferences, JSON)     │  ← local storage
 ├──────────────────────────────────────┤
-│ Services                              │  ← уведомления, цитаты
+│ Services                              │  ← notifications, quotes
 └──────────────────────────────────────┘
 ```
 
-## Хранилище
+## Storage
 
-Данные (задачи, цели, статистика по дням, снимки колец, достижения, профиль,
-настройки) сериализуются в JSON и хранятся через `SharedPreferences`. Каждый
-репозиторий (`task_repository.dart`, `goal_repository.dart`, …) сам отвечает за
-сериализацию своей области данных, кэширует состояние в памяти и уведомляет
-провайдеры при изменении.
+Data (tasks, goals, daily stats, ring snapshots, achievements, profile,
+settings) is serialized to JSON and stored via `SharedPreferences`. Each
+repository (`task_repository.dart`, `goal_repository.dart`, …) is
+responsible for serializing its own data area, caches state in memory, and
+notifies providers on change.
 
-Резервное копирование — отдельная, ручная функция: экспорт всего состояния в
-один JSON-файл и импорт обратно (`file_picker`). Магическая строка `'app':'todo'`
-внутри файла бэкапа — историческая, оставлена для совместимости со старыми
-бэкапами и не переименовывается при ребрендинге в Enitor.
+Backup is a separate, manual feature: exporting the entire state to a
+single JSON file and importing it back (`file_picker`). The magic string
+`'app':'todo'` inside the backup file is a historical artifact, kept for
+backward compatibility with older backups, and is not renamed as part of
+the Enitor rebrand.
 
-## Ключевые модели (по факту, `lib/data/models/`)
+## Key models (as implemented, `lib/data/models/`)
 
-- **Task** — задача дня: название, время начала/конца, приоритет, теги,
-  повторяющиеся правила (`RecurrenceRule`), состояние переноса
-  (`transferDeclined` и т.п.).
-- **Goal** — цель с периодом `week | month | season | year`, дедлайном,
-  приоритетом, тегами; хранит снимки прогресса по дням для построения графиков
-  задним числом.
-- **DayStats** — агрегированная статистика дня (сколько задач выполнено, вовремя
-  и т.п.), используется графиками и профилем.
-- **Achievement** — состояние ачивок (разблокирована/нет, дата).
-- **UserProfile** — дата первого запуска, серия дней (streak), кэш средних
-  показателей за неделю.
-- **BacklogItem**, **DayTemplate**, **MotivationalQuote** — вспомогательные
-  модели бэклога, шаблонов дня и цитат.
+- **Task** — a day's task: title, start/end time, priority, tags, recurrence
+  rules (`RecurrenceRule`), transfer state (`transferDeclined`, etc.).
+- **Goal** — a goal with period `week | month | season | year`, a deadline,
+  priority, tags; stores daily progress snapshots to render charts
+  retroactively.
+- **DayStats** — aggregated daily statistics (how many tasks completed, on
+  time, etc.), used by charts and the profile screen.
+- **Achievement** — achievement state (unlocked or not, date).
+- **UserProfile** — first-launch date, daily streak, cached weekly averages.
+- **BacklogItem**, **DayTemplate**, **MotivationalQuote** — supporting models
+  for the backlog, day templates, and quotes.
 
-## Расчёт продуктивности
+## Productivity calculation
 
-- **Продуктивность дня** = доля выполненных задач/целей за день (если задач нет
-  — день не учитывается в средних).
-- **Своевременность** — доля выполненных вовремя среди выполненных; отдельная
-  линия на графиках, отдельная от процента выполнения.
-- Подробности по конкретным формулам (лучший период, композитный скор,
-  снимки колец) — в коде репозиториев (`goal_repository.dart`,
-  `stats_repository.dart`), они периодически уточнялись и не дублируются здесь
-  во избежание рассинхрона.
+- **Daily productivity** = share of completed tasks/goals for the day (a day
+  with no tasks is excluded from averages).
+- **On-time rate** — share of completions that were on time among all
+  completions; a separate line on charts, distinct from the completion
+  percentage.
+- Exact formulas for specific metrics (best period, composite score, ring
+  snapshots) live in the repository code (`goal_repository.dart`,
+  `stats_repository.dart`); they've been tuned repeatedly and aren't
+  duplicated here to avoid drift.
 
-## Графики
+## Charts
 
-`ProductivityChart` / `GoalProductivityChart` принимают гранулярность точки
-(день/неделя/месяц/год) и диапазон, тянут агрегированные данные из
-соответствующего репозитория и рисуют `fl_chart` LineChart с прямыми
-(не сглаженными) сегментами — данные дискретны, сглаживание давало
-визуальные артефакты на границах периодов.
+`ProductivityChart` / `GoalProductivityChart` take a point granularity
+(day/week/month/year) and a range, pull aggregated data from the
+corresponding repository, and draw an `fl_chart` LineChart with straight
+(non-smoothed) segments — the data is discrete, and smoothing produced
+visual artifacts at period boundaries.
 
-## Уведомления
+## Notifications
 
-`NotificationService` поверх `flutter_local_notifications`: напоминания к
-началу/концу задачи, «требует внимания», просрочка, напоминания по целям,
-тихие часы. На Windows (без нативного повтора в плагине) уведомления
-перепланируются explicit-циклом на несколько недель вперёд вместо
+`NotificationService` on top of `flutter_local_notifications`: reminders for
+task start/end, "needs attention", overdue, goal reminders, quiet hours. On
+Windows (no native repeat support in the plugin), notifications are
+rescheduled via an explicit loop several weeks ahead instead of
 `matchDateTimeComponents`.
 
-## Тестирование
+## Testing
 
-- `test/` — unit-тесты для репозиториев и расчётов продуктивности/статистики
-  (самое подверженное багам место — регрессии здесь незаметны на глаз).
-- Запуск: `flutter test`.
+- `test/` — unit tests for repositories and productivity/statistics
+  calculations (the area most prone to invisible regressions).
+- Run with `flutter test`.

@@ -1,49 +1,49 @@
-# Enitor — Журнал изменений и улучшений UI
+# Enitor — UI change and improvement log
 
-Полный список визуальных/интерфейсных изменений проекта по пунктам, в хронологическом порядке. Не включает чисто техническую инфраструктуру без визуального эффекта (подпись APK, офлайн-шрифты, фиксы гонок данных) — она вынесена отдельным блоком в конце для полноты.
-
----
-
-## Финальная полировка перед редизайном
-
-1. **Адаптивный блок сводки статистики** — на широких экранах (≥600px) три карточки сводки выстраиваются в один ряд одинаковой высоты (`LayoutBuilder` + `IntrinsicHeight`); на узких — прежняя раскладка 2+1. Раньше на ноутбуке получались две длинные карточки и одна мелкая снизу.
-2. **Аудит цвета** — все «сырые» `Colors.green/red/amber/orange/blue/blueGrey/grey` по всему приложению (задачи, цели, статистика, точность оценок, профиль, ретроспектива, бэклог, шаблоны, поиск, рейтинг, чек-лист подзадач, график продуктивности) заменены на семантические токены палитры (`success/danger/warning/primary/textSecondary`).
-3. **Единообразные состояния ошибки** — новый компонент `ErrorView` (дудл-иконка, спокойный текст, кнопка «Повторить») заменил голый `Center(Text('Ошибка: $e'))` в шести местах: сегодняшние задачи, статистика по дню, профиль, сводка статистики, график продуктивности, дважды в бэклоге.
-4. **Максимальная ширина контента на десктопе** — приложение на широком окне превращается в центральную «страницу» до 720px с полями по бокам вместо растягивания на весь экран; на телефоне — незаметно.
-5. **Удалён мёртвый экран** — неиспользуемый `calendar_screen.dart` (не был подключён к роутеру) убран вместе с папкой.
-6. **Убран весь UI входа/регистрации** — кнопка «Войти», плашка «Аккаунт» в настройках, экран авторизации: решили не делать облачную синхронизацию, элементы стали мёртвым весом интерфейса.
-
-## Редизайн «Живая бумага» (4 фазы)
-
-7. **Фаза 1 — тени и кривые.** Все карточки получили тёплую двухслойную тень («наклейка на бумагу») вместо стандартной синеватой Material-тени; убрана тональная подсветка Material 3 (`surfaceTintColor: transparent`); добавлены именованные кривые движения `easeOut` и `spring` (пружинный перелёт) для дальнейшего использования во всех анимациях.
-8. **Фаза 2 — «корешки» состояния.** Плитки задач и целей вместо сплошной заливки цветом статуса получили тонкую цветную полосу 4px слева + лёгкий тинт фона (~8%) — статус читается, но не «кричит» на весь блок. Перенесённые задачи — отдельный, серый стиль без корешка.
-9. **Фаза 3 — «журнальные» акценты.**
-   - Геро-кольца прогресса на главном экране: анимация count-up с пружинным доводом дуги; устранён визуальный баг «шва» на полном кольце (несимметричный градиент менялся резко на четверти круга) — заменён на симметричный `SweepGradient`.
-   - Журнальная шапка дня (`_DayMasthead`): день недели капсом акцентным «Глиной» + линейка + карточка «Шаблоны».
-   - Буквица акцентного цвета в цитате дня (Source Serif 4, курсив).
-   - Живое пустое состояние (`NotebookEmptyState`): линованный фон блокнота + дудл-иконка вместо голого текста «Нет задач».
-10. **Фаза 4 — прочерчивающийся чекбокс.** Штатный `Checkbox` заменён на `DrawCheckBox`: галочка не появляется мгновенно, а «прочерчивается» по контуру за 340 мс + расходится всплеск-кольцо при выполнении. Плюс кросс-фейд цветного тинта карточки (260 мс) и плавный «бумажный» сдвиг между вкладками (Сегодня/Цели/…) на 220 мс.
-    - Фикс: галочка сначала была не видна — по тапу задача мгновенно улетала в «Выполненные», список успевал уничтожить плитку до конца анимации. Исправлено: чекбокс реагирует оптимистично сразу по тапу, а фактическое обновление модели отложено на 400 мс, чтобы штрих успел дорисоваться.
-    - Фикс: первая версия кросс-фейда падала в релизе серым прямоугольником на обычных плитках без тинта (`TweenAnimationBuilder` не терпит `tween.end == null`) — исправлено условным использованием кросс-фейда только когда тинт задан.
-
-## Редизайн диалогов, тостов и уведомлений
-
-11. **Единый «движок» диалогов** (`showFancyDialog` / `FancyDialogCard`) — заменил голый `AlertDialog`/`SimpleDialog` во всём приложении: пружинное scale+fade появление, иконка-медальон в цветном круге, «выпрыгивающая» с небольшой задержкой после самого диалога.
-12. **Тосты вместо `SnackBar`** (`showFancyToast`, тона success/info/error) — карточка с цветным корешком и иконкой, выезжающая снизу пружиной. Заменила SnackBar: бэкап (экспорт/импорт), сохранение/применение шаблона дня, копирование задач и целей.
-13. **Попап достижения** (`showAchievementPopup`) — вместо `SnackBar` с текстом: медальон с эмодзи, эффект «поп» с перелётом, 7 разлетающихся и гаснущих искр, пульсирующее тёплое свечение, свайп вверх для закрытия; несколько достижений показываются по очереди, а не одной кучей.
-14. **Диалоги подтверждения удаления** («Удалить все задачи?», «Удалить все цели?») — переведены на новый движок с иконкой и акцентным (danger) цветом.
-15. **Диалог выбора для повторяющейся задачи** («Удалить только эту / всю серию») — вместо `SimpleDialog`/`SimpleDialogOption`/`ListTile` сделаны кастомные строки-кнопки с иконкой в круге и подписью, опасное действие («Всю серию») визуально выделено.
-16. **Диалоги ввода** — установка счётчика (задача/цель), название шаблона дня, фактическое время выполнения, оценка качества (звёзды) — все переведены на новый движок с иконкой-медальоном.
-17. **Диалоги-пикеры периода** для копирования целей (неделя/месяц/сезон/год) — переведены с `AlertDialog` на новый движок; палитра ячеек сетки (сегодня / выбранный источник) приведена к акцентному «Глина» вместо стандартных `secondaryContainer`/`onSurface`-оттенков Material.
-18. **Диалоги бэкапа в настройках** (подтверждение импорта, результат импорта) — переведены на новый движок с соответствующими иконками (предупреждение / успех).
-
-## UX-полировка и устранение визуальных багов списка задач
-
-19. **Убрано мигание при переключении дня в календаре и при удалении задачи.** Причина была в архитектуре данных: список задач дня получался через провайдер, который при каждом переключении дня пересоздавался заново и на кадр показывал спиннер вместо списка — весь блок задач размонтировался, а затем полностью переигрывал каскадную анимацию появления. Список теперь читается синхронно из уже загруженного кэша, без промежуточного состояния загрузки — переключение дня и удаление задачи выглядят как один плавный переход, без «пропадания».
+A full, itemized list of the project's visual/UI changes, in chronological order. Doesn't include purely technical infrastructure with no visual effect (APK signing, offline fonts, data-race fixes) — that's listed separately at the end for completeness.
 
 ---
 
-## Техническая инфраструктура (без визуального эффекта, для полноты)
+## Final polish before the redesign
 
-- Офлайн-шрифты — Inter/Manrope/Source Serif 4 забандлены в приложение вместо загрузки из сети при первом запуске (внешне неотличимо, но работает без интернета).
-- Релизная подпись Android — собственный ключ подписи вместо debug-ключа (нужно для публикации, на вид не влияет).
+1. **Adaptive stats summary block** — on wide screens (≥600px) the three summary cards line up in a single row of equal height (`LayoutBuilder` + `IntrinsicHeight`); on narrow screens — the previous 2+1 layout. Previously, on a laptop you'd get two long cards and one small one underneath.
+2. **Color audit** — every "raw" `Colors.green/red/amber/orange/blue/blueGrey/grey` across the app (tasks, goals, statistics, estimate accuracy, profile, retrospective, backlog, templates, search, ratings, subtask checklist, productivity chart) replaced with semantic palette tokens (`success/danger/warning/primary/textSecondary`).
+3. **Consistent error states** — a new `ErrorView` component (doodle icon, calm copy, "Retry" button) replaced a bare `Center(Text('Error: $e'))` in six places: today's tasks, daily stats, profile, stats summary, productivity chart, and twice in the backlog.
+4. **Max content width on desktop** — on a wide window the app becomes a centered "page" up to 720px with side margins instead of stretching across the whole screen; on phone — no visible effect.
+5. **Removed a dead screen** — the unused `calendar_screen.dart` (never wired into the router) was removed along with its folder.
+6. **Removed all sign-in/registration UI** — the "Sign in" button, the "Account" tile in settings, the auth screen: decided against cloud sync, so these became dead UI weight.
+
+## "Living Paper" redesign (4 phases)
+
+7. **Phase 1 — shadows and curves.** All cards got a warm two-layer shadow ("stuck onto paper") instead of the standard bluish Material shadow; Material 3's tonal overlay was removed (`surfaceTintColor: transparent`); named motion curves `easeOut` and `spring` (spring overshoot) were added for use across all future animations.
+8. **Phase 2 — status "stripes".** Task and goal tiles moved from a solid status-color fill to a thin 4px colored stripe on the left + a subtle background tint (~8%) — status is still legible but doesn't "shout" across the whole tile. Transferred tasks — a separate gray style with no stripe.
+9. **Phase 3 — "journal" accents.**
+   - Hero progress rings on the main screen: a count-up animation with a spring arc catch-up; fixed a visual "seam" bug on a full ring (an asymmetric gradient changed abruptly at the quarter mark) — replaced with a symmetric `SweepGradient`.
+   - Journal-style day header (`_DayMasthead`): weekday in caps with accent "Clay" + a rule line + a "Templates" card.
+   - Accent-colored drop cap in the day's quote (Source Serif 4, italic).
+   - Living empty state (`NotebookEmptyState`): a ruled notebook background + doodle icon instead of bare "No tasks" text.
+10. **Phase 4 — the drawing checkbox.** The stock `Checkbox` was replaced with `DrawCheckBox`: the checkmark isn't drawn instantly but is "traced" along its outline over 340 ms + a splash ring spreads out on completion. Plus a card color-tint cross-fade (260 ms) and a smooth "paper" slide between tabs (Today/Goals/…) over 220 ms.
+    - Fix: the checkmark was initially invisible — on tap, the task instantly flew off to "Completed" and the list destroyed the tile before the animation finished. Fixed by making the checkbox respond optimistically right on tap, while the actual model update is delayed by 400 ms so the stroke has time to finish drawing.
+    - Fix: the first version of the cross-fade rendered as a gray rectangle in release builds on plain tiles with no tint (`TweenAnimationBuilder` doesn't tolerate `tween.end == null`) — fixed by only using the cross-fade when a tint is actually set.
+
+## Dialogs, toasts, and notifications redesign
+
+11. **Unified dialog "engine"** (`showFancyDialog` / `FancyDialogCard`) — replaced the bare `AlertDialog`/`SimpleDialog` throughout the app: a spring scale+fade entrance, a medallion icon in a colored circle that "pops in" with a slight delay after the dialog itself.
+12. **Toasts instead of `SnackBar`** (`showFancyToast`, success/info/error tones) — a card with a colored stripe and icon that slides up from the bottom with a spring. Replaced SnackBar for: backup (export/import), saving/applying a day template, copying tasks and goals.
+13. **Achievement popup** (`showAchievementPopup`) — replaced a text `SnackBar`: an emoji medallion with an overshoot "pop" effect, 7 sparks that scatter and fade, a pulsing warm glow, swipe up to dismiss; multiple achievements are shown one after another instead of piled up at once.
+14. **Delete-confirmation dialogs** ("Delete all tasks?", "Delete all goals?") — moved to the new engine with an icon and the accent (danger) color.
+15. **Recurring-task choice dialog** ("Delete just this one / the whole series") — replaced `SimpleDialog`/`SimpleDialogOption`/`ListTile` with custom row-buttons featuring a circled icon and label; the dangerous option ("Entire series") is visually flagged.
+16. **Input dialogs** — setting a counter (task/goal), naming a day template, actual time spent, quality rating (stars) — all moved to the new engine with a medallion icon.
+17. **Period-picker dialogs** for copying goals (week/month/season/year) — moved from `AlertDialog` to the new engine; the grid cell palette (today / selected source) switched to the accent "Clay" instead of the default Material `secondaryContainer`/`onSurface` shades.
+18. **Backup dialogs in settings** (import confirmation, import result) — moved to the new engine with matching icons (warning / success).
+
+## UX polish and fixing visual bugs in the task list
+
+19. **Removed flicker when switching days on the calendar and when deleting a task.** The root cause was in the data architecture: the day's task list came from a provider that got recreated on every day switch and briefly showed a spinner instead of the list — the whole task block would unmount and then fully replay the cascading reveal animation. The list is now read synchronously from an already-loaded cache, with no intermediate loading state — switching days and deleting a task now look like a single smooth transition, with nothing "disappearing".
+
+---
+
+## Technical infrastructure (no visual effect, listed for completeness)
+
+- Offline fonts — Inter/Manrope/Source Serif 4 are bundled into the app instead of being fetched over the network on first launch (visually identical, but works without internet).
+- Android release signing — a dedicated signing key instead of the debug key (required for publishing, no visual effect).

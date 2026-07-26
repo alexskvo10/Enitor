@@ -1,109 +1,110 @@
 # Enitor
 
-Приложение для задач, целей и продуктивности. Без аккаунтов и облака — всё
-хранится локально, на вашем устройстве.
+A cross-platform app for daily tasks, goals, and productivity. No accounts,
+no cloud — everything is stored locally on your device.
 
-Платформы: **Windows**, **Android**. Один кодовый базис на Flutter.
+Platforms: **Windows**, **Android**. Single Flutter codebase.
 
-## Возможности
+## Features
 
-- **Задачи на каждый день**: время начала/конца, приоритет, теги, повторяющиеся
-  задачи («каждый понедельник», «каждое 15 число» и т.п.), копирование набора
-  задач на другой день.
-- **Встроенный календарь-месяц** с цветными маркерами дня (выполнено / частично /
-  просрочено), переход между днями.
-- **Кольцо продуктивности** за день, с учётом своевременности выполнения.
-- **Цели**: неделя / месяц / сезон / год, с дедлайнами, приоритетом и тегами;
-  перенос невыполненных целей (с подтверждением, не молча).
-- **Перенос задач**: невыполненные задачи прошлого дня не исчезают молча —
-  предлагается перенести их на сегодня, с подтверждением.
-- **Статистика**: графики продуктивности и своевременности по задачам и целям
-  (день/неделя/месяц/год), точность оценки длительности задач, соблюдение
-  дедлайнов целей, разбивка по тегам.
-- **Фокус-таймер Помодоро** (25 мин работа / 5 мин перерыв), привязан к конкретной задаче: завершённый фокус автоматически засчитывается в фактическое время задачи.
-- **Ретроспектива**: обзор дня/периода — что получилось, что нет.
-- **Профиль и достижения**: серия дней подряд (streak), тепловая карта
-  активности, оценка дня, достижения.
-- **Бэклог** — задачи без даты, которые ждут своей очереди.
-- **Локальные уведомления**: напоминания к началу/концу задачи, «требует
-  внимания», просрочка, напоминания по целям, тихие часы.
-- **Локализация**: русский и английский.
-- **Тёмная тема**.
+- **Daily tasks**: start/end time, priority, tags, recurring tasks
+  ("every Monday", "every 15th of the month", etc.), copying a day's task
+  set to another day.
+- **Built-in month calendar** with color-coded day markers (completed /
+  partial / overdue), quick navigation between days.
+- **Productivity ring** for the day, factoring in on-time completion.
+- **Goals**: week / month / season / year, with deadlines, priority and
+  tags; transferring unfinished goals requires confirmation (never silent).
+- **Task transfer**: unfinished tasks from a past day don't just disappear —
+  you're prompted to move them to today, with confirmation.
+- **Statistics**: productivity and on-time charts for tasks and goals
+  (day/week/month/year), task duration estimate accuracy, goal deadline
+  compliance, breakdown by tags.
+- **Pomodoro focus timer** (25 min work / 5 min break), tied to a specific
+  task: a completed focus session is automatically counted toward the
+  task's actual time spent.
+- **Retrospective**: a day/period review — what worked, what didn't.
+- **Profile and achievements**: daily streak, activity heatmap, day
+  rating, achievements.
+- **Backlog** — undated tasks waiting their turn.
+- **Local notifications**: reminders for task start/end, "needs attention",
+  overdue, goal reminders, quiet hours.
+- **Localization**: Russian and English.
+- **Dark theme**.
 
-## Стек
+## Stack
 
-| Слой                   | Технология                          |
-|------------------------|--------------------------------------|
-| UI / приложение        | Flutter (Dart)                       |
-| Управление состоянием  | Riverpod                             |
-| Навигация              | go_router                            |
-| Локальное хранилище    | SharedPreferences (JSON)             |
-| Графики                | fl_chart                             |
-| Календарь              | table_calendar                       |
-| Уведомления            | flutter_local_notifications          |
-| Локализация            | flutter_localizations + intl (ru, en)|
+| Layer                  | Technology                            |
+|-------------------------|---------------------------------------|
+| UI / app                | Flutter (Dart)                        |
+| State management        | Riverpod                              |
+| Navigation               | go_router                            |
+| Local storage            | SharedPreferences (JSON)             |
+| Charts                   | fl_chart                             |
+| Calendar                 | table_calendar                       |
+| Notifications             | flutter_local_notifications          |
+| Localization              | flutter_localizations + intl (ru, en)|
 
-Данные хранятся локально в JSON через `SharedPreferences` — облачной
-синхронизации и аккаунтов нет. Есть ручной экспорт/импорт бэкапа в файл
-(`file_picker`).
+Data is stored locally as JSON via `SharedPreferences` — no cloud sync, no
+accounts. There's a manual backup export/import to a file (`file_picker`).
 
-## Установка для разработки
+## Development setup
 
-Подробная инструкция в [docs/setup.md](docs/setup.md).
+Detailed instructions in [docs/setup.md](docs/setup.md).
 
-Кратко:
+Quick start:
 ```bash
 flutter pub get
-flutter run -d windows     # запуск под Windows
-flutter run -d <android>   # запуск под Android (нужно подключить устройство или эмулятор)
+flutter run -d windows     # run on Windows
+flutter run -d <android>   # run on Android (device or emulator required)
 ```
 
-## Архитектура
+## Architecture
 
-Подробное описание — в [docs/architecture.md](docs/architecture.md).
+Detailed description in [docs/architecture.md](docs/architecture.md).
 
-Кратко: **Feature-first** структура. Каждая фича (`today/`, `goals/`, `stats/`,
-…) содержит свои экраны и провайдеры. Общие слои — `data/` (модели +
-репозитории), `core/` (тема, роутер, утилиты), `widgets/` (переиспользуемые
-виджеты), `services/` (уведомления, цитаты).
+In short: **feature-first** structure. Each feature (`today/`, `goals/`,
+`stats/`, …) contains its own screens and providers. Shared layers —
+`data/` (models + repositories), `core/` (theme, router, utils), `widgets/`
+(reusable widgets), `services/` (notifications, quotes).
 
-## Структура проекта
+## Project structure
 
 ```
 Enitor/
 ├── lib/
-│   ├── main.dart                 # точка входа
-│   ├── app.dart                  # корневой виджет приложения
-│   ├── core/                     # тема, роутер, константы, утилиты
-│   ├── l10n/                     # переводы ru + en
+│   ├── main.dart                 # entry point
+│   ├── app.dart                  # root app widget
+│   ├── core/                     # theme, router, constants, utils
+│   ├── l10n/                     # ru + en translations
 │   ├── data/
 │   │   ├── models/                # Task, Goal, DayStats, Achievement, ...
-│   │   └── repositories/          # бизнес-логика поверх локального хранилища
-│   ├── features/                 # экраны, сгруппированные по фичам
-│   │   ├── today/                # список задач на день + календарь
-│   │   ├── backlog/               # задачи без даты
-│   │   ├── goals/                 # цели
-│   │   ├── stats/                 # графики и аналитика
-│   │   ├── retro/                 # ретроспектива
-│   │   ├── achievements/          # достижения
-│   │   ├── profile/               # профиль
-│   │   ├── templates/             # шаблоны наборов задач
-│   │   ├── search/                # поиск
-│   │   ├── settings/              # настройки, уведомления
+│   │   └── repositories/          # business logic over local storage
+│   ├── features/                 # screens, grouped by feature
+│   │   ├── today/                # daily task list + calendar
+│   │   ├── backlog/               # undated tasks
+│   │   ├── goals/                 # goals
+│   │   ├── stats/                 # charts and analytics
+│   │   ├── retro/                 # retrospective
+│   │   ├── achievements/          # achievements
+│   │   ├── profile/               # profile
+│   │   ├── templates/             # day task-set templates
+│   │   ├── search/                # search
+│   │   ├── settings/              # settings, notifications
 │   │   ├── help/                  # FAQ
-│   │   └── about/                 # о приложении
-│   ├── widgets/                  # общие виджеты (кольцо продуктивности и т.п.)
-│   └── services/                 # уведомления, цитаты
+│   │   └── about/                 # about screen
+│   ├── widgets/                  # shared widgets (productivity ring, etc.)
+│   └── services/                 # notifications, quotes
 ├── assets/
 │   ├── fonts/
 │   ├── icon/
-│   └── quotes/                   # JSON-файлы с цитатами
+│   └── quotes/                   # quote JSON files
 ├── test/
 ├── docs/
 └── pubspec.yaml
 ```
 
-## Тесты
+## Tests
 
 ```bash
 flutter test

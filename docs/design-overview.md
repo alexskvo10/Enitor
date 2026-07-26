@@ -1,260 +1,260 @@
-# Enitor — «Живая бумага». Полное описание дизайна (UI)
+# Enitor — "Living Paper". Full design (UI) description
 
-Документ описывает визуальную систему приложения Enitor (Flutter, Windows + Android) так, как она реализована в коде на сегодняшний день. Не маркетинговый текст — техническая спецификация дизайна: точные цвета, шрифты, тайминги анимаций, поведение компонентов.
-
----
-
-## 1. Концепция
-
-**«Бумажный журнал»** — не съёмная тема оформления, а принцип, который отвечает на вопрос «почему» для любого визуального решения:
-
-- Фон — не белый, а тёплая бумага (#F7F4EE), с лёгкой бумажной зернистостью или сеткой точек (bullet journal).
-- Тени — не холодный синеватый Material-elevation, а тёплые «чернильные» тени: карточка выглядит «наклеенной» на бумагу, а не подвешенной в воздухе.
-- Акцент — один: тёплый терракотовый «Глина» (#C26B45), используется точечно (буквица цитаты, шапка дня, иконка серии, состояния ошибки/пустого экрана) — не расползается по всему интерфейсу.
-- Прогресс/движение — везде, где что-то оживает (кольцо, галочка, попап), используется пружинная кривая с лёгким «перелётом», а не линейное появление — ощущение «живой», а не механической, реакции.
-- Текст — акцентный серифный шрифт (Source Serif 4) для цитаты дня и заголовка экрана, «журнальный» приём, отличающий приложение от типового Material-списка дел.
-
-Тёмная тема — не инверсия, а отдельная метафора: «Ночной кабинет», тёплый уголь (не сине-чёрный), с высветленным акцентом (иначе основной синий проваливается по контрасту на тёмном фоне).
+This document describes Enitor's visual system (Flutter, Windows + Android) as it is actually implemented in code today. Not marketing copy — a technical design spec: exact colors, fonts, animation timings, component behavior.
 
 ---
 
-## 2. Цвет
+## 1. Concept
 
-### 2.1 Бренд и акцент
+**"Paper journal"** — not a swappable visual theme, but a principle that answers "why" for every visual decision:
 
-| Токен | HEX | Назначение |
+- Background — not white, but warm paper (#F7F4EE), with subtle paper grain or a dot grid (bullet journal).
+- Shadows — not cold bluish Material elevation, but warm "ink" shadows: a card looks "stuck onto" the paper rather than floating above it.
+- Accent — a single one: warm terracotta "Clay" (#C26B45), used sparingly (quote drop cap, day header, streak icon, error/empty states) — never spread across the whole UI.
+- Progress/motion — anywhere something "comes alive" (ring, checkbox, popup), a spring curve with a slight overshoot is used instead of a linear appearance — a "living", not mechanical, feel.
+- Text — an accent serif typeface (Source Serif 4) for the day's quote and screen title, a "journal" touch that sets the app apart from a typical Material to-do list.
+
+Dark theme — not an inversion, but a separate metaphor: "Night study", warm charcoal (not blue-black), with a brightened accent (otherwise the primary blue loses contrast on a dark background).
+
+---
+
+## 2. Color
+
+### 2.1 Brand and accent
+
+| Token | HEX | Purpose |
 |---|---|---|
-| `primary` | `#3B5BDB` | Бренд — «чернильный синий» (перьевая ручка). Кнопки, ссылки, активные состояния, светлая тема. |
-| `primaryDark` | `#2F4BC4` | Более тёмный оттенок primary (нажатое состояние и пр.) |
-| `primarySoft` | `#93A7F5` | Акцент для тёмной темы — высветлен намеренно: тёмно-синий на угольном фоне терял контраст. |
-| `clay` | `#C26B45` | Второй, точечный акцент «Глина» — буквица, шапка дня, иконки ошибок/пустых состояний, рамка попапа достижения. |
+| `primary` | `#3B5BDB` | Brand — "ink blue" (fountain pen). Buttons, links, active states, light theme. |
+| `primaryDark` | `#2F4BC4` | Darker shade of primary (pressed state, etc.) |
+| `primarySoft` | `#93A7F5` | Dark-theme accent — intentionally brightened: dark blue lost contrast on the charcoal background. |
+| `clay` | `#C26B45` | Second, sparing accent "Clay" — drop cap, day header, error/empty-state icons, achievement popup border. |
 
-### 2.2 Поверхности
+### 2.2 Surfaces
 
-| Токен | HEX | Тема |
+| Token | HEX | Theme |
 |---|---|---|
-| `background` | `#F7F4EE` | светлая — тёплая бумага |
-| `surface` | `#FFFFFF` | светлая — карточки |
-| `surfaceMuted` | `#EFEAE0` | светлая — трек переключателя, приглушённые заливки |
-| `backgroundDark` | `#181613` | тёмная — тёплый уголь (НЕ сине-чёрный) |
-| `surfaceDarkElevated` | `#211E19` | тёмная — карточки |
-| `surfaceDarkMuted` | `#2A261F` | тёмная — трек переключателя, границы |
+| `background` | `#F7F4EE` | light — warm paper |
+| `surface` | `#FFFFFF` | light — cards |
+| `surfaceMuted` | `#EFEAE0` | light — toggle track, muted fills |
+| `backgroundDark` | `#181613` | dark — warm charcoal (NOT blue-black) |
+| `surfaceDarkElevated` | `#211E19` | dark — cards |
+| `surfaceDarkMuted` | `#2A261F` | dark — toggle track, borders |
 
-### 2.3 Текст
+### 2.3 Text
 
-| Токен | HEX | Назначение |
+| Token | HEX | Purpose |
 |---|---|---|
-| `textPrimary` | `#2A2722` | светлая — «тёплые чернила», не чистый чёрный |
-| `textSecondary` | `#7A7468` | светлая — вторичный текст |
-| `textPrimaryDark` | `#ECE7DC` | тёмная — «крем», не чистый белый |
-| `textSecondaryDark` | `#9B948A` | тёмная — вторичный текст |
+| `textPrimary` | `#2A2722` | light — "warm ink", not pure black |
+| `textSecondary` | `#7A7468` | light — secondary text |
+| `textPrimaryDark` | `#ECE7DC` | dark — "cream", not pure white |
+| `textSecondaryDark` | `#9B948A` | dark — secondary text |
 
-### 2.4 Семантика
+### 2.4 Semantic
 
-| Токен | HEX | Назначение |
+| Token | HEX | Purpose |
 |---|---|---|
-| `success` | `#3FA66A` | выполнено / успех |
-| `danger` | `#D65745` | удаление / ошибка / просрочено |
-| `warning` | `#E8A23D` | частично выполнено / предупреждение |
-| `warningGradient` | `#E8A23D → #CF7F28` | янтарный градиент для колец-счётчиков (не amber→orange по умолчанию) |
-| `ringGradient` | `#3B5BDB → #6E86F0` | градиент дуги кольца продуктивности |
-| `ringTrack` / `ringTrackDark` | `#E8E2D6` / `#332E26` | фоновый трек кольца |
+| `success` | `#3FA66A` | completed / success |
+| `danger` | `#D65745` | delete / error / overdue |
+| `warning` | `#E8A23D` | partially completed / warning |
+| `warningGradient` | `#E8A23D → #CF7F28` | amber gradient for counter rings (not the default amber→orange) |
+| `ringGradient` | `#3B5BDB → #6E86F0` | productivity ring arc gradient |
+| `ringTrack` / `ringTrackDark` | `#E8E2D6` / `#332E26` | ring background track |
 
-Правило проекта: **никаких «сырых» `Colors.green/red/amber/blue`** — весь интерфейс проходил аудит и переведён на семантические токены палитры (см. Часть 2, п. 7).
+Project rule: **no "raw" `Colors.green/red/amber/blue`** — the whole UI was audited and moved to semantic palette tokens (see Part 2, item 7).
 
 ---
 
-## 3. Типографика
+## 3. Typography
 
-Три шрифтовые роли, все шрифты забандлены офлайн (не тянутся из сети):
+Three type roles, all fonts bundled offline (never fetched over the network):
 
-| Роль | Шрифт | Где |
+| Role | Font | Where |
 |---|---|---|
-| Текст интерфейса | **Inter** (Regular 400, Medium 500) | тело, подписи, лейблы навигации |
-| Заголовки/числа | **Manrope** (Regular, Bold 700; слоты headline/title получают w600–w800) | заголовки секций, крупные числа (проценты в кольце) |
-| Акцент-«журнал» | **Source Serif 4** (Regular, SemiBold 600, Bold 700, Italic) | заголовок AppBar (23px, w600), буквица и текст цитаты дня (курсив), название приложения на экране «О приложении» |
+| UI text | **Inter** (Regular 400, Medium 500) | body, labels, navigation labels |
+| Headings/numbers | **Manrope** (Regular, Bold 700; headline/title slots get w600–w800) | section headings, large numbers (ring percentages) |
+| "Journal" accent | **Source Serif 4** (Regular, SemiBold 600, Bold 700, Italic) | AppBar title (23px, w600), day-quote drop cap and text (italic), app name on the About screen |
 
-Буквица (drop cap) цитаты дня: первая буква — Source Serif 4, 46px, w600, цвет `clay`, `height: 0.92`; остальной текст — курсив Source Serif 4 обычного размера тела.
-
----
-
-## 4. Поверхности, тени, форма
-
-- Скругление карточек — **16px**, попапов — **24px**, чипов/пилюль — **stadium (полное скругление)**.
-- **`stickerShadow`** (обычная карточка) — двухслойная: контактная тень `blur 2 / offset (0,1) / alpha 0.05` + рассеянная `blur 14 / offset (0,5) / alpha 0.055`, цвет — тёплые чернила `#2A2722`, не серый/синий.
-- **`raisedShadow`** (приподнятые поверхности — FAB, шиты, диалоги, тосты, попап достижения) — `blur 6 / offset (0,2) / alpha 0.07` + `blur 34 / offset (0,14) / alpha 0.10`.
-- Card в тёмной теме: тень почти не читается на угле → компенсируется рамкой `surfaceDarkMuted` + `surfaceTintColor: transparent` (важно: без этого Material 3 подмешивает тональную подсветку поверх тёмного фона).
-- **Корешок состояния** (state stripe): вместо заливки всей плитки задачи/цели цветом статуса — тонкая цветная полоса 4px слева (danger/success/warning) + лёгкий тинт фона ~8%. Перенесённые задачи — серый фон без корешка.
+Day quote drop cap: first letter — Source Serif 4, 46px, w600, `clay` color, `height: 0.92`; the rest of the text — regular-size italic Source Serif 4.
 
 ---
 
-## 5. Motion-система (кривые и тайминги)
+## 4. Surfaces, shadows, shape
 
-Два именованных токена кривой на всё приложение:
+- Card corner radius — **16px**, popups — **24px**, chips/pills — **stadium (fully rounded)**.
+- **`stickerShadow`** (regular card) — two layers: a contact shadow `blur 2 / offset (0,1) / alpha 0.05` + a diffuse one `blur 14 / offset (0,5) / alpha 0.055`, color — warm ink `#2A2722`, not gray/blue.
+- **`raisedShadow`** (elevated surfaces — FAB, sheets, dialogs, toasts, achievement popup) — `blur 6 / offset (0,2) / alpha 0.07` + `blur 34 / offset (0,14) / alpha 0.10`.
+- Card in dark theme: the shadow barely reads on charcoal → compensated with a `surfaceDarkMuted` border + `surfaceTintColor: transparent` (important: without this, Material 3 mixes a tonal overlay on top of the dark background).
+- **State stripe**: instead of filling the whole task/goal tile with the status color, a thin 4px colored stripe on the left (danger/success/warning) + a subtle ~8% background tint. Transferred tasks — gray background, no stripe.
 
-- **`easeOut`** — `Cubic(0.22, 1, 0.36, 1)` — стандартное плавное появление/движение (пилюля переключателя, диалоги закрытия, обычные переходы).
-- **`spring`** — `Cubic(0.34, 1.56, 0.64, 1)` — пружина с лёгким перелётом за 100%, для «живых» акцентов (кольца, галочка, попапы, тосты, достижения).
+---
 
-Ключевые тайминги по компонентам:
+## 5. Motion system (curves and timings)
 
-| Эффект | Длительность | Кривая |
+Two named curve tokens across the whole app:
+
+- **`easeOut`** — `Cubic(0.22, 1, 0.36, 1)` — the standard smooth appearance/motion (toggle pill, dialog dismissal, ordinary transitions).
+- **`spring`** — `Cubic(0.34, 1.56, 0.64, 1)` — a spring with a slight overshoot past 100%, for "living" accents (rings, checkbox, popups, toasts, achievements).
+
+Key component timings:
+
+| Effect | Duration | Curve |
 |---|---|---|
-| Переключатель периода (пилюля едет) | 240 мс | easeOut |
-| Диалог: scale+fade появление | 280 мс | spring |
-| Медальон-иконка в диалоге («выпрыгивает») | задержка 90 мс + 520 мс (TweenSequence 70%/30%, easeOutBack→easeOut, 0.4→1.12→1.0) | — |
-| Тост: выезд снизу | 460 мс появление / 260 мс уход | spring / easeIn |
-| Попап достижения: выезд сверху | 650 мс | spring / easeIn (на закрытии) |
-| Попап достижения: пульсация фона медальона | 1100 мс, repeat-reverse | линейная |
-| Попап достижения: искры (7 шт., радиус 34px) | синхронно с entrance × 1.6 | — |
-| Попап достижения: автозакрытие | через 3600 мс, либо свайп вверх / тап | — |
-| Галочка задачи: прочерчивание пути | 340 мс | easeOut |
-| Галочка: всплеск-кольцо при выполнении | 460 мс, однократно | линейная (по alpha) |
-| Каскад появления карточек списка (StaggerReveal) | 280 мс на элемент, старт со сдвигом `index × 45 мс` (макс. 360 мс) | easeOut, fade + смещение на 10px снизу |
-| Кольцо продуктивности: довод дуги | 1100 мс | spring (число при этом клампится к цели — без обратного «дёргания») |
-| Кросс-фейд тинта корешка задачи | 260 мс | ColorTween |
-| «Бумажный» сдвиг между вкладками (Сегодня/Цели/…) | 220 мс | Fade + Slide ±0.04 по направлению перехода |
+| Period toggle (pill slides) | 240 ms | easeOut |
+| Dialog: scale+fade entrance | 280 ms | spring |
+| Dialog medallion icon ("pops in") | 90 ms delay + 520 ms (TweenSequence 70%/30%, easeOutBack→easeOut, 0.4→1.12→1.0) | — |
+| Toast: slide up from bottom | 460 ms in / 260 ms out | spring / easeIn |
+| Achievement popup: slide down from top | 650 ms | spring / easeIn (on close) |
+| Achievement popup: medallion background pulse | 1100 ms, repeat-reverse | linear |
+| Achievement popup: sparks (7, 34px radius) | synced with entrance × 1.6 | — |
+| Achievement popup: auto-close | after 3600 ms, or swipe up / tap | — |
+| Task checkbox: stroke drawing | 340 ms | easeOut |
+| Checkbox: splash ring on completion | 460 ms, one-shot | linear (by alpha) |
+| List card cascade reveal (StaggerReveal) | 280 ms per element, staggered by `index × 45 ms` (capped at 360 ms) | easeOut, fade + 10px upward offset |
+| Productivity ring: arc catch-up | 1100 ms | spring (the number is clamped to the target — no reverse "jitter") |
+| Task stripe tint cross-fade | 260 ms | ColorTween |
+| "Paper" slide between tabs (Today/Goals/…) | 220 ms | Fade + Slide ±0.04 in the transition direction |
 
 ---
 
-## 6. Фон и «атмосфера»
+## 6. Background and "atmosphere"
 
-Глобальная подложка `AppBackground` рисуется один раз под всем приложением (Scaffold и AppBar — прозрачные), три пользовательских стиля (настраиваются в Настройках):
+A global `AppBackground` layer is drawn once beneath the whole app (Scaffold and AppBar are transparent), with three user-selectable styles (configurable in Settings):
 
-1. **Гладкий** — просто цвет темы.
-2. **Бумага** (по умолчанию) — двухслойная рябь мелких точек (шаг 7px и 11px, alpha 0.035–0.06) — читается как зерно бумаги, без ассетов.
-3. **Точки** — регулярная сетка точек 24px (эстетика bullet journal), alpha 0.11–0.13.
+1. **Smooth** — a flat theme color.
+2. **Paper** (default) — a two-layer fine dot ripple (7px and 11px pitch, alpha 0.035–0.06) — reads as paper grain, no assets involved.
+3. **Dots** — a regular 24px dot grid (bullet-journal aesthetic), alpha 0.11–0.13.
 
-Опциональная **виньетка**: в светлой теме — лёгкое затемнение краёв (radial gradient, alpha до 0.035), в тёмной — наоборот, лёгкое высветление центра. Не перехватывает тач (`IgnorePointer`).
+Optional **vignette**: in light theme — a subtle edge darkening (radial gradient, alpha up to 0.035); in dark theme — the opposite, a subtle center brightening. Doesn't intercept touch (`IgnorePointer`).
 
-**Пустые состояния** (`NotebookEmptyState`) — не заглушка, а «линованный лист»: горизонтальные линии блокнота (шаг 37px, alpha 0.12, цвет — акцент темы) + дудл-иконка (обычно clay, alpha 0.75) + спокойный текст.
+**Empty states** (`NotebookEmptyState`) — not a placeholder, but a "ruled page": horizontal notebook lines (37px pitch, alpha 0.12, theme accent color) + a doodle icon (usually clay, alpha 0.75) + calm copy.
 
-**Состояния ошибки** (`ErrorView`) — та же логика тона: иконка `cloud_off`, clay 0.75, текст «Не удалось загрузить» (без технического текста ошибки — он пугает и ничего не объясняет пользователю), опциональная кнопка «Повторить».
-
----
-
-## 7. Библиотека компонентов
-
-Переиспользуемые виджеты со своим характером — не голые системные:
-
-- **`DrawCheckBox`** — чекбокс, где галочка не появляется мгновенно, а «прочерчивается» по пути (два сегмента, длина считается геометрически для равномерной скорости), с рамкой, кросс-фейдящей из контура в заливку, и всплеск-кольцом при отметке «выполнено». Тап отвечает оптимистично (мгновенно), не дожидаясь ответа модели данных.
-- **`ProductivityRing`** — кольцо прогресса на `CustomPainter`: симметричный `SweepGradient` (цвет→светлый→тот же цвет), чтобы на полном круге не было шва; мягкое размытое свечение под дугой; число в центре не дёргается назад при пружинном перелёте дуги.
-- **`GlowFab`** — расширенная FAB-кнопка с мягким цветным ореолом под ней (тень с отрицательным spread, повторяющая форму кнопки).
-- **`PillToggle<T>`** — сегментный переключатель в стиле iOS: одна «едущая» пилюля под подписями (`AnimatedAlign`), дженерик по типу значения — используется и для периода целей, и для темы оформления.
-- **`SegChip`** — чип-пилюля без галочки, для переключателей графиков/тегов в статистике.
-- **`ErrorView`** / **`NotebookEmptyState`** — см. п. 6.
-- **`FancyDialogCard` / `showFancyDialog` / `showFancyRawDialog`** — единый «движок» диалогов: пружинное scale+fade поверх затемнения 45% alpha, иконка-медальон 64px (цветной круг 14% alpha + иконка), выпрыгивающая с задержкой после самого диалога.
-- **`showFancyToast`** (`ToastTone.success/info/error`) — тост снизу экрана вместо `SnackBar`: карточка с цветным корешком слева (4px), иконкой и текстом (макс. 3 строки), выезжает пружиной, уходит по тапу или таймауту (3200 мс по умолчанию).
-- **`showAchievementPopup`** — праздничная плашка сверху экрана: эмодзи-медальон с эффектом «поп» (TweenSequence 0.3→1.18→1.0), 7 разлетающихся и гаснущих искр, пульсирующее тёплое свечение фона, свайп вверх для закрытия, показывает несколько достижений по очереди (через `Future`, а не одновременным нагромождением).
-- **`StaggerReveal`** — каскадное появление элементов списка; параметр `active` предотвращает проигрывание анимации, пока виджет построен «за кадром» (например, соседняя вкладка `TabBarView`).
-- **`SubtaskChecklist`** — сворачиваемый (`AnimatedSize`) чек-лист подзадач с кликабельным кольцом-индикатором «2/3», отмечающим всё сразу.
-- **`StarRating`** — рейтинг качества (диалог оценки при завершении задачи/цели), встроен в `FancyDialogCard`.
-- **`PomodoroBanner`** — баннер активного Помодоро-таймера (25 мин фокус / 5 мин перерыв) над кольцами на экране «Сегодня»; скрыт, пока таймер не запущен. Состояние живёт в провайдере, переключение вкладок не сбрасывает отсчёт. Завершённый фокус автоматически пишется в фактическое время задачи (аналитика точности оценок).
-- **`TransferPromptBanner`** (`showTransferPromptBanner`) — баннер сверху с вопросом «перенести?» для невыполненных задач/целей прошлого дня/периода: визуальный язык как у `showAchievementPopup` (выезд сверху, пружина), но с двумя действиями (да/нет), а не только информационный.
-- **`TransferCatchupSheet`** — «догоняющий» диалог-чек-лист (на движке `FancyDialogCard`), если пользователь не заходил в приложение в момент, когда должен был сработать перенос — даёт выбрать, что перенести, из пропущенных кандидатов.
-- **`DeltaIndicator`** — треугольник ▲/▼ + число: дельта продуктивности к прошлой неделе (зелёная/красная/нейтральная на нуле), используется в профиле.
-- **`YearHeatmap`** — тепловая карта года в духе GitHub (недели-колонки, дни-строки), цвет ячейки — тот же композитный скор `P×(0.7+0.3·T)`, что и «лучший период» в статистике; экран «Профиль».
-- **`TagMini`** — маленькая пилюля-тег («#labels»), общий стиль для тегов и у задач, и у целей.
-- **`BatteryHintCard`** — карточка-подсказка «разрешить работу в фоне» (актуально для агрессивных к фону прошивок вроде Transsion/Infinix), показывается только когда реально нужно и если уведомления включены.
-- **`EscDismissible`** — обёртка, закрывающая диалог/шит по `Esc` на десктопе (на мобиле — no-op).
+**Error states** (`ErrorView`) — the same tonal logic: `cloud_off` icon, clay 0.75, "Couldn't load" text (no raw error text — it's scary and explains nothing to the user), an optional "Retry" button.
 
 ---
 
-## 8. Экраны
+## 7. Component library
 
-12 экранов, обе темы (светлая/тёмная), общая грамматика отступов и иерархии:
+Reusable widgets with their own character — not bare system defaults:
 
-1. **Сегодня** (`today_screen.dart`) — главный экран: встроенный календарь-месяц с цветными маркерами дня (зелёный — всё выполнено, жёлтый — частично, красный — ничего не выполнено в прошлом/сегодня, **синий** — ничего не выполнено, но день ещё будущий — чтобы не нагнетать тревожность), журнальная шапка дня (день недели капсом «Глиной» + линейка + кнопка «Шаблоны»), цитата дня с буквицей, двойное кольцо (продуктивность + своевременность), бюджет дня по времени, три анимированных секции задач (Требует внимания / Невыполненные / Выполненные, последняя — сворачивается). Сверху могут появляться `PomodoroBanner` (активный фокус-таймер) и `BatteryHintCard` (подсказка про фон); при пропущенном переносе — `TransferCatchupSheet`.
-2. **Цели** (`goals_screen.dart`) — 4 периода (Неделя/Месяц/Сезон/Год) через `PillToggle`, та же анимированная секционная структура, что и в задачах.
-3. **Статистика** (`stats_screen.dart`) — графики продуктивности, лучшие периоды, серии (streaks), карточка точности оценки длительности задач (`estimate_accuracy.dart`) и соблюдения дедлайнов целей (`goal_deadline_accuracy.dart`).
-4. **Статистика по тегам** (`tag_stats_screen.dart`).
-5. **Достижения** (`achievements_screen.dart`) — витрина ачивок, разлочка триггерит `showAchievementPopup`.
-6. **Ретроспектива** (`retrospective_screen.dart`).
-7. **Бэклог** (`backlog_screen.dart`) — невыполненные задачи/цели, «зависшие» после переноса.
-8. **Профиль** (`profile_screen.dart`) — серия дней (streak), `YearHeatmap` (тепловая карта года), `DeltaIndicator` (дельта продуктивности к прошлой неделе), достижения, итоги недели.
-9. **Настройки** (`settings_screen.dart`) — тема, фон, виньетка, экспорт/импорт бэкапа (диалоги/тосты на новом движке).
-10. **О приложении** (`about_screen.dart`) — логотип, версия, акцентный Source Serif заголовок.
+- **`DrawCheckBox`** — a checkbox where the checkmark doesn't appear instantly but is "drawn" along its path (two segments, length computed geometrically for a constant-speed stroke), with an outline that cross-fades into a fill, and a splash ring on completion. The tap responds optimistically (instantly), without waiting for the data model.
+- **`ProductivityRing`** — a `CustomPainter` progress ring: a symmetric `SweepGradient` (color→light→same color) so a full circle has no visible seam; a soft blurred glow beneath the arc; the center number doesn't jump back during the spring overshoot.
+- **`GlowFab`** — an extended FAB with a soft colored halo beneath it (a negative-spread shadow matching the button's shape).
+- **`PillToggle<T>`** — an iOS-style segmented toggle: one "sliding" pill under the labels (`AnimatedAlign`), generic over the value type — used for both the goal period and the appearance theme.
+- **`SegChip`** — a checkless pill chip, for chart/tag toggles in Statistics.
+- **`ErrorView`** / **`NotebookEmptyState`** — see section 6.
+- **`FancyDialogCard` / `showFancyDialog` / `showFancyRawDialog`** — the unified dialog "engine": a spring scale+fade over a 45%-alpha scrim, a 64px medallion icon (14%-alpha colored circle + icon) that pops in with a delay after the dialog itself.
+- **`showFancyToast`** (`ToastTone.success/info/error`) — a bottom-screen toast replacing `SnackBar`: a card with a colored stripe on the left (4px), an icon and text (max 3 lines), slides in with a spring, dismisses on tap or timeout (3200 ms by default).
+- **`showAchievementPopup`** — a celebratory banner at the top of the screen: an emoji medallion with a "pop" effect (TweenSequence 0.3→1.18→1.0), 7 sparks that scatter and fade, a pulsing warm background glow, swipe up to dismiss, shows multiple achievements one after another (via `Future`, not stacked all at once).
+- **`StaggerReveal`** — cascading reveal of list items; the `active` parameter prevents the animation from playing while the widget is built off-screen (e.g. an adjacent `TabBarView` tab).
+- **`SubtaskChecklist`** — a collapsible (`AnimatedSize`) subtask checklist with a tappable "2/3" ring indicator that marks everything at once.
+- **`StarRating`** — a quality rating (shown in a dialog when completing a task/goal), embedded in `FancyDialogCard`.
+- **`PomodoroBanner`** — the active Pomodoro timer banner (25 min focus / 5 min break) above the rings on the Today screen; hidden until the timer is started. State lives in a provider, so switching tabs doesn't reset the countdown. A completed focus session is automatically logged as actual time spent on the task (feeds the estimate-accuracy analytics).
+- **`TransferPromptBanner`** (`showTransferPromptBanner`) — a top banner asking "transfer?" for unfinished tasks/goals from a past day/period: the same visual language as `showAchievementPopup` (slides down, spring), but with two actions (yes/no) rather than being purely informational.
+- **`TransferCatchupSheet`** — a "catch-up" checklist dialog (built on `FancyDialogCard`), shown if the user didn't open the app at the moment a transfer should have happened — lets them pick what to transfer from the missed candidates.
+- **`DeltaIndicator`** — a ▲/▼ triangle + number: the productivity delta vs. last week (green/red/neutral at zero), used on the profile screen.
+- **`YearHeatmap`** — a GitHub-style year heatmap (weeks as columns, days as rows), cell color driven by the same composite score `P×(0.7+0.3·T)` used for "best period" in Statistics; on the Profile screen.
+- **`TagMini`** — a small tag pill ("#labels"), shared styling for tags on both tasks and goals.
+- **`BatteryHintCard`** — a hint card to "allow background activity" (relevant on aggressively background-killing firmware like Transsion/Infinix), shown only when actually needed and if notifications are enabled.
+- **`EscDismissible`** — a wrapper that closes a dialog/sheet on `Esc` on desktop (no-op on mobile).
+
+---
+
+## 8. Screens
+
+12 screens, both themes (light/dark), a shared spacing and hierarchy grammar:
+
+1. **Today** (`today_screen.dart`) — the main screen: a built-in month calendar with color-coded day markers (green — everything done, yellow — partial, red — nothing done in the past/today, **blue** — nothing done but the day is still in the future, to avoid inducing anxiety), a journal-style day header (weekday in caps with "Clay", a rule line, a "Templates" button), the day's quote with a drop cap, a double ring (productivity + on-time rate), a time budget for the day, three animated task sections (Needs Attention / Unfinished / Completed, the last one collapsible). `PomodoroBanner` (active focus timer) and `BatteryHintCard` (background hint) may appear at the top; `TransferCatchupSheet` appears on a missed transfer.
+2. **Goals** (`goals_screen.dart`) — 4 periods (Week/Month/Season/Year) via `PillToggle`, the same animated section structure as tasks.
+3. **Statistics** (`stats_screen.dart`) — productivity charts, best periods, streaks, a task duration estimate-accuracy card (`estimate_accuracy.dart`) and a goal deadline-compliance card (`goal_deadline_accuracy.dart`).
+4. **Tag statistics** (`tag_stats_screen.dart`).
+5. **Achievements** (`achievements_screen.dart`) — an achievement showcase; unlocking triggers `showAchievementPopup`.
+6. **Retrospective** (`retrospective_screen.dart`).
+7. **Backlog** (`backlog_screen.dart`) — unfinished tasks/goals left over after a transfer.
+8. **Profile** (`profile_screen.dart`) — daily streak, `YearHeatmap` (yearly heatmap), `DeltaIndicator` (productivity delta vs. last week), achievements, weekly summary.
+9. **Settings** (`settings_screen.dart`) — theme, background, vignette, backup export/import (dialogs/toasts on the new engine).
+10. **About** (`about_screen.dart`) — logo, version, accent Source Serif title.
 11. **FAQ** (`faq_screen.dart`).
-12. Плюс модальные — **Шаблоны дня** (`templates_sheet.dart`), **Глобальный поиск** (`global_search.dart`) — используют тот же язык компонентов.
+12. Plus modals — **Day templates** (`templates_sheet.dart`), **Global search** (`global_search.dart`) — use the same component language.
 
-Адаптивность: на широком (десктопном) окне контент оборачивается в `ConstrainedBox(maxWidth: 720)` по центру — интерфейс остаётся «страницей» с полями по бокам, а не растягивается на весь экран; на телефоне ограничение прозрачно (нет эффекта).
-
----
-
-## 9. Тёмная тема — не инверсия, а отдельное решение
-
-- Акцент `primary` заменяется на `primarySoft` (#93A7F5) — прямой #3B5BDB на угольном фоне терял читаемость.
-- Тень карточки почти не работает на тёмном фоне → компенсация тонкой рамкой `surfaceDarkMuted`.
-- Бегунок `Switch` — цвет фиксирован явно во всех состояниях (`WidgetStateProperty.resolveWith`): в Material 3 бегунок на hover/disabled подменялся на бледный `primaryContainer` и «терялся» на фоне — исправлено принудительной раскраской.
-- Виньетка меняет направление: светлая — затемняет края, тёмная — подсвечивает центр.
+Adaptivity: on a wide (desktop) window, content is wrapped in a centered `ConstrainedBox(maxWidth: 720)` — the UI stays a "page" with side margins instead of stretching across the whole screen; on phones this constraint is transparent (no effect).
 
 ---
 
-## 10. Кнопки — типы, расположение, внешний вид
+## 9. Dark theme — not an inversion, a separate decision
 
-### 10.1 Типы кнопок в системе
+- The `primary` accent is swapped for `primarySoft` (#93A7F5) — the plain #3B5BDB lost readability on the charcoal background.
+- Card shadow barely works on a dark background → compensated with a thin `surfaceDarkMuted` border.
+- `Switch` thumb — color is explicitly pinned in every state (`WidgetStateProperty.resolveWith`): in Material 3 the thumb would swap to a pale `primaryContainer` on hover/disabled and get lost against the background — fixed by forcing the color.
+- The vignette flips direction: light theme darkens the edges, dark theme brightens the center.
 
-| Тип | Где используется | Как выглядит |
+---
+
+## 10. Buttons — types, placement, appearance
+
+### 10.1 Button types in the system
+
+| Type | Used for | Appearance |
 |---|---|---|
-| **`FloatingActionButton.extended` через `GlowFab`** | «+ Задача», «+ Цель» | Расширенная FAB внизу справа, заливка `primary`, белая иконка+текст, под кнопкой мягкий цветной ореол (тень с отрицательным spread, того же акцентного цвета) |
-| **`TextButton.icon`** | Массовые действия под списком («Перенести всё» / «Скопировать» / «Удалить все») | Без фона, иконка 17px + подпись, компактная плотность (`VisualDensity.compact`), паддинг 10×6px; «Удалить все» — текст цвета `danger`, остальные — обычный `primary`/`onSurface` |
-| **`FilledButton`** | Основное действие в диалогах и формах («Сохранить», «Добавить», «Удалить», «OK») | Сплошная заливка `primary` (для «Удалить» — `danger`), белый текст, автофокус на самой частой/безопасной кнопке |
-| **`TextButton`** | «Отмена» рядом с `FilledButton` в диалогах | Без фона, обычный текст-кнопка, всегда слева от основного действия |
-| **`OutlinedButton.icon`** | «Сохранить этот день как шаблон» в шите шаблонов | Рамка вместо заливки, иконка `add` 18px, на всю ширину |
-| **`IconButton`** | Поиск (AppBar), навигация по периоду (`‹` `›`), «Перенести вперёд» у одиночной задачи/цели, счётчик +/− | Только иконка 24px в круглой зоне тапа, без подписи и фона; цвет `primary` для активных действий |
-| **`PopupMenuButton`** (иконка `more_vert`, «⋮») | Меню действий задачи/цели/шаблона | Открывает выпадающий список `ListTile`-пунктов с иконкой слева и подписью; опасные пункты («Удалить») — иконка и текст `danger` |
-| **`ActionChip`** | «Невыполненные задачи (N)» / «Недостигнутые цели (N)» | Пилюля с иконкой `inbox_outlined` 16px + счётчик, компактная плотность, ведёт в экран бэклога |
-| **`SegChip`** | Переключатели группировки графика и периода в «Статистике» | Пилюля-`ChoiceChip` без галочки: выбран → заливка `primary` + белый текст, не выбран → контур `onSurface 18%` |
-| **`PillToggle`** | Период целей (Неделя/Месяц/Сезон/Год), тема оформления, стиль фона | Не отдельные кнопки, а один переключатель: «едущая» белая/тёмная пилюля под подписями на приглушённой дорожке |
-| **Кастомные строки-кнопки в диалоге** (`_RecurringChoiceRow` и т.п.) | Выбор варианта удаления повторяющейся задачи | `Material`+`InkWell` на всю ширину: иконка в цветном круге слева, заголовок/подзаголовок справа; опасный вариант («Всю серию») — красная иконка |
+| **`FloatingActionButton.extended` via `GlowFab`** | "+ Task", "+ Goal" | An extended FAB bottom-right, `primary` fill, white icon+label, a soft colored halo beneath the button (a negative-spread shadow in the same accent color) |
+| **`TextButton.icon`** | Bulk actions below a list ("Transfer all" / "Copy" / "Delete all") | No background, 17px icon + label, compact density (`VisualDensity.compact`), 10×6px padding; "Delete all" — `danger`-colored text, the rest — regular `primary`/`onSurface` |
+| **`FilledButton`** | Primary action in dialogs and forms ("Save", "Add", "Delete", "OK") | Solid `primary` fill (`danger` for "Delete"), white text, autofocus on the most common/safe button |
+| **`TextButton`** | "Cancel" next to `FilledButton` in dialogs | No background, plain text button, always to the left of the primary action |
+| **`OutlinedButton.icon`** | "Save this day as a template" in the templates sheet | Outline instead of fill, 18px `add` icon, full width |
+| **`IconButton`** | Search (AppBar), period navigation (`‹` `›`), "Transfer forward" on a single task/goal, counter +/− | Icon-only, 24px, in a circular tap zone, no label or background; `primary` color for active actions |
+| **`PopupMenuButton`** (`more_vert` icon, "⋮") | Task/goal/template action menu | Opens a dropdown of `ListTile` items with a leading icon and label; dangerous items ("Delete") — `danger` icon and text |
+| **`ActionChip`** | "Unfinished tasks (N)" / "Unachieved goals (N)" | A pill with an `inbox_outlined` 16px icon + count, compact density, leads to the backlog screen |
+| **`SegChip`** | Chart grouping and period toggles in "Statistics" | A checkless `ChoiceChip` pill: selected → `primary` fill + white text, unselected → `onSurface 18%` outline |
+| **`PillToggle`** | Goal period (Week/Month/Season/Year), appearance theme, background style | Not separate buttons — a single toggle: a "sliding" light/dark pill under the labels on a muted track |
+| **Custom row-buttons in a dialog** (`_RecurringChoiceRow`, etc.) | Choosing how to delete a recurring task | Full-width `Material`+`InkWell`: an icon in a colored circle on the left, title/subtitle on the right; the dangerous option ("Entire series") — a red icon |
 
-### 10.2 Расположение по экранам
+### 10.2 Placement by screen
 
-**Нижняя навигация** (видна всегда, кроме модальных экранов) — `NavigationBar` с 4 вкладками слева направо: **Задачи** (`check_circle_outline`/`check_circle`) → **Статистика** (`show_chart_outlined`/`show_chart`) → **Цели** (`flag_outlined`/`flag`) → **Профиль** (`person_outline`/`person`). Активная иконка — заливкой, под ней капсула-индикатор цвета `primary` (тёмная тема — `primarySoft`).
+**Bottom navigation** (always visible except on modal screens) — a `NavigationBar` with 4 tabs left to right: **Tasks** (`check_circle_outline`/`check_circle`) → **Statistics** (`show_chart_outlined`/`show_chart`) → **Goals** (`flag_outlined`/`flag`) → **Profile** (`person_outline`/`person`). The active icon is filled, with a `primary`-colored pill indicator beneath it (`primarySoft` in dark theme).
 
-**Сегодня:**
-- AppBar, справа: иконка-кнопка «Поиск задач» (`search`).
-- Низ экрана справа: `GlowFab` «+ Задача» (скрыта на прошедших днях).
-- Под лентой действий (`Wrap`, прижато вправо, после карточек сводки): **Перенести всё** (`east`, только в ночном окне 0:00–3:59/23:xx) → **Скопировать** (`copy_all_outlined`) → **Удалить все** (`delete_sweep_outlined`, красным; скрыта на прошедших днях).
-- Чип **«Невыполненные задачи (N)»** — над лентой действий, слева, появляется только если в бэклоге есть задачи.
-- Каждая плитка задачи, справа: на прошедших днях — одиночная иконка «Перенести вперёд» (`east`) либо ничего; на текущих/будущих — меню «⋮» (Фокус-Помодоро → Факт. время → Перенести вперёд → Редактировать → Удалить).
-- Задача-счётчик: слева минус (`remove_circle_outline`), по центру тап-зона с текущим значением, справа плюс (`add_circle`, `primary`).
-- Низ формы задачи (шит): одна кнопка `FilledButton` на всю ширину — «Добавить»/«Сохранить».
+**Today:**
+- AppBar, right: a "Search tasks" icon button (`search`).
+- Bottom-right: `GlowFab` "+ Task" (hidden on past days).
+- Below the action row (`Wrap`, right-aligned, after the summary cards): **Transfer all** (`east`, only during the night window 0:00–3:59/23:xx) → **Copy** (`copy_all_outlined`) → **Delete all** (`delete_sweep_outlined`, red; hidden on past days).
+- **"Unfinished tasks (N)"** chip — above the action row, left-aligned, shown only when the backlog has items.
+- Each task tile, right side: on past days — a single "Transfer forward" icon (`east`) or nothing; on current/future days — a "⋮" menu (Pomodoro focus → Actual time → Transfer forward → Edit → Delete).
+- Task counter: minus on the left (`remove_circle_outline`), a tappable current-value zone in the middle, plus on the right (`add_circle`, `primary`).
+- Bottom of the task form (sheet): a single full-width `FilledButton` — "Add"/"Save".
 
-**Цели:**
-- AppBar, справа: «Поиск целей» (`search`).
-- Под AppBar: `PillToggle` из 4 периодов.
-- Низ экрана справа: `GlowFab` «+ Цель» (скрыта в прошедших периодах).
-- Внутри списка, по центру: навигация периода `‹` / `›` (`chevron_left`/`chevron_right`).
-- Чип **«Недостигнутые цели (N)»** — аналогично бэклогу задач.
-- Лента действий (прижата вправо): **Перенести всё** → **Скопировать** (открывает диалог-пикер периода) → **Удалить все**.
-- Плитка цели, справа: «Перенести в текущий период» (`east`) либо меню «⋮» (Редактировать / Удалить).
+**Goals:**
+- AppBar, right: "Search goals" (`search`).
+- Below the AppBar: a 4-period `PillToggle`.
+- Bottom-right: `GlowFab` "+ Goal" (hidden in past periods).
+- Inside the list, centered: period navigation `‹` / `›` (`chevron_left`/`chevron_right`).
+- **"Unachieved goals (N)"** chip — same pattern as the task backlog.
+- Action row (right-aligned): **Transfer all** → **Copy** (opens a period-picker dialog) → **Delete all**.
+- Goal tile, right side: "Transfer to current period" (`east`) or a "⋮" menu (Edit / Delete).
 
-**Шаблоны дня** (модальный шит): вверху — `OutlinedButton.icon` «Сохранить этот день как шаблон (N)» на всю ширину; каждый шаблон в списке — справа меню «⋮» (Переименовать / Удалить).
+**Day templates** (modal sheet): at the top — a full-width `OutlinedButton.icon` "Save this day as a template (N)"; each template in the list has a "⋮" menu on the right (Rename / Delete).
 
-**Настройки:** переключатели вида/уведомлений — `SwitchListTile` (весь ряд кликабелен, справа стандартный `Switch`); время утреннего/вечернего ревью — кастомная кнопка-«таблетка» с иконкой `schedule` и текущим временем, открывает time picker; «Экспорт в файл» / «Импорт из файла» / «Помощь» / «О приложении» — обычные `ListTile` со стрелкой `chevron_right` справа.
+**Settings:** appearance/notification toggles — `SwitchListTile` (the whole row is tappable, with a standard `Switch` on the right); morning/evening review time — a custom "pill" button with a `schedule` icon and the current time, opens a time picker; "Export to file" / "Import from file" / "Help" / "About" — plain `ListTile`s with a `chevron_right` arrow on the right.
 
-**Профиль:** AppBar справа — иконка «Настройки» (`settings_outlined`); карточки «Итоги недели» и «Достижения» — целиком кликабельны (`InkWell`), эмодзи-иконка слева, стрелка `chevron_right` справа.
+**Profile:** AppBar right — a "Settings" icon (`settings_outlined`); the "Weekly summary" and "Achievements" cards are fully tappable (`InkWell`), an emoji icon on the left, a `chevron_right` arrow on the right.
 
-**Статистика / Статистика по тегам:** переключатели группировки и периода — ряд `SegChip`; на экране тегов справа в AppBar — иконка `search`, переключающаяся на `close` при открытом поле поиска.
+**Statistics / Tag statistics:** grouping and period toggles — a row of `SegChip`s; on the tag screen, AppBar right has a `search` icon that switches to `close` when the search field is open.
 
-**FAQ:** поле поиска в AppBar со значком `search` слева и кнопкой очистки `close` справа (появляется только при непустом запросе); каждый вопрос — `ExpansionTile`, разворачивающийся по тапу без отдельной кнопки.
+**FAQ:** a search field in the AppBar with a `search` icon on the left and a `close` clear button on the right (shown only with a non-empty query); each question is an `ExpansionTile` that expands on tap, no separate button.
 
-**Бэклог (задачи/цели):** у каждой строки — справа `TextButton` («Выполнить» / «Достигнуть») и следом иконка-кнопка удаления (`delete_outline`, красная).
+**Backlog (tasks/goals):** each row has a `TextButton` on the right ("Complete" / "Achieve") followed by a delete icon button (`delete_outline`, red).
 
-**Ретроспектива:** по центру сверху — навигация недели `‹` / `›`; кнопка «вперёд» блокируется на текущей неделе.
+**Retrospective:** centered at the top — week navigation `‹` / `›`; the "forward" button is disabled on the current week.
 
-**Достижения / О приложении:** кнопок действия нет — экраны только для чтения.
+**Achievements / About:** no action buttons — read-only screens.
 
-**Все fancy-диалоги** (подтверждения, ввод значения, выбор периода, оценка качества): единая нижняя раскладка — `TextButton` «Отмена» слева, основной `FilledButton` справа (для опасных действий — заливка `danger`, автофокус на самой безопасной из двух кнопок).
+**All fancy dialogs** (confirmations, value input, period picker, quality rating): a single bottom layout — `TextButton` "Cancel" on the left, primary `FilledButton` on the right (`danger` fill for dangerous actions, autofocus on the safer of the two buttons).
 
 ---
 
-## 11. Принципы, которые применялись системно
+## 11. Principles applied systematically
 
-- Один акцент (`clay`), а не «радуга» из семантических цветов Material по умолчанию.
-- Тёплая температура тени/поверхности вместо холодной Material-палитры — везде, не только в отдельных местах.
-- Анимация — не декорация, а сигнал: пружинный перелёт только там, где что-то «ожило» (выполнение, достижение, кольцо), обычные переходы — на спокойной `easeOut`.
-- Текст ошибки/пустого состояния — человеческий и ободряющий, а не системный/пугающий.
-- Каждое визуальное решение объяснимо метафорой «бумажного журнала» — это и есть системность, а не набор точечных красивостей.
+- A single accent (`clay`), not a "rainbow" of default Material semantic colors.
+- A warm shadow/surface temperature instead of the cold Material palette — everywhere, not just in isolated spots.
+- Animation as a signal, not decoration: a spring overshoot only where something "came alive" (completion, achievement, ring), ordinary transitions use the calm `easeOut`.
+- Error/empty-state copy is human and reassuring, not system-generated/alarming.
+- Every visual decision is explainable through the "paper journal" metaphor — that's what makes it a system, not a pile of one-off flourishes.
 
 ---
