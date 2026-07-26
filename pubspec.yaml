@@ -1,0 +1,121 @@
+name: enitor
+description: "Enitor — приложение для задач, целей и продуктивности."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.5.0
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.5.1
+
+  # Navigation
+  go_router: ^14.2.7
+
+  # Storage (локально: SharedPreferences + JSON, без облака/аккаунтов)
+  shared_preferences: ^2.3.2
+  path_provider: ^2.1.4
+
+  # UI
+  fl_chart: ^0.69.0
+  table_calendar: ^3.1.2
+
+  # Notifications
+  flutter_local_notifications: ^19.4.1
+  timezone: ^0.10.1
+  flutter_timezone: ^3.0.1
+
+  # Backup (этап 6-lite): экспорт/импорт файла
+  file_picker: ^8.1.2
+
+  # Разрешение на работу в фоне (умная подсказка про оптимизацию батареи)
+  permission_handler: ^11.3.1
+
+  # Вибро-отклик при выполнении (прямой вибромотор, минуя системный тумблер
+  # «виброотклик при касании», который у пользователя выключен)
+  vibration: ^2.0.0
+
+  # Звук завершения таймера Помодоро
+  audioplayers: ^6.1.0
+
+  # Лого в тостах Windows: плагин уведомлений пишет IconUri в реестр некорректно
+  # (всегда пустая строка), поэтому проставляем значение сами — см.
+  # NotificationService._writeWindowsToastIcon.
+  win32_registry: ^2.1.0
+
+  # Utils
+  intl: ^0.20.2
+  uuid: ^4.5.1
+  collection: ^1.18.0
+  package_info_plus: ^8.0.2 # версия приложения для экрана «О приложении»
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.1
+
+# Иконка лаунчера. Генерация: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/icon.png"
+  # Адаптивная иконка (Android 8+): тёмный фон бренда (совпадает с фоном самой
+  # иконки Enitor) + знак «восход над стрелкой». Foreground непрозрачный —
+  # под маской лаунчера показывается сам знак, фон-цвет запасной.
+  adaptive_icon_background: "#141A2E"
+  adaptive_icon_foreground: "assets/icon/icon_fg.png"
+  min_sdk_android: 21
+  windows:
+    generate: true
+    # Windows-иконки квадратные/без скругления → отдельный full-bleed исходник
+    # (в отличие от скруглённого мобильного icon.png).
+    image_path: "assets/icon/icon_windows.png"
+    icon_size: 256
+  web:
+    generate: true
+    image_path: "assets/icon/icon.png"
+    background_color: "#141A2E"
+    theme_color: "#141A2E"
+
+flutter:
+  uses-material-design: true
+  generate: true
+
+  assets:
+    - assets/quotes/
+    - assets/icon/
+    - assets/sounds/
+
+  # Забандлены в assets — без сетевого похода google_fonts при первом
+  # запуске (раньше шрифты качались и кэшировались, без интернета на старте
+  # был системный фолбэк). Веса ограничены реально используемыми в коде;
+  # недостающие (напр. Manrope w800) Flutter подменяет ближайшим из
+  # объявленных — визуально неотличимо.
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+    - family: Manrope
+      fonts:
+        - asset: assets/fonts/Manrope-Regular.ttf
+        - asset: assets/fonts/Manrope-Bold.ttf
+          weight: 700
+    - family: SourceSerif4
+      fonts:
+        - asset: assets/fonts/SourceSerif4-Regular.ttf
+        - asset: assets/fonts/SourceSerif4-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/SourceSerif4-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/SourceSerif4-Italic.ttf
+          style: italic

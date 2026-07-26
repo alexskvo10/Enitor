@@ -1,0 +1,698 @@
+import 'dart:io' show File, Platform, Process;
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/widgets.dart' show Locale;
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:intl/intl.dart' as intl;
+import 'package:path_provider/path_provider.dart';
+import 'package:win32_registry/win32_registry.dart';
+import 'package:timezone/data/latest_all.dart' as tzdata;
+import 'package:timezone/timezone.dart' as tz;
+
+import '../data/models/goal.dart';
+import '../data/models/task.dart';
+import '../l10n/app_localizations.dart';
+import 'notification_prefs.dart';
+
+/// Модели/сервисы вне дерева виджетов не имеют BuildContext — берём строки
+/// из уже разрешённой глобальной локали (см. builder в app.dart).
+AppLocalizations get _l10n =>
+    lookupAppLocalizations(Locale(intl.Intl.defaultLocale ?? 'ru'));
+
+/// Локальные уведомления (Android + Windows). Таймзоно-зависимое точное
+/// расписание:
+/// • напоминания к началу и к концу задач (за N минут),
+/// • «требует внимания» / «просрочена» — те же моменты, что и бейджи в списке
+///   (и у задач, и у целей — целям нет привязки ко времени дня, поэтому их
+///   моменты считаются от дедлайна/конца периода, в 9:00),
+/// • уведомление о переносе (в 4:00, если есть невыполненное прошлого периода),
+/// • общие напоминания по целям — пн утром/пт вечером (отдельно от общих
+///   напоминаний по задачам, которые несколько раз в день),
+/// • утренний план / вечерняя рефлексия,
+/// • общие напоминания «не забудь про задачи» несколько раз в день,
+/// — всё с уважением тихих часов (кроме напоминаний по конкретным задачам,
+/// которые пользователь сам разместил во времени).
+///
+/// На Windows приложение не упаковано в MSIX: это ограничивает только уже
+/// показанные тосты (историю Action Center) — `cancel`/`cancelAll` для ещё
+/// не сработавших запланированных уведомлений работают нормально, так что
+/// applySchedule() (снять всё → поставить заново) остаётся корректным.
+class NotificationService {
+  final _plugin = FlutterLocalNotificationsPlugin();
+  bool _tzReady = false;
+
+  // ── Каналы (раздельные → пользователь рулит ими в системных настройках) ──
+  static const _planChannelId = 'todo_planning';
+  String get _planChannelName => _l10n.notifPlanChannelName;
+  String get _planChannelDesc => _l10n.notifPlanChannelDesc;
+
+  static const _taskChannelId = 'todo_task_reminders';
+  String get _taskChannelName => _l10n.notifTaskChannelName;
+  String get _taskChannelDesc => _l10n.notifTaskChannelDesc;
+
+  static const _generalChannelId = 'todo_general';
+  String get _generalChannelName => _l10n.notifGeneralChannelName;
+  String get _generalChannelDesc => _l10n.notifGeneralChannelDesc;
+
+  static const _goalChannelId = 'todo_goal_reminders';
+  String get _goalChannelName => _l10n.notifGoalChannelName;
+  String get _goalChannelDesc => _l10n.notifGoalChannelDesc;
+
+  // ── Зарезервированные id (чтобы перепланирование было идемпотентным) ──
+  static const _idMorning = 1;
+  static const _idEvening = 2;
+  static const _idTransfer = 3;
+  // Общие напоминания: фиксированные слоты в течение дня.
+  static const _generalSlots = <int, int>{
+    10: 12 * 60 + 30, // 12:30
+    11: 16 * 60 + 30, // 16:30
+  };
+  // Общие напоминания по целям — не каждый день, а пару раз в неделю:
+  // понедельник утром (спланировать неделю) и пятница вечером (проверить
+  // прогресс перед выходными).
+  static const _idGoalWeekly1 = 4; // понедельник
+  static const _idGoalWeekly2 = 5; // пятница
+  static const _goalWeeklySlots = <int, (int, int)>{
+    // id: (weekday 1..7, minutesOfDay)
+    _idGoalWeekly1: (DateTime.monday, 9 * 60),
+    _idGoalWeekly2: (DateTime.friday, 18 * 60),
+  };
+  // Напоминания к задачам: id от этого значения и выше (у каждого вида —
+  // свой блок из 100 id, с запасом под лимит уведомлений в applySchedule).
+  static const _taskIdBase = 2000;
+  static const _taskEndIdBase = 2100;
+  static const _taskUrgentIdBase = 2200;
+  static const _taskOverdueIdBase = 2300;
+  // Напоминания к целям: отдельный диапазон, подальше от задач (у каждого
+  // вида — блок из 200 id, целей обычно меньше, чем задач, но с запасом).
+  static const _goalUrgentIdBase = 2500;
+  static const _goalOverdueIdBase = 2700;
+
+  /// Инициализация плагина + базы таймзон. Безопасно вызывать повторно.
+  Future<void> init() async {
+    if (!_isSupportedPlatform) return;
+
+    if (!_tzReady) {
+      tzdata.initializeTimeZones();
+      try {
+        final name = await FlutterTimezone.getLocalTimezone();
+        tz.setLocalLocation(tz.getLocation(name));
+      } catch (_) {
+        // Не смогли определить зону устройства — остаёмся на UTC (по умолчанию
+        // timezone-пакета). Лучше сдвиг расписания, чем краш на старте.
+      }
+      _tzReady = true;
+    }
+
+    final iconPath = await _windowsIconPath();
+    final initSettings = InitializationSettings(
+      android: const AndroidInitializationSettings('@mipmap/ic_launcher'),
+      windows: WindowsInitializationSettings(
+        appName: _kWindowsAppName,
+        appUserModelId: _kWindowsAumid,
+        guid: '050d04d6-626e-49f6-bb38-826023847f25',
+        iconPath: iconPath,
+      ),
+    );
+    await _plugin.initialize(initSettings);
+    // Плагин пишет IconUri пустым (баг), поэтому проставляем лого тоста сами,
+    // поверх — иначе уведомление без иконки приложения. См. метод ниже.
+    if (iconPath != null) _writeWindowsToastIcon(iconPath);
+  }
+
+  static const _kWindowsAppName = 'Enitor';
+  static const _kWindowsAumid = 'Dev.Enitor.App.Desktop';
+
+  /// Пишет путь к иконке в реестровое значение IconUri у AUMID приложения —
+  /// именно оттуда Windows берёт лого для тоста неупакованного приложения.
+  void _writeWindowsToastIcon(String iconPath) {
+    if (defaultTargetPlatform != TargetPlatform.windows) return;
+    const keyPath = 'Software\\Classes\\AppUserModelId\\$_kWindowsAumid';
+    try {
+      final key = Registry.openPath(
+        RegistryHive.currentUser,
+        path: keyPath,
+        desiredAccessRights: AccessRights.allAccess,
+      );
+      try {
+        key.createValue(RegistryValue.string('IconUri', iconPath));
+        // Проверяем, что значение реально записалось: RegSetValueEx умеет
+        // вернуть SUCCESS, а до ключа запись не долетает (наблюдалось на
+        // неупакованном релизе). Если так — фоллбэк на `reg add`.
+        if (key.getStringValue('IconUri') != iconPath) {
+          _regAddFallback(keyPath, iconPath);
+        }
+      } finally {
+        key.close();
+      }
+    } catch (_) {
+      _regAddFallback(keyPath, iconPath);
+    }
+  }
+
+  /// Фоллбэк записи через системную reg.exe (когда FFI-запись не приживается).
+  void _regAddFallback(String keyPath, String iconPath) {
+    try {
+      Process.runSync('reg', [
+        'add',
+        'HKCU\\$keyPath',
+        '/v', 'IconUri',
+        '/t', 'REG_SZ',
+        '/d', iconPath,
+        '/f',
+      ]);
+    } catch (_) {
+      // Не критично: уведомления работают и без лого.
+    }
+  }
+
+  /// Абсолютный путь к иконке приложения для тоста Windows.
+  ///
+  /// Приложение не упаковано (нет MSIX), поэтому лого берётся не из манифеста,
+  /// а из реестрового значения IconUri — туда плагин кладёт этот путь.
+  ///
+  /// Иконку распаковываем из ассетов в папку данных приложения, а НЕ ссылаемся
+  /// на неё внутри сборки: путь рядом с exe (`data/flutter_assets/…`) зависит
+  /// от раскладки сборки и исчезает после `flutter clean`, а реестровая запись
+  /// переживает и то и другое. Ошибка → null: тост без лого лучше, чем битая
+  /// ссылка на картинку.
+  Future<String?> _windowsIconPath() async {
+    if (defaultTargetPlatform != TargetPlatform.windows) return null;
+    try {
+      final dir = await getApplicationSupportDirectory();
+      final file = File('${dir.path}${Platform.pathSeparator}toast_icon.png');
+      final bytes = (await rootBundle.load('assets/icon/icon_windows.png'))
+          .buffer
+          .asUint8List();
+      // Перезаписываем только если файла нет или он изменился (обновление иконки).
+      if (!file.existsSync() || file.lengthSync() != bytes.length) {
+        await file.writeAsBytes(bytes, flush: true);
+      }
+      debugPrint('Windows toast icon: ${file.path}');
+      return file.path;
+    } catch (e) {
+      debugPrint('Windows toast icon failed: $e');
+      return null;
+    }
+  }
+
+  /// Запрашивает разрешения (показ уведомлений + точные будильники).
+  /// Вызывать ПОСЛЕ старта UI, не блокируя запуск приложения.
+  Future<void> requestPermissions() async {
+    if (!_isSupportedPlatform) return;
+    final android = _android;
+    if (android == null) return;
+    await android.requestNotificationsPermission();
+    // На Android < 13 SCHEDULE_EXACT_ALARM не нужен; на 13 — USE_EXACT_ALARM
+    // выдан при установке. Запрос ниже — страховка, тихий no-op если уже есть.
+    try {
+      await android.requestExactAlarmsPermission();
+    } catch (_) {}
+  }
+
+  /// Включены ли системные уведомления для приложения (null — неизвестно).
+  Future<bool?> areNotificationsEnabled() async {
+    if (!_isSupportedPlatform) return null;
+    return _android?.areNotificationsEnabled();
+  }
+
+  /// Пересобирает ВСЁ расписание под текущие настройки и список задач.
+  /// Сначала снимает все прежние, потом ставит заново — идемпотентно.
+  Future<void> applySchedule({
+    required NotificationPrefs prefs,
+    required List<Task> tasks,
+    required List<Goal> goals,
+    required int pendingTransferCount,
+  }) async {
+    if (!_isSupportedPlatform) return;
+    await _plugin.cancelAll();
+    if (!prefs.enabled) return;
+    final l10n = _l10n;
+
+    // 1. Утренний план.
+    if (prefs.morningPlan && !prefs.isQuiet(prefs.morningMinutes)) {
+      await _scheduleDaily(
+        id: _idMorning,
+        minutesOfDay: prefs.morningMinutes,
+        title: l10n.notifMorningTitle,
+        body: l10n.notifMorningBody,
+        channel: _Channel.planning,
+      );
+    }
+
+    // 2. Вечерняя рефлексия.
+    if (prefs.eveningReview && !prefs.isQuiet(prefs.eveningMinutes)) {
+      await _scheduleDaily(
+        id: _idEvening,
+        minutesOfDay: prefs.eveningMinutes,
+        title: l10n.notifEveningTitle,
+        body: l10n.notifEveningBody,
+        channel: _Channel.planning,
+      );
+    }
+
+    // 3. Общие напоминания — несколько раз в день, между умными.
+    if (prefs.generalReminders) {
+      final messages = {
+        10: l10n.notifGeneral1,
+        11: l10n.notifGeneral2,
+      };
+      for (final entry in _generalSlots.entries) {
+        final id = entry.key;
+        final minute = entry.value;
+        if (prefs.isQuiet(minute)) continue;
+        await _scheduleDaily(
+          id: id,
+          minutesOfDay: minute,
+          title: 'Enitor',
+          body: messages[id] ?? l10n.notifGeneral1,
+          channel: _Channel.general,
+        );
+      }
+    }
+
+    // Общие напоминания по целям — отдельно от общих напоминаний по задачам:
+    // не каждый день, а пару раз в неделю (понедельник утром — спланировать
+    // неделю, пятница вечером — проверить прогресс перед выходными).
+    if (prefs.goalGeneralReminders) {
+      final messages = {
+        _idGoalWeekly1: l10n.notifGoalGeneral1,
+        _idGoalWeekly2: l10n.notifGoalGeneral2,
+      };
+      for (final entry in _goalWeeklySlots.entries) {
+        final id = entry.key;
+        final (weekday, minute) = entry.value;
+        if (prefs.isQuiet(minute)) continue;
+        await _scheduleWeekly(
+          id: id,
+          weekday: weekday,
+          minutesOfDay: minute,
+          title: l10n.notifGoalGeneralTitle,
+          body: messages[id] ?? l10n.notifGoalGeneral1,
+          channel: _Channel.goal,
+        );
+      }
+    }
+
+    // Уведомление о переносе — только когда реально есть невыполненные
+    // задачи/цели прошлого периода, ожидающие подтверждения (пересчитывается
+    // на каждом reschedule(), т.е. на каждом открытии приложения и изменении
+    // данных). Не даёт пустых уведомлений «ни о чём».
+    if (prefs.transferReminder && pendingTransferCount > 0) {
+      await _scheduleDaily(
+        id: _idTransfer,
+        minutesOfDay: 4 * 60,
+        title: l10n.notifTransferTitle,
+        body: l10n.notifTransferBody(pendingTransferCount),
+        channel: _Channel.planning,
+      );
+    }
+
+    // 4. Напоминания к началу задач (одноразовые, к конкретной дате/времени).
+    if (prefs.taskReminders) {
+      final now = tz.TZDateTime.now(tz.local);
+      var id = _taskIdBase;
+      for (final task in tasks) {
+        if (task.startMinutes == null) continue;
+        final start = task.startMinutes!;
+        final fireMinute = start - prefs.taskLeadMinutes;
+        final day = task.date;
+        final when = tz.TZDateTime(
+          tz.local,
+          day.year,
+          day.month,
+          day.day,
+          fireMinute ~/ 60,
+          fireMinute % 60,
+        );
+        if (!when.isAfter(now)) continue; // момент уже прошёл
+        final lead = prefs.taskLeadMinutes;
+        final body = lead > 0
+            ? l10n.notifTaskLeadBody(lead, task.title, _fmt(start))
+            : l10n.notifTaskNowBody(task.title, _fmt(start));
+        await _scheduleAt(
+          id: id++,
+          when: when,
+          title: l10n.notifTaskSoonTitle,
+          body: body,
+          channel: _Channel.task,
+        );
+        if (id - _taskIdBase >= 48) break; // не упираемся в лимит ОС
+      }
+    }
+
+    // 5. Напоминания к концу задач (тоже одноразовые). Срабатывают и для уже
+    // начавшихся задач — в отличие от блока (4), который смотрит только на
+    // ещё не наступивший старт.
+    if (prefs.taskEndReminders) {
+      final now = tz.TZDateTime.now(tz.local);
+      var id = _taskEndIdBase;
+      for (final task in tasks) {
+        final end = _taskEndAt(task);
+        if (end == null) continue;
+        final lead = prefs.taskEndLeadMinutes;
+        final when = end.subtract(Duration(minutes: lead));
+        if (!when.isAfter(now)) continue;
+        final body = lead > 0
+            ? l10n.notifTaskEndLeadBody(lead, task.title)
+            : l10n.notifTaskEndNowBody(task.title);
+        await _scheduleAt(
+          id: id++,
+          when: when,
+          title: l10n.notifTaskEndTitle,
+          body: body,
+          channel: _Channel.task,
+        );
+        if (id - _taskEndIdBase >= 48) break;
+      }
+    }
+
+    // 6. «Требует внимания» — тот же порог, что и бейдж в списке задач:
+    // за 30 минут до конца, либо (если конца нет) в 23:00 в день задачи.
+    if (prefs.taskUrgentAlerts) {
+      final now = tz.TZDateTime.now(tz.local);
+      var id = _taskUrgentIdBase;
+      for (final task in tasks) {
+        final when = _taskUrgentAt(task);
+        if (!when.isAfter(now)) continue;
+        await _scheduleAt(
+          id: id++,
+          when: when,
+          title: l10n.notifTaskUrgentTitle,
+          body: l10n.notifTaskUrgentBody(task.title),
+          channel: _Channel.task,
+        );
+        if (id - _taskUrgentIdBase >= 48) break;
+      }
+    }
+
+    // 7. «Просрочена» — момент реального конца задачи, либо (если конца нет)
+    // полночь после дня задачи — согласовано с _TimeState.overdue в
+    // today_screen.dart.
+    if (prefs.taskOverdueAlerts) {
+      final now = tz.TZDateTime.now(tz.local);
+      var id = _taskOverdueIdBase;
+      for (final task in tasks) {
+        final when = _taskOverdueAt(task);
+        if (!when.isAfter(now)) continue;
+        await _scheduleAt(
+          id: id++,
+          when: when,
+          title: l10n.notifTaskOverdueTitle,
+          body: l10n.notifTaskOverdueBody(task.title),
+          channel: _Channel.task,
+        );
+        if (id - _taskOverdueIdBase >= 48) break;
+      }
+    }
+
+    // 8. Цели: «требует внимания» — тот же порог, что и бейдж в списке целей
+    // (за urgencyThreshold дней до дедлайна/конца периода).
+    if (prefs.goalUrgentAlerts) {
+      final now = tz.TZDateTime.now(tz.local);
+      var id = _goalUrgentIdBase;
+      for (final goal in goals) {
+        final when = _goalUrgentAt(goal);
+        if (when == null || !when.isAfter(now)) continue;
+        await _scheduleAt(
+          id: id++,
+          when: when,
+          title: l10n.notifGoalUrgentTitle,
+          body: l10n.notifGoalUrgentBody(goal.title),
+          channel: _Channel.goal,
+        );
+        if (id - _goalUrgentIdBase >= 200) break;
+      }
+    }
+
+    // 9. Цели: «просрочена» — на следующий день после конца периода,
+    // согласовано с _GoalUrgency.overdue в goals_screen.dart.
+    if (prefs.goalOverdueAlerts) {
+      final now = tz.TZDateTime.now(tz.local);
+      var id = _goalOverdueIdBase;
+      for (final goal in goals) {
+        final when = _goalOverdueAt(goal);
+        if (!when.isAfter(now)) continue;
+        await _scheduleAt(
+          id: id++,
+          when: when,
+          title: l10n.notifGoalOverdueTitle,
+          body: l10n.notifGoalOverdueBody(goal.title),
+          channel: _Channel.goal,
+        );
+        if (id - _goalOverdueIdBase >= 200) break;
+      }
+    }
+  }
+
+  /// Момент, когда цель становится «срочной» — за urgencyThreshold дней до
+  /// дедлайна (или конца периода, если дедлайна нет), в 9:00 — см.
+  /// _GoalUrgency.urgent в goals_screen.dart. null, если этот момент уже
+  /// позади конца периода (тогда цель либо просрочена, либо порог ей не
+  /// подходит — не планируем в прошлое).
+  tz.TZDateTime? _goalUrgentAt(Goal goal) {
+    final effectiveDeadline = goal.deadline ?? goal.periodEnd;
+    final threshold = goal.ref.urgencyThreshold;
+    final d = effectiveDeadline.subtract(Duration(days: threshold));
+    return tz.TZDateTime(tz.local, d.year, d.month, d.day, 9);
+  }
+
+  /// Момент, когда цель становится просроченной — на следующий день после
+  /// конца периода, в 9:00 (см. _GoalUrgency.overdue).
+  tz.TZDateTime _goalOverdueAt(Goal goal) {
+    final d = goal.periodEnd.add(const Duration(days: 1));
+    return tz.TZDateTime(tz.local, d.year, d.month, d.day, 9);
+  }
+
+  /// Абсолютный момент конца задачи (с учётом «через полночь»), либо null,
+  /// если у задачи нет времени конца.
+  tz.TZDateTime? _taskEndAt(Task task) {
+    final end = task.endMinutes;
+    if (end == null) return null;
+    final start = task.startMinutes;
+    final overnight = start != null && end < start;
+    final day = task.date;
+    final base = overnight
+        ? DateTime(day.year, day.month, day.day).add(const Duration(days: 1))
+        : DateTime(day.year, day.month, day.day);
+    return tz.TZDateTime(
+        tz.local, base.year, base.month, base.day, end ~/ 60, end % 60);
+  }
+
+  /// Момент, когда задача становится просроченной — совпадает с концом,
+  /// либо, если конца нет, с полуночью после дня задачи (см. _TimeState.overdue).
+  tz.TZDateTime _taskOverdueAt(Task task) {
+    final end = _taskEndAt(task);
+    if (end != null) return end;
+    final day = task.date;
+    final midnight =
+        DateTime(day.year, day.month, day.day).add(const Duration(days: 1));
+    return tz.TZDateTime(
+        tz.local, midnight.year, midnight.month, midnight.day);
+  }
+
+  /// Момент, когда задача становится «срочной» — за 30 минут до конца, либо,
+  /// если конца нет, в 23:00 в день задачи (см. _TimeState.urgent).
+  tz.TZDateTime _taskUrgentAt(Task task) {
+    final end = _taskEndAt(task);
+    if (end != null) return end.subtract(const Duration(minutes: 30));
+    final day = task.date;
+    return tz.TZDateTime(tz.local, day.year, day.month, day.day, 23, 0);
+  }
+
+  Future<void> cancelAll() async {
+    if (!_isSupportedPlatform) return;
+    await _plugin.cancelAll();
+  }
+
+  // ── Примитивы ──────────────────────────────────────────────────────────
+
+  // На Windows-канале plugin.zonedSchedule() не пробрасывает
+  // matchDateTimeComponents (нативного повтора там нет вовсе — см. исходники
+  // flutter_local_notifications_windows), поэтому там расписываем ежедневное
+  // уведомление явно на N дней вперёд, каждый день — отдельным id.
+  static const _windowsDailyDays = 14;
+
+  bool get _isWindows => defaultTargetPlatform == TargetPlatform.windows;
+
+  /// Ежедневное уведомление в [minutesOfDay]. На Android/iOS — один вызов с
+  /// повтором через matchDateTimeComponents; на Windows — явный цикл на
+  /// [_windowsDailyDays] дней вперёд (см. комментарий выше).
+  Future<void> _scheduleDaily({
+    required int id,
+    required int minutesOfDay,
+    required String title,
+    required String body,
+    required _Channel channel,
+  }) async {
+    if (_isWindows) {
+      for (var d = 0; d < _windowsDailyDays; d++) {
+        final when = _nextInstanceOf(minutesOfDay ~/ 60, minutesOfDay % 60)
+            .add(Duration(days: d));
+        await _scheduleAt(
+          id: id * 100 + d,
+          when: when,
+          title: title,
+          body: body,
+          channel: channel,
+        );
+      }
+      return;
+    }
+    final when = _nextInstanceOf(minutesOfDay ~/ 60, minutesOfDay % 60);
+    await _plugin.zonedSchedule(
+      id,
+      title,
+      body,
+      when,
+      _details(channel),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      matchDateTimeComponents: DateTimeComponents.time, // повтор каждый день
+    );
+  }
+
+  // На Windows столько же занятых недель вперёд планируем явно (нет
+  // matchDateTimeComponents для еженедельного повтора — та же причина, что и
+  // у _scheduleDaily выше).
+  static const _windowsWeeklyOccurrences = 8;
+
+  /// Еженедельное уведомление в [weekday] (1=пн..7=вс) в [minutesOfDay]. На
+  /// Android/iOS — один вызов с повтором через matchDateTimeComponents; на
+  /// Windows — явный цикл на [_windowsWeeklyOccurrences] недель вперёд.
+  Future<void> _scheduleWeekly({
+    required int id,
+    required int weekday,
+    required int minutesOfDay,
+    required String title,
+    required String body,
+    required _Channel channel,
+  }) async {
+    if (_isWindows) {
+      for (var w = 0; w < _windowsWeeklyOccurrences; w++) {
+        final when = _nextWeekdayInstanceOf(
+                weekday, minutesOfDay ~/ 60, minutesOfDay % 60)
+            .add(Duration(days: 7 * w));
+        await _scheduleAt(
+          id: id * 100 + w,
+          when: when,
+          title: title,
+          body: body,
+          channel: channel,
+        );
+      }
+      return;
+    }
+    final when =
+        _nextWeekdayInstanceOf(weekday, minutesOfDay ~/ 60, minutesOfDay % 60);
+    await _plugin.zonedSchedule(
+      id,
+      title,
+      body,
+      when,
+      _details(channel),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      matchDateTimeComponents:
+          DateTimeComponents.dayOfWeekAndTime, // повтор каждую неделю
+    );
+  }
+
+  /// Одноразовое уведомление в конкретный момент [when].
+  Future<void> _scheduleAt({
+    required int id,
+    required tz.TZDateTime when,
+    required String title,
+    required String body,
+    required _Channel channel,
+  }) async {
+    await _plugin.zonedSchedule(
+      id,
+      title,
+      body,
+      when,
+      _details(channel),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+    );
+  }
+
+  /// Ближайшее наступление времени hh:mm (сегодня, если ещё не прошло — иначе завтра).
+  tz.TZDateTime _nextInstanceOf(int hour, int minute) {
+    final now = tz.TZDateTime.now(tz.local);
+    var scheduled =
+        tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
+    if (!scheduled.isAfter(now)) {
+      scheduled = scheduled.add(const Duration(days: 1));
+    }
+    return scheduled;
+  }
+
+  /// Ближайшее наступление [weekday] (1=пн..7=вс, как DateTime.weekday) в
+  /// hh:mm — сегодня, если сегодня тот день недели и время ещё не прошло,
+  /// иначе следующее совпадение дня недели.
+  tz.TZDateTime _nextWeekdayInstanceOf(int weekday, int hour, int minute) {
+    var scheduled = _nextInstanceOf(hour, minute);
+    while (scheduled.weekday != weekday) {
+      scheduled = scheduled.add(const Duration(days: 1));
+    }
+    return scheduled;
+  }
+
+  NotificationDetails _details(_Channel channel) {
+    final (id, name, desc, importance) = switch (channel) {
+      _Channel.planning => (
+          _planChannelId,
+          _planChannelName,
+          _planChannelDesc,
+          Importance.high
+        ),
+      _Channel.task => (
+          _taskChannelId,
+          _taskChannelName,
+          _taskChannelDesc,
+          Importance.high
+        ),
+      _Channel.general => (
+          _generalChannelId,
+          _generalChannelName,
+          _generalChannelDesc,
+          Importance.defaultImportance
+        ),
+      _Channel.goal => (
+          _goalChannelId,
+          _goalChannelName,
+          _goalChannelDesc,
+          Importance.high
+        ),
+    };
+    return NotificationDetails(
+      android: AndroidNotificationDetails(
+        id,
+        name,
+        channelDescription: desc,
+        importance: importance,
+        priority: Priority.defaultPriority,
+      ),
+    );
+  }
+
+  static String _fmt(int m) =>
+      '${(m ~/ 60).toString().padLeft(2, '0')}:${(m % 60).toString().padLeft(2, '0')}';
+
+  AndroidFlutterLocalNotificationsPlugin? get _android => _plugin
+      .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+
+  /// Уведомления поддерживаются на Android и Windows (iOS/macOS — позже).
+  bool get _isSupportedPlatform =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.windows);
+}
+
+enum _Channel { planning, task, general, goal }
+
+final notificationServiceProvider = Provider<NotificationService>(
+  (ref) => throw UnimplementedError('Override in main()'),
+);
