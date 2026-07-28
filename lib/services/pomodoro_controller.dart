@@ -41,6 +41,11 @@ class PomodoroController extends ChangeNotifier {
   /// Сколько минут уже записано в actualMinutes за эту сессию.
   int sessionMinutes = 0;
 
+  /// Номер фокус-сессии в текущей непрерывной серии по этой задаче (1, 2, 3…
+  /// при повторных «Ещё фокус» без остановки). Сбрасывается при stop/новом
+  /// startFocus — это не общий счётчик за день, а счётчик текущей серии.
+  int sessionNumber = 0;
+
   bool get isActive => phase != PomodoroPhase.idle;
 
   double get progress =>
@@ -53,12 +58,14 @@ class PomodoroController extends ChangeNotifier {
     taskId = task.id;
     taskTitle = task.title;
     sessionMinutes = 0;
+    sessionNumber = 1;
     _begin(PomodoroPhase.focus, kPomodoroFocusMinutes * 60);
   }
 
   /// Ещё один цикл фокуса по той же задаче (из состояния finished).
   void anotherFocus() {
     if (taskId == null) return;
+    sessionNumber++;
     _begin(PomodoroPhase.focus, kPomodoroFocusMinutes * 60);
   }
 
@@ -161,6 +168,7 @@ class PomodoroController extends ChangeNotifier {
     taskTitle = '';
     totalSeconds = 0;
     remainingSeconds = 0;
+    sessionNumber = 0;
     notifyListeners();
   }
 

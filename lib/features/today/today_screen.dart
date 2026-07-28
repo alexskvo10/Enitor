@@ -26,6 +26,7 @@ import '../templates/templates_sheet.dart';
 import '../../services/notification_controller.dart';
 import '../../services/pomodoro_controller.dart';
 import '../../services/quote_service.dart';
+import '../../widgets/backlog_nudge_card.dart';
 import '../../widgets/battery_hint_card.dart';
 import '../../widgets/draw_check_box.dart';
 import '../../widgets/error_view.dart';
@@ -186,7 +187,8 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     });
     // Ленивая материализация повторений для дня, открытого первым при
     // старте экрана (раньше это делал tasksForDayProvider при подписке).
-    unawaited(ref.read(taskRepositoryProvider).ensureRecurrencesForDay(effToday));
+    unawaited(
+        ref.read(taskRepositoryProvider).ensureRecurrencesForDay(effToday));
   }
 
   bool get _isToday => isSameDay(_selected, _effectiveToday(DateTime.now()));
@@ -393,25 +395,23 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                     // ── Кнопки действий ─────────────────────────────────────
                     // «Скопировать» — на всех днях (когда есть задачи).
                     // «Удалить все» — только на сегодня / будущих днях.
-                    // ── Чип «Невыполненные задачи (N)» ──────────────────
+                    // ── Карточка «Невыполненные задачи (N)» ─────────────
                     Consumer(
                       builder: (ctx, ref, _) {
-                        final count =
-                            ref.watch(backlogItemsProvider).value?.length ?? 0;
-                        if (count == 0) return const SizedBox.shrink();
+                        final items =
+                            ref.watch(backlogItemsProvider).value ?? const [];
+                        if (items.isEmpty) return const SizedBox.shrink();
+                        final oldest = items.reduce(
+                            (a, b) => a.addedAt.isBefore(b.addedAt) ? a : b);
                         return Padding(
                           padding: const EdgeInsets.only(top: 6, bottom: 2),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: ActionChip(
-                              avatar:
-                                  const Icon(Icons.inbox_outlined, size: 16),
-                              label: Text(l10n.backlogChip(count)),
-                              visualDensity: VisualDensity.compact,
-                              onPressed: () => Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  builder: (_) => const TaskBacklogScreen(),
-                                ),
+                          child: BacklogNudgeCard(
+                            icon: Icons.inbox_outlined,
+                            title: l10n.backlogChip(items.length),
+                            subtitle: l10n.backlogOldestLabel(oldest.title),
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const TaskBacklogScreen(),
                               ),
                             ),
                           ),
@@ -908,8 +908,8 @@ class _TaskTile extends ConsumerWidget {
                     PopupMenuItem(
                       value: _TaskAction.delete,
                       child: ListTile(
-                        leading:
-                            const Icon(Icons.delete_outline, color: AppColors.danger),
+                        leading: const Icon(Icons.delete_outline,
+                            color: AppColors.danger),
                         title: Text(l10n.deleteMenuItem,
                             style: const TextStyle(color: AppColors.danger)),
                         contentPadding: EdgeInsets.zero,
@@ -970,7 +970,9 @@ class _TaskTile extends ConsumerWidget {
     Widget tile = cardColor == null
         ? Card(
             margin: const EdgeInsets.only(bottom: 8),
-            clipBehavior: spineColor != null ? Clip.antiAlias : Clip.none,
+            // Всегда обрезаем по скруглению — иначе вспышка от нажатия
+            // (чекбокс, меню ⋮) вылезает за уголки карточки без корешка.
+            clipBehavior: Clip.antiAlias,
             child: tileChild,
           )
         : TweenAnimationBuilder<Color?>(
@@ -981,7 +983,9 @@ class _TaskTile extends ConsumerWidget {
             builder: (context, animColor, child) => Card(
               margin: const EdgeInsets.only(bottom: 8),
               color: animColor,
-              clipBehavior: spineColor != null ? Clip.antiAlias : Clip.none,
+              // Всегда обрезаем по скруглению — иначе вспышка от нажатия
+              // (чекбокс, меню ⋮) вылезает за уголки карточки без корешка.
+              clipBehavior: Clip.antiAlias,
               child: child,
             ),
           );
@@ -1396,8 +1400,8 @@ class _TaskTile extends ConsumerWidget {
     if (task.estimatedMinutes != null) {
       final est = '~${_fmtDuration(task.estimatedMinutes!, context)}';
       lines.add(task.actualMinutes != null
-          ? context.l10n
-              .estimateWithActual(est, _fmtDuration(task.actualMinutes!, context))
+          ? context.l10n.estimateWithActual(
+              est, _fmtDuration(task.actualMinutes!, context))
           : est);
     }
     if (task.description != null) lines.add(task.description!);
@@ -1515,7 +1519,8 @@ class _TaskTile extends ConsumerWidget {
                 const SizedBox(height: 14),
                 if (task.estimatedMinutes != null) ...[
                   Text(
-                    l10n.estimateLabel(_fmtDuration(task.estimatedMinutes!, ctx)),
+                    l10n.estimateLabel(
+                        _fmtDuration(task.estimatedMinutes!, ctx)),
                     style: Theme.of(ctx).textTheme.bodySmall,
                   ),
                   const SizedBox(height: 12),
@@ -1922,8 +1927,8 @@ class _TaskFormSheetState extends ConsumerState<_TaskFormSheet> {
                   prefixIcon: const Icon(Icons.search, size: 18),
                   border: const OutlineInputBorder(),
                   isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 8),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 ),
                 onChanged: (v) => setState(() => _tagSearch = v),
               ),
@@ -1955,7 +1960,8 @@ class _TaskFormSheetState extends ConsumerState<_TaskFormSheet> {
                     Text(
                       context.l10n.noTagsFound,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                        color:
+                            theme.colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                 ],
@@ -2500,8 +2506,7 @@ class _TaskSectionsState extends ConsumerState<_TaskSections> {
   }
 
   static List<Task> _sorted(Iterable<Task> src, DateTime now) {
-    return [...src]
-      ..sort((a, b) {
+    return [...src]..sort((a, b) {
         final ka = _sortKey(a, now);
         final kb = _sortKey(b, now);
         // При равенстве ключей (например, несколько задач без времени с
@@ -2540,8 +2545,7 @@ class _TaskSectionsState extends ConsumerState<_TaskSections> {
     _diff(_urg, _sorted(tasks.where((t) => _isUrgent(t, now)), now), _urgKey);
     _diff(
         _inc,
-        _sorted(
-            tasks.where((t) => !t.isCompleted && !_isUrgent(t, now)), now),
+        _sorted(tasks.where((t) => !t.isCompleted && !_isUrgent(t, now)), now),
         _incKey);
     _diff(_com, _sorted(tasks.where((t) => t.isCompleted), now), _comKey);
     setState(() {});

@@ -32,6 +32,10 @@ abstract final class AppColors {
   /// Точечно: буквица цитаты, шапка дня (eyebrow), иконка серии.
   static const Color clay = Color(0xFFC26B45);
 
+  /// «Глина» для тёмной темы — высветлена той же логикой, что и
+  /// [primarySoft]: обычный `clay` на угольном фоне теряет контраст.
+  static const Color claySoft = Color(0xFFD9825C);
+
   // Semantic
   static const Color success = Color(0xFF3FA66A);
   static const Color danger = Color(0xFFD65745);

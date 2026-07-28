@@ -17,6 +17,7 @@ import '../../data/repositories/rating_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../search/global_search.dart';
+import '../../widgets/backlog_nudge_card.dart';
 import '../../widgets/draw_check_box.dart';
 import '../../widgets/esc_dismissible.dart';
 import '../../widgets/fancy_dialog.dart';
@@ -283,24 +284,23 @@ class _GoalsList extends ConsumerWidget {
                 ),
               ],
             ),
-            // ── Чип «Недостигнутые цели (N)» ─────────────────────────────
+            // ── Карточка «Недостигнутые цели (N)» ──────────────────────
             Consumer(
               builder: (ctx, ref, _) {
-                final count =
-                    ref.watch(goalBacklogItemsProvider).value?.length ?? 0;
-                if (count == 0) return const SizedBox.shrink();
+                final items =
+                    ref.watch(goalBacklogItemsProvider).value ?? const [];
+                if (items.isEmpty) return const SizedBox.shrink();
+                final oldest = items
+                    .reduce((a, b) => a.addedAt.isBefore(b.addedAt) ? a : b);
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 4),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: ActionChip(
-                      avatar: const Icon(Icons.inbox_outlined, size: 16),
-                      label: Text(l10n.goalBacklogChip(count)),
-                      visualDensity: VisualDensity.compact,
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const GoalBacklogScreen(),
-                        ),
+                  child: BacklogNudgeCard(
+                    icon: Icons.flag_outlined,
+                    title: l10n.goalBacklogChip(items.length),
+                    subtitle: l10n.backlogOldestLabel(oldest.title),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const GoalBacklogScreen(),
                       ),
                     ),
                   ),
@@ -371,9 +371,8 @@ class _GoalsList extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 child: NotebookEmptyState(
-                  text: isPast
-                      ? l10n.emptyGoalsPastState
-                      : l10n.emptyGoalsState,
+                  text:
+                      isPast ? l10n.emptyGoalsPastState : l10n.emptyGoalsState,
                 ),
               )
             else
@@ -579,13 +578,11 @@ class _GoalSectionsState extends ConsumerState<_GoalSections> {
   void _syncAll(List<Goal> goals) {
     _diff(
         _urg,
-        _sortedByPriority(
-            goals.where((g) => !g.completed && _isAttention(g))),
+        _sortedByPriority(goals.where((g) => !g.completed && _isAttention(g))),
         _urgKey);
     _diff(
         _inc,
-        _sortedByPriority(
-            goals.where((g) => !g.completed && !_isAttention(g))),
+        _sortedByPriority(goals.where((g) => !g.completed && !_isAttention(g))),
         _incKey);
     _diff(_com, goals.where((g) => g.completed).toList(), _comKey);
     setState(() {});
@@ -956,8 +953,8 @@ class _GoalTile extends StatelessWidget {
                       PopupMenuItem(
                         value: _GoalAction.transfer,
                         child: ListTile(
-                          leading:
-                              Icon(Icons.east, color: theme.colorScheme.primary),
+                          leading: Icon(Icons.east,
+                              color: theme.colorScheme.primary),
                           title: Text(l10n.transferForwardTooltip),
                           contentPadding: EdgeInsets.zero,
                         ),
@@ -981,8 +978,8 @@ class _GoalTile extends StatelessWidget {
                     PopupMenuItem(
                       value: _GoalAction.delete,
                       child: ListTile(
-                        leading:
-                            const Icon(Icons.delete_outline, color: AppColors.danger),
+                        leading: const Icon(Icons.delete_outline,
+                            color: AppColors.danger),
                         title: Text(l10n.deleteMenuItem,
                             style: const TextStyle(color: AppColors.danger)),
                         contentPadding: EdgeInsets.zero,
@@ -1037,7 +1034,9 @@ class _GoalTile extends StatelessWidget {
     final Widget tile = cardColor == null
         ? Card(
             margin: const EdgeInsets.only(bottom: 8),
-            clipBehavior: spineColor != null ? Clip.antiAlias : Clip.none,
+            // Всегда обрезаем по скруглению — иначе вспышка от нажатия
+            // (чекбокс, меню ⋮) вылезает за уголки карточки без корешка.
+            clipBehavior: Clip.antiAlias,
             child: tileChild,
           )
         : TweenAnimationBuilder<Color?>(
@@ -1048,7 +1047,9 @@ class _GoalTile extends StatelessWidget {
             builder: (context, animColor, child) => Card(
               margin: const EdgeInsets.only(bottom: 8),
               color: animColor,
-              clipBehavior: spineColor != null ? Clip.antiAlias : Clip.none,
+              // Всегда обрезаем по скруглению — иначе вспышка от нажатия
+              // (чекбокс, меню ⋮) вылезает за уголки карточки без корешка.
+              clipBehavior: Clip.antiAlias,
               child: child,
             ),
           );
@@ -1812,8 +1813,8 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
                   prefixIcon: const Icon(Icons.search, size: 18),
                   border: const OutlineInputBorder(),
                   isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 8),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 ),
                 onChanged: (v) => setState(() => _tagSearch = v),
               ),
@@ -1845,7 +1846,8 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
                     Text(
                       context.l10n.noTagsFound,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                        color:
+                            theme.colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                 ],
@@ -1912,7 +1914,8 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
                     icon: const Icon(Icons.play_circle_outline, size: 16),
                     label: Text(
                       _startDate != null
-                          ? DateFormat('d MMMM yyyy', locale).format(_startDate!)
+                          ? DateFormat('d MMMM yyyy', locale)
+                              .format(_startDate!)
                           : l10n.startOfPeriodOption,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -2425,8 +2428,7 @@ class _MonthPickerDialogState extends State<_MonthPickerDialog> {
                     child: Text(
                       _months(context)[i],
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color:
-                            isPast ? AppColors.textSecondary : null,
+                        color: isPast ? AppColors.textSecondary : null,
                       ),
                       textAlign: TextAlign.center,
                     ),

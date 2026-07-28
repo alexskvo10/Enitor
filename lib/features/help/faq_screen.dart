@@ -55,12 +55,17 @@ const List<_Section> _kFaq = [
       'Как работает Помодоро?',
       'Таймер 25 минут фокуса / 5 минут перерыва. Всё время фокуса копится в '
           'фактическое время задачи. Если отметишь задачу выполненной, пока '
-          'таймер идёт, — он остановится и запишет накопленное.',
+          'таймер идёт, — он остановится и запишет накопленное. Если '
+          'название задачи не помещается на баннере таймера, оно обрезается '
+          'многоточием — полный текст можно посмотреть, наведя курсор '
+          '(на компьютере) или зажав палец (на телефоне).',
       'How does Pomodoro work?',
       'A timer of 25 minutes of focus / 5 minutes of break. All focus time '
           "accumulates into the task's actual time. If you mark the task "
           "done while the timer is running, it stops and records what's "
-          'been accumulated.',
+          "been accumulated. If the task title doesn't fit on the timer "
+          'banner, it gets cut off with an ellipsis — see the full text by '
+          'hovering (desktop) or long-pressing (phone).',
     ),
     _Qa(
       'Что такое счётчик и чек-лист?',
@@ -96,8 +101,8 @@ const List<_Section> _kFaq = [
           'created automatically as you open the corresponding day.',
     ),
   ]),
-  _Section(
-      'Перенос и «день с 4:00»', 'Carryover and the "4:00 day"', Icons.schedule, [
+  _Section('Перенос и «день с 4:00»', 'Carryover and the "4:00 day"',
+      Icons.schedule, [
     _Qa(
       'Почему невыполненная задача переехала на сегодня?',
       'На границе дня (в 4:00) приложение предлагает перенести незакрытые '
@@ -488,7 +493,8 @@ class _FaqScreenState extends State<FaqScreen> {
             ),
           ),
           Expanded(
-            child: q.isEmpty ? _buildSections(context) : _buildResults(context, q),
+            child:
+                q.isEmpty ? _buildSections(context) : _buildResults(context, q),
           ),
         ],
       ),
