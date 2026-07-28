@@ -565,5 +565,16 @@
 
   "helpTitle": "Помощь",
   "searchQuestionsHint": "Поиск по вопросам",
-  "nothingFoundNote": "Ничего не нашлось.\nПопробуй другие слова."
+  "nothingFoundNote": "Ничего не нашлось.\nПопробуй другие слова.",
+
+  "checkForUpdatesLabel": "Проверить обновления",
+  "updateUpToDateToast": "У тебя последняя версия (v{version})",
+  "updateCheckFailedToast": "Не удалось проверить обновления: {error}",
+  "updateAvailableTitle": "Доступно обновление",
+  "updateAvailableBody": "Доступна версия {version} (у тебя {current}).",
+  "updateLaterBtn": "Позже",
+  "updateInstallBtn": "Обновить",
+  "updateDownloadingTitle": "Скачивание обновления…",
+  "updateNoBuildError": "В последнем релизе нет сборки под эту платформу",
+  "updateInstallFailedToast": "Не удалось установить обновление: {error}"
 }

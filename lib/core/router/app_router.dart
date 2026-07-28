@@ -21,6 +21,7 @@ import '../../services/transfer_prompt_controller.dart';
 import '../../widgets/achievement_popup.dart';
 import '../../widgets/transfer_catchup_sheet.dart';
 import '../../widgets/transfer_prompt_banner.dart';
+import '../../widgets/update_dialog.dart';
 
 /// Главный роутер. Использует ShellRoute с нижней навигацией для пяти
 /// основных разделов. Настройки и «О приложении» — на отдельных страницах поверх.
@@ -33,18 +34,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: '/today',
-            pageBuilder: (_, state) =>
-                NoTransitionPage(key: state.pageKey, child: const TodayScreen()),
+            pageBuilder: (_, state) => NoTransitionPage(
+                key: state.pageKey, child: const TodayScreen()),
           ),
           GoRoute(
             path: '/stats',
-            pageBuilder: (_, state) =>
-                NoTransitionPage(key: state.pageKey, child: const StatsScreen()),
+            pageBuilder: (_, state) => NoTransitionPage(
+                key: state.pageKey, child: const StatsScreen()),
           ),
           GoRoute(
             path: '/goals',
-            pageBuilder: (_, state) =>
-                NoTransitionPage(key: state.pageKey, child: const GoalsScreen()),
+            pageBuilder: (_, state) => NoTransitionPage(
+                key: state.pageKey, child: const GoalsScreen()),
           ),
           GoRoute(
             path: '/profile',
@@ -100,6 +101,11 @@ class _RootScaffoldState extends ConsumerState<_RootScaffold> {
     // Догоняющий список — если пропустили границу 4:00, пока приложения не
     // было открыто. После первого кадра (нужен готовый Navigator для шита).
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowCatchup());
+    // Тихая автопроверка обновлений (не чаще раза в сутки, см.
+    // UpdateService._throttle) — молчит, если обновления нет или сети нет.
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => checkAndShowUpdateDialog(context, ref, manual: false),
+    );
   }
 
   @override
@@ -127,13 +133,15 @@ class _RootScaffoldState extends ConsumerState<_RootScaffold> {
     if (selection != null) {
       final taskRepo = ref.read(taskRepositoryProvider);
       final goalRepo = ref.read(goalRepositoryProvider);
-      final chosenTasks =
-          taskCandidates.where((t) => selection.taskIds.contains(t.id)).toList();
+      final chosenTasks = taskCandidates
+          .where((t) => selection.taskIds.contains(t.id))
+          .toList();
       final declinedTasks = taskCandidates
           .where((t) => !selection.taskIds.contains(t.id))
           .toList();
-      final chosenGoals =
-          goalCandidates.where((g) => selection.goalIds.contains(g.id)).toList();
+      final chosenGoals = goalCandidates
+          .where((g) => selection.goalIds.contains(g.id))
+          .toList();
       final declinedGoals = goalCandidates
           .where((g) => !selection.goalIds.contains(g.id))
           .toList();
@@ -232,8 +240,9 @@ class _RootScaffoldState extends ConsumerState<_RootScaffold> {
     });
 
     final location = GoRouterState.of(context).uri.path;
-    final selected =
-        tabs.indexWhere((t) => location.startsWith(t.path)).clamp(0, tabs.length - 1);
+    final selected = tabs
+        .indexWhere((t) => location.startsWith(t.path))
+        .clamp(0, tabs.length - 1);
 
     // Направление сдвига: +1 двигаемся вправо (на дальнюю вкладку), −1 влево.
     final dir = selected >= _prevIndex ? 1.0 : -1.0;

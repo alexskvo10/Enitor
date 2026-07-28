@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_fonts.dart';
 import '../../l10n/l10n_extensions.dart';
+import '../../widgets/update_dialog.dart';
 
 /// Экран «О приложении»: логотип, название, версия и краткая справка.
-class AboutScreen extends StatelessWidget {
+class AboutScreen extends ConsumerWidget {
   const AboutScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = context.l10n;
     final muted = theme.colorScheme.onSurface.withValues(alpha: 0.6);
@@ -93,6 +95,17 @@ class AboutScreen extends StatelessWidget {
                   subtitle: 'Flutter',
                 ),
               ],
+            ),
+          ),
+
+          const SizedBox(height: 12),
+          Card(
+            margin: EdgeInsets.zero,
+            child: ListTile(
+              leading: Icon(Icons.system_update_alt_outlined,
+                  color: theme.colorScheme.primary),
+              title: Text(l10n.checkForUpdatesLabel),
+              onTap: () => checkAndShowUpdateDialog(context, ref, manual: true),
             ),
           ),
 

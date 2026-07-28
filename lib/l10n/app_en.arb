@@ -635,5 +635,19 @@
 
   "helpTitle": "Help",
   "searchQuestionsHint": "Search questions",
-  "nothingFoundNote": "Nothing found.\nTry different words."
+  "nothingFoundNote": "Nothing found.\nTry different words.",
+
+  "checkForUpdatesLabel": "Check for updates",
+  "updateUpToDateToast": "You're up to date (v{version})",
+  "@updateUpToDateToast": { "placeholders": { "version": { "type": "String" } } },
+  "updateCheckFailedToast": "Couldn't check for updates: {error}",
+  "@updateCheckFailedToast": { "placeholders": { "error": { "type": "String" } } },
+  "updateAvailableTitle": "Update available",
+  "updateAvailableBody": "Version {version} is available (you have {current}).",
+  "@updateAvailableBody": { "placeholders": { "version": { "type": "String" }, "current": { "type": "String" } } },
+  "updateLaterBtn": "Later",
+  "updateInstallBtn": "Update",
+  "updateDownloadingTitle": "Downloading update…",
+  "updateNoBuildError": "No build found for this platform in the latest release",
+  "updateInstallFailedToast": "Couldn't install the update: {error}"
 }

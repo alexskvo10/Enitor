@@ -13,6 +13,9 @@
     <!-- Исключение из оптимизации батареи — чтобы Transsion/Infinix не душил
          фоновые будильники уведомлений (умная подсказка в приложении). -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+    <!-- In-app обновление: установка скачанного APK через системный установщик. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
 
     <application
         android:label="Enitor"
