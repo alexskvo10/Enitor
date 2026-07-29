@@ -15,7 +15,8 @@ const _kNotifPrefsKey = 'notif_prefs';
 /// уведомлений (из текущих задач) при любом изменении. Источник правды для
 /// экрана настроек.
 class NotificationController extends ChangeNotifier {
-  NotificationController(this._storage, this._service, this._tasks, this._goals) {
+  NotificationController(
+      this._storage, this._service, this._tasks, this._goals) {
     final raw = _storage.readMap(_kNotifPrefsKey);
     if (raw != null) _prefs = NotificationPrefs.fromJson(raw);
   }
@@ -55,6 +56,10 @@ class NotificationController extends ChangeNotifier {
     });
     return completer.future;
   }
+
+  /// Возвращает все настройки уведомлений к значениям по умолчанию и
+  /// пересобирает расписание под них.
+  Future<void> resetToDefaults() => _update(const NotificationPrefs());
 
   Future<void> _update(NotificationPrefs next) async {
     if (next == _prefs) return;

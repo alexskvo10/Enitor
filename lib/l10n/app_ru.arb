@@ -89,6 +89,22 @@
   "importDoneContent": "Данные восстановлены. Перезапусти приложение, чтобы изменения применились на всех экранах.",
   "importFailedToast": "Ошибка импорта: {error}",
 
+  "resetSettingsTitle": "Сбросить настройки",
+  "resetSettingsSubtitle": "Тема, фон, язык и уведомления — как при первом запуске",
+  "resetSettingsConfirmTitle": "Сбросить настройки?",
+  "resetSettingsConfirmContent": "Тема, фон, виньетка, язык и все настройки уведомлений вернутся к значениям по умолчанию. Задачи, цели и статистика не пострадают.",
+  "resetSettingsBtn": "Сбросить",
+  "resetSettingsDoneToast": "Настройки сброшены",
+  "wipeDataTitle": "Удалить все данные",
+  "wipeDataSubtitle": "Начать с чистого листа",
+  "wipeDataConfirmTitle": "Удалить все данные?",
+  "wipeDataConfirmContent": "Исчезнут задачи, цели, статистика, достижения, шаблоны и повторы — вместе с автоматической резервной копией, поэтому восстановить будет нечем. Если данные ещё могут пригодиться, сначала сохрани их в файл.",
+  "wipeDataExportFirstBtn": "Сначала экспорт",
+  "wipeDataConfirmBtn": "Удалить всё",
+  "wipeDataDoneTitle": "Данные удалены",
+  "wipeDataDoneContent": "Перезапусти приложение, чтобы изменения применились на всех экранах.",
+  "wipeDataFailedToast": "Не удалось удалить данные: {error}",
+
   "cannotUndo": "Это действие нельзя отменить.",
 
   "searchTasksTooltip": "Поиск задач",

@@ -83,7 +83,15 @@ Future<T?> showFancyDialog<T>({
             ],
             if (acts.isNotEmpty) ...[
               const SizedBox(height: 18),
-              Row(mainAxisAlignment: MainAxisAlignment.end, children: acts),
+              // Wrap, а не Row: карточка жёстко ограничена 360px, а подписи
+              // кнопок бывают длинными (особенно по-русски) — три кнопки в
+              // строку уже не влезают. Тот же случай, что чинили в
+              // transfer_catchup_sheet.
+              Wrap(
+                alignment: WrapAlignment.end,
+                runSpacing: 8,
+                children: acts,
+              ),
             ] else
               const SizedBox(height: 4),
           ],

@@ -329,9 +329,8 @@ class SettingsScreen extends ConsumerWidget {
                   // (не текстовый символ), чуть светлее основного текста.
                   Container(
                     decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .surfaceContainerHighest,
+                      color:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: Theme.of(context)
@@ -400,6 +399,21 @@ class SettingsScreen extends ConsumerWidget {
               title: _tileTitle(context, l10n.importTitle),
               subtitle: Text(l10n.importSubtitle),
               onTap: () => _import(context, ref),
+            ),
+            const Divider(height: 1, indent: 16, endIndent: 16),
+            ListTile(
+              leading: const Icon(Icons.settings_backup_restore),
+              title: _tileTitle(context, l10n.resetSettingsTitle),
+              subtitle: Text(l10n.resetSettingsSubtitle),
+              onTap: () => _resetSettings(context, ref),
+            ),
+            const Divider(height: 1, indent: 16, endIndent: 16),
+            ListTile(
+              leading: const Icon(Icons.delete_forever_outlined,
+                  color: AppColors.danger),
+              title: _tileTitle(context, l10n.wipeDataTitle),
+              subtitle: Text(l10n.wipeDataSubtitle),
+              onTap: () => _wipeData(context, ref),
             ),
           ]),
           _note(context, l10n.backupNote),
@@ -493,10 +507,8 @@ class SettingsScreen extends ConsumerWidget {
           icon: Icon(
             Icons.expand_more,
             size: 20,
-            color: Theme.of(context)
-                .colorScheme
-                .onSurface
-                .withValues(alpha: 0.5),
+            color:
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
           ),
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurface,
@@ -552,8 +564,7 @@ class SettingsScreen extends ConsumerWidget {
               if (picked != null) onPicked(picked);
             },
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -598,8 +609,7 @@ class SettingsScreen extends ConsumerWidget {
           child: InkWell(
             onTap: onTap,
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -625,8 +635,8 @@ class SettingsScreen extends ConsumerWidget {
   Future<void> _editQuietHours(BuildContext context, WidgetRef ref) async {
     final l10n = context.l10n;
     final prefs = ref.read(notificationControllerProvider).prefs;
-    final start =
-        await _pickTime(context, prefs.quietStart, help: l10n.quietHoursStartHelp);
+    final start = await _pickTime(context, prefs.quietStart,
+        help: l10n.quietHoursStartHelp);
     if (start == null || !context.mounted) return;
     final end =
         await _pickTime(context, prefs.quietEnd, help: l10n.quietHoursEndHelp);
@@ -651,6 +661,101 @@ class SettingsScreen extends ConsumerWidget {
         message: l10n.exportFailedToast('$e'),
         tone: ToastTone.error,
       );
+    }
+  }
+
+  /// Сброс настроек: только оформление, язык и уведомления. Данные не трогаем,
+  /// поэтому перезапуск не нужен — контроллеры обновляют экраны сами.
+  Future<void> _resetSettings(BuildContext context, WidgetRef ref) async {
+    final l10n = context.l10n;
+    final confirmed = await showFancyDialog<bool>(
+      context: context,
+      icon: Icons.settings_backup_restore,
+      iconColor: AppColors.warning,
+      title: l10n.resetSettingsConfirmTitle,
+      content: l10n.resetSettingsConfirmContent,
+      actions: (ctx) => [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: Text(l10n.cancel),
+        ),
+        const SizedBox(width: 8),
+        FilledButton(
+          autofocus: true,
+          onPressed: () => Navigator.pop(ctx, true),
+          child: Text(l10n.resetSettingsBtn),
+        ),
+      ],
+    );
+    if (confirmed != true) return;
+    await ref.read(appearanceProvider).resetToDefaults();
+    await ref.read(localeControllerProvider).setOption(AppLocaleOption.system);
+    await ref.read(notificationControllerProvider).resetToDefaults();
+    if (!context.mounted) return;
+    showFancyToast(
+      context,
+      message: l10n.resetSettingsDoneToast,
+      tone: ToastTone.success,
+    );
+  }
+
+  /// Полное удаление данных. Диалог предлагает сначала экспортировать — после
+  /// удаления восстанавливать будет неоткуда: авто-бэкап стирается вместе с
+  /// остальным, иначе `main()` поднял бы его на следующем запуске.
+  Future<void> _wipeData(BuildContext context, WidgetRef ref) async {
+    final l10n = context.l10n;
+    final choice = await showFancyDialog<String>(
+      context: context,
+      icon: Icons.delete_forever_outlined,
+      iconColor: AppColors.danger,
+      title: l10n.wipeDataConfirmTitle,
+      content: '${l10n.wipeDataConfirmContent}\n\n${l10n.cannotUndo}',
+      actions: (ctx) => [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, 'cancel'),
+          child: Text(l10n.cancel),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, 'export'),
+          child: Text(l10n.wipeDataExportFirstBtn),
+        ),
+        const SizedBox(width: 8),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+          onPressed: () => Navigator.pop(ctx, 'wipe'),
+          child: Text(l10n.wipeDataConfirmBtn),
+        ),
+      ],
+    );
+    if (choice == null || choice == 'cancel') return;
+    if (choice == 'export') {
+      // Экспорт и выход: пусть человек убедится, что файл на месте, и вернётся
+      // удалять осознанно, а не одним движением следом за диалогом.
+      if (!context.mounted) return;
+      await _export(context, ref);
+      return;
+    }
+    try {
+      await ref.read(backupServiceProvider).wipeEverything();
+      if (!context.mounted) return;
+      await showFancyDialog<void>(
+        context: context,
+        icon: Icons.check_circle_outline,
+        iconColor: AppColors.success,
+        title: l10n.wipeDataDoneTitle,
+        content: l10n.wipeDataDoneContent,
+        actions: (ctx) => [
+          TextButton(
+            autofocus: true,
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.ok),
+          ),
+        ],
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      showFancyToast(context,
+          message: l10n.wipeDataFailedToast('$e'), tone: ToastTone.error);
     }
   }
 

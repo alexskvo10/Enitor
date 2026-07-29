@@ -43,7 +43,9 @@ class BackupService {
   /// файле. [clear] — полная замена (по умолчанию).
   Future<void> restoreFromJson(String jsonStr, {bool clear = true}) async {
     final decoded = jsonDecode(jsonStr);
-    if (decoded is! Map || decoded['app'] != 'todo' || decoded['data'] is! Map) {
+    if (decoded is! Map ||
+        decoded['app'] != 'todo' ||
+        decoded['data'] is! Map) {
       throw FormatException(_l10n.notBackupFileError);
     }
     final data = (decoded['data'] as Map).map(
@@ -134,6 +136,29 @@ class BackupService {
       if (await tmp.exists()) return await tmp.readAsString();
     } catch (_) {}
     return null;
+  }
+
+  /// Удаляет авто-бэкап (и недописанный `.tmp`, если остался).
+  ///
+  /// Обязательная часть «удалить все данные»: `main()` поднимает авто-бэкап
+  /// при пустом хранилище, поэтому очистка без удаления копии выглядела бы
+  /// как баг — данные молча вернулись бы на следующем запуске.
+  Future<void> deleteAutoBackup() async {
+    try {
+      final f = await _autoBackupFile();
+      if (await f.exists()) await f.delete();
+      final tmp = File('${f.path}.tmp');
+      if (await tmp.exists()) await tmp.delete();
+    } catch (_) {}
+  }
+
+  /// Полное удаление: хранилище + авто-бэкап. Именно вместе — порядок и
+  /// «обе половины» намеренно спрятаны здесь, чтобы вызывающий код не мог
+  /// стереть только одну и получить возврат данных на следующем запуске.
+  /// После вызова приложение нужно перезапустить: репозитории держат кэши.
+  Future<void> wipeEverything() async {
+    await deleteAutoBackup();
+    await _storage.clearAll();
   }
 
   String _stamp() {

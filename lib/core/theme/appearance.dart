@@ -25,8 +25,8 @@ class AppearanceController extends ChangeNotifier {
           .clamp(0, BackgroundStyle.values.length - 1);
       _style = BackgroundStyle.values[idx];
       _vignette = raw['vignette'] as bool? ?? false;
-      final modeIdx = (raw['themeMode'] as int? ?? 0)
-          .clamp(0, ThemeMode.values.length - 1);
+      final modeIdx =
+          (raw['themeMode'] as int? ?? 0).clamp(0, ThemeMode.values.length - 1);
       _themeMode = ThemeMode.values[modeIdx];
     }
   }
@@ -62,6 +62,17 @@ class AppearanceController extends ChangeNotifier {
     await _save();
   }
 
+  /// Возвращает оформление к значениям по умолчанию («Настройки → Сбросить
+  /// настройки»). Через контроллер, а не удалением ключа: иначе экран остался
+  /// бы со старыми значениями в памяти и перезаписал бы их при первой правке.
+  Future<void> resetToDefaults() async {
+    _style = BackgroundStyle.paper;
+    _vignette = false;
+    _themeMode = ThemeMode.system;
+    notifyListeners();
+    await _save();
+  }
+
   Future<void> _save() => _storage.writeMap(_kAppearanceKey, {
         'style': _style.index,
         'vignette': _vignette,
@@ -90,8 +101,7 @@ class AppBackground extends ConsumerWidget {
     final ink = theme.colorScheme.onSurface;
     // ⚠️ Не scaffoldBackgroundColor — он прозрачный (мы сами так задали в
     // AppTheme, чтобы текстура была сплошной). Реальный цвет — из палитры.
-    final background =
-        dark ? AppColors.backgroundDark : AppColors.background;
+    final background = dark ? AppColors.backgroundDark : AppColors.background;
 
     Widget result = ColoredBox(
       color: background,
@@ -201,8 +211,7 @@ class _DotGridPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = ink.withValues(alpha: dark ? 0.11 : 0.13);
+    final paint = Paint()..color = ink.withValues(alpha: dark ? 0.11 : 0.13);
     for (var x = 12.0; x < size.width; x += 24) {
       for (var y = 12.0; y < size.height; y += 24) {
         canvas.drawCircle(Offset(x, y), 1.1, paint);
@@ -241,7 +250,8 @@ class NotebookEmptyState extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 30, color: AppColors.clay.withValues(alpha: 0.75)),
+              Icon(icon,
+                  size: 30, color: AppColors.clay.withValues(alpha: 0.75)),
               const SizedBox(height: 12),
               Text(
                 text,

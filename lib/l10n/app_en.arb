@@ -96,6 +96,22 @@
   "importDoneContent": "Data restored. Restart the app for the changes to apply on every screen.",
   "importFailedToast": "Import error: {error}",
 
+  "resetSettingsTitle": "Reset settings",
+  "resetSettingsSubtitle": "Theme, background, language and notifications as on first launch",
+  "resetSettingsConfirmTitle": "Reset settings?",
+  "resetSettingsConfirmContent": "Theme, background, vignette, language and every notification setting go back to their defaults. Your tasks, goals and stats are left alone.",
+  "resetSettingsBtn": "Reset",
+  "resetSettingsDoneToast": "Settings reset",
+  "wipeDataTitle": "Delete all data",
+  "wipeDataSubtitle": "Start from a clean slate",
+  "wipeDataConfirmTitle": "Delete all data?",
+  "wipeDataConfirmContent": "Tasks, goals, stats, achievements, templates and repeats will be gone — along with the automatic backup, so there will be nothing left to restore from. If the data might still be useful, save it to a file first.",
+  "wipeDataExportFirstBtn": "Export first",
+  "wipeDataConfirmBtn": "Delete everything",
+  "wipeDataDoneTitle": "Data deleted",
+  "wipeDataDoneContent": "Restart the app for the changes to apply on every screen.",
+  "wipeDataFailedToast": "Could not delete data: {error}",
+
   "cannotUndo": "This action cannot be undone.",
 
   "searchTasksTooltip": "Search tasks",
