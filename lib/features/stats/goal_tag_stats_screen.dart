@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/appearance.dart';
 import '../../core/utils/date_utils.dart';
 import '../../data/models/goal.dart';
 import '../../data/repositories/goal_repository.dart';
@@ -41,8 +42,7 @@ class GoalTagStatsScreen extends ConsumerStatefulWidget {
   const GoalTagStatsScreen({super.key});
 
   @override
-  ConsumerState<GoalTagStatsScreen> createState() =>
-      _GoalTagStatsScreenState();
+  ConsumerState<GoalTagStatsScreen> createState() => _GoalTagStatsScreenState();
 }
 
 class _GoalTagStatsScreenState extends ConsumerState<GoalTagStatsScreen> {
@@ -154,17 +154,9 @@ class _GoalTagStatsScreenState extends ConsumerState<GoalTagStatsScreen> {
 
     if (byTag.isEmpty) {
       return [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 40),
-          child: Center(
-            child: Text(
-              l10n.noTagsInPeriodGoals,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-              ),
-            ),
-          ),
+        NotebookEmptyState(
+          icon: Icons.sell_outlined,
+          text: l10n.noTagsInPeriodGoals,
         ),
       ];
     }
@@ -177,16 +169,9 @@ class _GoalTagStatsScreenState extends ConsumerState<GoalTagStatsScreen> {
 
     if (entries.isEmpty) {
       return [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 40),
-          child: Center(
-            child: Text(
-              l10n.noTagsFound,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-              ),
-            ),
-          ),
+        NotebookEmptyState(
+          icon: Icons.search_off_outlined,
+          text: l10n.noTagsFound,
         ),
       ];
     }
@@ -204,8 +189,7 @@ class _GoalTagRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final rate = agg.total == 0 ? 0.0 : agg.fractionSum / agg.total;
-    final onTimeRate =
-        agg.completed == 0 ? null : agg.onTime / agg.completed;
+    final onTimeRate = agg.completed == 0 ? null : agg.onTime / agg.completed;
     final muted = theme.colorScheme.onSurface.withValues(alpha: 0.6);
 
     return Card(

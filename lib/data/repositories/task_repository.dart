@@ -169,8 +169,8 @@ class TaskRepository {
   /// Экземпляры в прошлых (read-only) днях — до [cutoffDate] — не трогаем:
   /// историю редактировать нельзя независимо от статуса выполнения.
   /// Статистика пересчитывается для затронутых дней.
-  Future<void> deleteEntireSeries(
-      String ruleId, {required DateTime cutoffDate}) async {
+  Future<void> deleteEntireSeries(String ruleId,
+      {required DateTime cutoffDate}) async {
     await _recurrenceRepo.delete(ruleId);
     final fromDay = dateOnly(cutoffDate);
     final affectedDays = <DateTime>{};
@@ -355,7 +355,8 @@ class TaskRepository {
     if (newCount == cur.progressCount) return;
     final now = DateTime.now();
     final reached = newCount >= cur.targetCount!;
-    if (reached && !cur.isCompleted) Haptics.completed(); // счётчик добит до цели
+    if (reached && !cur.isCompleted)
+      Haptics.completed(); // счётчик добит до цели
     _cache[idx] = cur.copyWith(
       progressCount: newCount,
       completedAt: reached ? (cur.completedAt ?? now) : null,
@@ -488,9 +489,8 @@ class TaskRepository {
     // Если удаляется перенесённая копия → отправляем в бэклог невыполненных
     if (task.transferredFromId != null && !task.isCompleted) {
       // Берём дату оригинала (если он ещё в кэше), иначе дату копии
-      final original = _cache
-          .where((t) => t.id == task.transferredFromId)
-          .firstOrNull;
+      final original =
+          _cache.where((t) => t.id == task.transferredFromId).firstOrNull;
       await _backlogRepo.add(BacklogItem(
         id: _uuid.v4(),
         title: task.title,
@@ -566,8 +566,7 @@ class TaskRepository {
 
   /// Применяет шаблон дня: добавляет его пункты как новые задачи на [date]
   /// (к существующим). Прогресс/выполнение — с нуля.
-  Future<void> applyTemplate(
-      List<TemplateItem> items, DateTime date) async {
+  Future<void> applyTemplate(List<TemplateItem> items, DateTime date) async {
     final now = DateTime.now();
     final target = dateOnly(date);
     var order = tasksForDay(target).length;
@@ -652,8 +651,8 @@ class TaskRepository {
   }
 
   /// Переносит все невыполненные неповторяющиеся задачи дня [day] на [targetDate].
-  Future<void> transferAllUncompletedForDay(
-      DateTime day, {required DateTime targetDate}) async {
+  Future<void> transferAllUncompletedForDay(DateTime day,
+      {required DateTime targetDate}) async {
     final toTransfer = tasksForDay(day)
         .where((t) =>
             !t.isCompleted &&
@@ -685,7 +684,8 @@ class TaskRepository {
 
   /// Переносит выбранные задачи на сегодня ([now]) — вызывается после
   /// подтверждения пользователем (баннер или догоняющий список).
-  Future<void> transferSelected(List<Task> tasks, {required DateTime now}) async {
+  Future<void> transferSelected(List<Task> tasks,
+      {required DateTime now}) async {
     final target = dateOnly(now);
     for (final t in tasks) {
       await transferTask(t, targetDate: target);
@@ -703,46 +703,52 @@ class TaskRepository {
   }
 
   /// Невыполненные КОПИИ из прошлых дней (которые уже переносили однажды, но
-  /// так и не сделали) → уходят в бэклог «Невыполненные задачи». Тихая
-  /// автоматическая механика списания — не тот же смысл, что «перенести или
-  /// нет» (это уже вторая, а не первая, неудачная попытка).
+  /// так и не сделали) И невыполненные ОРИГИНАЛЫ, от переноса которых
+  /// пользователь явно отказался ([Task.transferDeclined]), → уходят в
+  /// бэклог «Невыполненные задачи». Без второй ветки отказ от переноса был
+  /// тупиком: задача переставала предлагаться ([transferCandidates] уже
+  /// фильтрует по `!transferDeclined`) и никогда не попадала в бэклог —
+  /// исчезала из вида навсегда. Тихая автоматическая механика списания — не
+  /// тот же смысл, что «перенести или нет»: решение уже принято одним из
+  /// двух способов.
   Future<void> demoteStaleTransferredCopies({required DateTime now}) async {
     final target = dateOnly(now);
-    final staleCopies = _cache
+    final stale = _cache
         .where((t) =>
             !t.isCompleted &&
             !t.isTransferred &&
             t.recurrenceRuleId == null &&
-            t.transferredFromId != null &&
-            dateOnly(t.date).isBefore(target))
+            dateOnly(t.date).isBefore(target) &&
+            (t.transferredFromId != null || t.transferDeclined))
         .toList();
-    for (final t in staleCopies) {
+    for (final t in stale) {
       await _sendToBacklogAndMark(t);
     }
   }
 
-  /// Отправляет невыполненную копию в бэклог и помечает её [isTransferred]
-  /// (серый след в прошлом дне). Статистика дня НЕ пересчитывается —
-  /// история неизменна, как и при обычном переносе.
-  Future<void> _sendToBacklogAndMark(Task copy) async {
+  /// Отправляет невыполненную задачу (перенесённую копию ИЛИ оригинал с
+  /// отклонённым переносом) в бэклог и помечает её [isTransferred] (серый
+  /// след в прошлом дне — уже учтена, больше не предлагается). Статистика
+  /// дня НЕ пересчитывается — история неизменна, как и при обычном переносе.
+  Future<void> _sendToBacklogAndMark(Task task) async {
     final original =
-        _cache.where((t) => t.id == copy.transferredFromId).firstOrNull;
+        _cache.where((t) => t.id == task.transferredFromId).firstOrNull;
     await _backlogRepo.add(BacklogItem(
       id: _uuid.v4(),
-      title: copy.title,
-      description: copy.description,
-      originalDate: original?.date ?? copy.date,
+      title: task.title,
+      description: task.description,
+      originalDate: original?.date ?? task.date,
       addedAt: DateTime.now(),
-      startMinutes: copy.startMinutes,
-      endMinutes: copy.endMinutes,
-      estimatedMinutes: copy.estimatedMinutes,
-      targetCount: copy.targetCount,
-      progressCount: copy.progressCount,
-      subtaskTitles: copy.subtasks.map((s) => s.title).toList(),
-      priority: copy.priority,
-      tags: copy.tags,
+      startMinutes: task.startMinutes,
+      endMinutes: task.endMinutes,
+      estimatedMinutes: task.estimatedMinutes,
+      targetCount: task.targetCount,
+      progressCount: task.progressCount,
+      subtaskTitles: task.subtasks.map((s) => s.title).toList(),
+      priority: task.priority,
+      tags: task.tags,
     ));
-    final idx = _cache.indexWhere((t) => t.id == copy.id);
+    final idx = _cache.indexWhere((t) => t.id == task.id);
     if (idx != -1) {
       _cache[idx] =
           _cache[idx].copyWith(isTransferred: true, updatedAt: DateTime.now());

@@ -207,6 +207,7 @@
   "customMinutesHint": "Своё (мин)",
 
   "urgentSectionLabel": "Требует внимания · {count}",
+  "incompleteSectionLabel": "Незавершённые · {count}",
   "completedSectionLabel": "Выполненные · {count}",
   "templatesLabel": "Шаблоны",
 

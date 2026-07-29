@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/appearance.dart';
 import '../../data/models/goal.dart';
 import '../../data/repositories/goal_repository.dart';
 import '../../data/repositories/stats_repository.dart' show ChartGrouping;
@@ -80,8 +81,7 @@ class _GoalProductivityChartState extends ConsumerState<GoalProductivityChart> {
 
         // Обрезаем пустые бакеты слева (до первых данных).
         final firstIdx = rawPoints.indexWhere((p) => p.value != null);
-        final points =
-            firstIdx <= 0 ? rawPoints : rawPoints.sublist(firstIdx);
+        final points = firstIdx <= 0 ? rawPoints : rawPoints.sublist(firstIdx);
 
         final prodSpots = <FlSpot>[];
         for (var i = 0; i < points.length; i++) {
@@ -218,9 +218,10 @@ class _GoalProductivityChartState extends ConsumerState<GoalProductivityChart> {
                             // НО последняя точка периода (isPeriodEnd) = итог
                             // периода → подписываем периодом («март 2026 · итог»),
                             // так ховер у границы даёт именно итог периода.
-                            final label = (firstX >= 0 && firstX < points.length)
-                                ? _tooltipLabel(context, points[firstX])
-                                : null;
+                            final label =
+                                (firstX >= 0 && firstX < points.length)
+                                    ? _tooltipLabel(context, points[firstX])
+                                    : null;
 
                             return touchedSpots.map((s) {
                               final isFirst = s == touchedSpots.first;
@@ -242,8 +243,9 @@ class _GoalProductivityChartState extends ConsumerState<GoalProductivityChart> {
                                     TextSpan(
                                       text: '\n${isOnTime ? '⏰ ' : ''}$pctStr',
                                       style: TextStyle(
-                                        color:
-                                            isOnTime ? _colorOnTime : Colors.white,
+                                        color: isOnTime
+                                            ? _colorOnTime
+                                            : Colors.white,
                                         fontWeight: FontWeight.w600,
                                         fontSize: 13,
                                       ),
@@ -263,8 +265,8 @@ class _GoalProductivityChartState extends ConsumerState<GoalProductivityChart> {
                         ),
                       ),
                       lineBarsData: bars,
-                      gridData: const FlGridData(
-                          show: true, drawVerticalLine: false),
+                      gridData:
+                          const FlGridData(show: true, drawVerticalLine: false),
                       titlesData: FlTitlesData(
                         leftTitles: AxisTitles(
                           sideTitles: SideTitles(
@@ -325,16 +327,49 @@ class _GoalProductivityChartState extends ConsumerState<GoalProductivityChart> {
 
   // Подпись бакета по гранулярности точки (как у графика задач).
   static const _monthGenRu = [
-    '', 'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-    'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
+    '',
+    'января',
+    'февраля',
+    'марта',
+    'апреля',
+    'мая',
+    'июня',
+    'июля',
+    'августа',
+    'сентября',
+    'октября',
+    'ноября',
+    'декабря',
   ];
   static const _monthNomRu = [
-    '', 'январь', 'февраль', 'март', 'апрель', 'май', 'июнь',
-    'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь',
+    '',
+    'январь',
+    'февраль',
+    'март',
+    'апрель',
+    'май',
+    'июнь',
+    'июль',
+    'август',
+    'сентябрь',
+    'октябрь',
+    'ноябрь',
+    'декабрь',
   ];
   static const _monthEn = [
-    '', 'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    '',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
   String _boundaryLegendLabel(BuildContext context, GoalPeriod t) {
@@ -395,8 +430,8 @@ class _GoalProductivityChartState extends ConsumerState<GoalProductivityChart> {
       case ChartGrouping.daily:
         return Padding(
           padding: const EdgeInsets.only(top: 6),
-          child:
-              Text(DateFormat('dd.MM').format(d), style: const TextStyle(fontSize: 10)),
+          child: Text(DateFormat('dd.MM').format(d),
+              style: const TextStyle(fontSize: 10)),
         );
       case ChartGrouping.weekly:
         final end = d.add(const Duration(days: 6));
@@ -478,8 +513,8 @@ class _GoalProductivityChartState extends ConsumerState<GoalProductivityChart> {
               show: true,
               alignment: Alignment.topRight,
               labelResolver: (_) => '${points[i].bucketStart.year}',
-              style: const TextStyle(
-                  fontSize: 10, color: AppColors.textSecondary),
+              style:
+                  const TextStyle(fontSize: 10, color: AppColors.textSecondary),
             ),
           ));
         }
@@ -565,8 +600,12 @@ class _EmptyState extends StatelessWidget {
   final String message;
 
   @override
-  Widget build(BuildContext context) =>
-      Center(child: Text(message, textAlign: TextAlign.center));
+  Widget build(BuildContext context) => Center(
+        child: NotebookEmptyState(
+          icon: Icons.calendar_month_outlined,
+          text: message,
+        ),
+      );
 }
 
 class _EmptyOverlay extends StatelessWidget {

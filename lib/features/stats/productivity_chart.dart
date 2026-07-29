@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/appearance.dart';
 import '../../data/repositories/stats_repository.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../../widgets/error_view.dart';
@@ -48,8 +49,7 @@ class ProductivityChart extends ConsumerWidget {
         // по ширине — от первой реальной точки до «сейчас», без фиктивных
         // пустых бакетов в будущем.
         final firstIdx = rawPoints.indexWhere((p) => p.value != null);
-        final points =
-            firstIdx <= 0 ? rawPoints : rawPoints.sublist(firstIdx);
+        final points = firstIdx <= 0 ? rawPoints : rawPoints.sublist(firstIdx);
 
         // Споты продуктивности
         final prodSpots = <FlSpot>[];
@@ -168,8 +168,7 @@ class ProductivityChart extends ConsumerWidget {
                                   ),
                                   children: [
                                     TextSpan(
-                                      text:
-                                          '\n${isOnTime ? '⏰ ' : ''}$pctStr',
+                                      text: '\n${isOnTime ? '⏰ ' : ''}$pctStr',
                                       style: TextStyle(
                                         color: isOnTime
                                             ? _colorOnTime
@@ -186,9 +185,7 @@ class ProductivityChart extends ConsumerWidget {
                               return LineTooltipItem(
                                 '${isOnTime ? '⏰ ' : ''}$pctStr',
                                 TextStyle(
-                                  color: isOnTime
-                                      ? _colorOnTime
-                                      : Colors.white,
+                                  color: isOnTime ? _colorOnTime : Colors.white,
                                   fontWeight: FontWeight.w600,
                                 ),
                               );
@@ -197,8 +194,8 @@ class ProductivityChart extends ConsumerWidget {
                         ),
                       ),
                       lineBarsData: bars,
-                      gridData: const FlGridData(
-                          show: true, drawVerticalLine: false),
+                      gridData:
+                          const FlGridData(show: true, drawVerticalLine: false),
                       titlesData: FlTitlesData(
                         leftTitles: AxisTitles(
                           sideTitles: SideTitles(
@@ -216,8 +213,7 @@ class ProductivityChart extends ConsumerWidget {
                         bottomTitles: AxisTitles(
                           sideTitles: SideTitles(
                             showTitles: true,
-                            interval:
-                                _bottomInterval(points.length).toDouble(),
+                            interval: _bottomInterval(points.length).toDouble(),
                             reservedSize: _bottomReservedSize(),
                             getTitlesWidget: (v, _) =>
                                 _buildBottomTitle(context, v, points),
@@ -251,17 +247,50 @@ class ProductivityChart extends ConsumerWidget {
 
   // Генитив месяца (нужен для «27 мая», «28 апреля»).
   static const _monthGenRu = [
-    '', 'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-    'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
+    '',
+    'января',
+    'февраля',
+    'марта',
+    'апреля',
+    'мая',
+    'июня',
+    'июля',
+    'августа',
+    'сентября',
+    'октября',
+    'ноября',
+    'декабря',
   ];
   // Именительный месяца (нужен для «май 2026»).
   static const _monthNomRu = [
-    '', 'январь', 'февраль', 'март', 'апрель', 'май', 'июнь',
-    'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь',
+    '',
+    'январь',
+    'февраль',
+    'март',
+    'апрель',
+    'май',
+    'июнь',
+    'июль',
+    'август',
+    'сентябрь',
+    'октябрь',
+    'ноябрь',
+    'декабрь',
   ];
   static const _monthEn = [
-    '', 'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    '',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
   String _bucketLabel(BuildContext context, DateTime d) {
@@ -305,8 +334,7 @@ class ProductivityChart extends ConsumerWidget {
 
   /// Высота зоны подписей оси X.
   /// Для «Неделя» нужно больше места — подпись двухстрочная (начало / конец).
-  double _bottomReservedSize() =>
-      grouping == ChartGrouping.weekly ? 40 : 28;
+  double _bottomReservedSize() => grouping == ChartGrouping.weekly ? 40 : 28;
 
   /// Виджет подписи для оси X.
   ///
@@ -389,7 +417,8 @@ class ProductivityChart extends ConsumerWidget {
               show: true,
               alignment: Alignment.topRight,
               labelResolver: (_) => '${points[i].bucketStart.year}',
-              style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+              style:
+                  const TextStyle(fontSize: 10, color: AppColors.textSecondary),
             ),
           ),
         );
@@ -416,8 +445,12 @@ class _EmptyState extends StatelessWidget {
   final String message;
 
   @override
-  Widget build(BuildContext context) =>
-      Center(child: Text(message, textAlign: TextAlign.center));
+  Widget build(BuildContext context) => Center(
+        child: NotebookEmptyState(
+          icon: Icons.calendar_month_outlined,
+          text: message,
+        ),
+      );
 }
 
 class _EmptyOverlay extends StatelessWidget {

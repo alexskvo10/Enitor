@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/appearance.dart';
 import '../../core/utils/date_utils.dart';
 import '../../data/models/task.dart';
 import '../../data/repositories/stats_repository.dart';
@@ -131,9 +132,8 @@ class _TagStatsScreenState extends ConsumerState<TagStatsScreen> {
   List<Widget> _buildRows(
       ThemeData theme, AppLocalizations l10n, List<Task> tasks) {
     final todayDate = today();
-    final from = _tf.days == null
-        ? null
-        : todayDate.subtract(Duration(days: _tf.days!));
+    final from =
+        _tf.days == null ? null : todayDate.subtract(Duration(days: _tf.days!));
 
     final byTag = <String, _TagAgg>{};
     for (final t in tasks) {
@@ -154,17 +154,9 @@ class _TagStatsScreenState extends ConsumerState<TagStatsScreen> {
 
     if (byTag.isEmpty) {
       return [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 40),
-          child: Center(
-            child: Text(
-              l10n.noTagsInPeriod,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-              ),
-            ),
-          ),
+        NotebookEmptyState(
+          icon: Icons.sell_outlined,
+          text: l10n.noTagsInPeriod,
         ),
       ];
     }
@@ -177,16 +169,9 @@ class _TagStatsScreenState extends ConsumerState<TagStatsScreen> {
 
     if (entries.isEmpty) {
       return [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 40),
-          child: Center(
-            child: Text(
-              l10n.noTagsFound,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-              ),
-            ),
-          ),
+        NotebookEmptyState(
+          icon: Icons.search_off_outlined,
+          text: l10n.noTagsFound,
         ),
       ];
     }
@@ -204,8 +189,7 @@ class _TagRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final rate = agg.total == 0 ? 0.0 : agg.fractionSum / agg.total;
-    final onTimeRate =
-        agg.completed == 0 ? null : agg.onTime / agg.completed;
+    final onTimeRate = agg.completed == 0 ? null : agg.onTime / agg.completed;
     final muted = theme.colorScheme.onSurface.withValues(alpha: 0.6);
 
     return Card(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/appearance.dart';
 import '../../l10n/l10n_extensions.dart';
 
 /// Один вопрос-ответ.
@@ -421,6 +422,33 @@ const List<_Section> _kFaq = [
           '(Downloads or the cloud). Settings → Data.',
     ),
   ]),
+  _Section('Обновления', 'Updates', Icons.cloud_download_outlined, [
+    _Qa(
+      'Как обновляется приложение?',
+      'Автоматически проверяет обновления на GitHub при запуске (не чаще '
+          'раза в сутки, чтобы не дёргать сервер попусту), либо вручную — '
+          'кнопка «Проверить обновления» в разделе «О приложении». Если есть '
+          'новая версия, появится диалог с номером версии и списком '
+          'изменений — можно поставить сразу или отложить. Установка '
+          'скачивает файл с прогрессом: на Android откроется системный '
+          'установщик (нужно будет подтвердить — приложение не из Google '
+          'Play), на Windows приложение само перезапустится уже в новой '
+          'версии. Задачи, цели и настройки при этом не трогаются — они '
+          'хранятся отдельно от файлов программы.',
+      'How does the app update itself?',
+      'It checks GitHub for a new release automatically on launch (at most '
+          "once a day, so it doesn't hammer the server for nothing), or "
+          'manually via the "Check for updates" button in About. If a new '
+          'version is found, a dialog shows the version number and '
+          "changelog — install right away or postpone it. Installing "
+          "downloads the file with a progress bar: on Android the system "
+          "installer opens (you'll need to confirm — the app isn't from "
+          'Google Play), on Windows the app restarts itself automatically '
+          "already on the new version. Your tasks, goals, and settings "
+          "aren't touched — they're stored separately from the app's "
+          'program files.',
+    ),
+  ]),
   _Section('Горячие клавиши (компьютер)', 'Keyboard shortcuts (desktop)',
       Icons.keyboard_outlined, [
     _Qa(
@@ -543,18 +571,9 @@ class _FaqScreenState extends State<FaqScreen> {
     ];
     if (matches.isEmpty) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Text(
-            context.l10n.nothingFoundNote,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.5),
-                ),
-          ),
+        child: NotebookEmptyState(
+          icon: Icons.search_off_outlined,
+          text: context.l10n.nothingFoundNote,
         ),
       );
     }

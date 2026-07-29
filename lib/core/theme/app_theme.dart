@@ -91,9 +91,20 @@ abstract final class AppTheme {
         thickness: 1,
         space: 1,
       ),
-      // Бегунок свича: фиксируем цвет во ВСЕХ состояниях. Иначе M3 на ховере
-      // подменяет выбранный бегунок на бледный primaryContainer → «пропадает».
+      // Бегунок и трек свича: фиксируем во ВСЕХ состояниях (иначе M3 на ховере
+      // подменяет выбранный бегунок на бледный primaryContainer → «пропадает»).
+      // Трек тоже свой — иначе OFF остаётся холодным M3-серым с рамкой и
+      // спорит с тёплым бегунком (см. AppColors.textSecondary).
       switchTheme: SwitchThemeData(
+        trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          final on = states.contains(WidgetState.selected);
+          if (states.contains(WidgetState.disabled)) {
+            return (on ? AppColors.primary : AppColors.ringTrack)
+                .withValues(alpha: 0.5);
+          }
+          return on ? AppColors.primary : AppColors.ringTrack;
+        }),
         thumbColor: WidgetStateProperty.resolveWith((states) {
           final on = states.contains(WidgetState.selected);
           if (states.contains(WidgetState.disabled)) {
@@ -161,9 +172,18 @@ abstract final class AppTheme {
         thickness: 1,
         space: 1,
       ),
-      // Бегунок свича: фиксируем во всех состояниях (см. коммент в light()).
-      // Тёмно-синий на светло-голубом треке — высокий контраст, не теряется.
+      // Бегунок и трек свича: см. коммент в light(). Тёмно-синий бегунок на
+      // светло-голубом треке в ON — высокий контраст, не теряется.
       switchTheme: SwitchThemeData(
+        trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          final on = states.contains(WidgetState.selected);
+          if (states.contains(WidgetState.disabled)) {
+            return (on ? AppColors.primarySoft : AppColors.surfaceDarkMuted)
+                .withValues(alpha: 0.5);
+          }
+          return on ? AppColors.primarySoft : AppColors.surfaceDarkMuted;
+        }),
         thumbColor: WidgetStateProperty.resolveWith((states) {
           final on = states.contains(WidgetState.selected);
           const onColor = Color(0xFF101C4A);

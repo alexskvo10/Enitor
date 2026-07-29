@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/appearance.dart';
 import '../../core/utils/date_utils.dart';
 import '../../data/models/backlog_item.dart';
 import '../../data/models/goal.dart';
@@ -20,7 +21,6 @@ class TaskBacklogScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final itemsAsync = ref.watch(backlogItemsProvider);
-    final theme = Theme.of(context);
     final l10n = context.l10n;
 
     return Scaffold(
@@ -32,21 +32,9 @@ class TaskBacklogScreen extends ConsumerWidget {
         data: (items) {
           if (items.isEmpty) {
             return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.check_circle_outline,
-                      size: 64,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.2)),
-                  const SizedBox(height: 16),
-                  Text(
-                    l10n.allDoneNote,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color:
-                          theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                    ),
-                  ),
-                ],
+              child: NotebookEmptyState(
+                icon: Icons.check_circle_outline,
+                text: l10n.allDoneNote,
               ),
             );
           }
@@ -70,8 +58,9 @@ class _BacklogTaskTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = context.l10n;
-    final dateStr = DateFormat('d MMMM y', Localizations.localeOf(context).languageCode)
-        .format(item.originalDate);
+    final dateStr =
+        DateFormat('d MMMM y', Localizations.localeOf(context).languageCode)
+            .format(item.originalDate);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -153,7 +142,6 @@ class GoalBacklogScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final itemsAsync = ref.watch(goalBacklogItemsProvider);
-    final theme = Theme.of(context);
     final l10n = context.l10n;
 
     return Scaffold(
@@ -165,21 +153,9 @@ class GoalBacklogScreen extends ConsumerWidget {
         data: (items) {
           if (items.isEmpty) {
             return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.emoji_events_outlined,
-                      size: 64,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.2)),
-                  const SizedBox(height: 16),
-                  Text(
-                    l10n.allGoalsAchievedNote,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color:
-                          theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                    ),
-                  ),
-                ],
+              child: NotebookEmptyState(
+                icon: Icons.emoji_events_outlined,
+                text: l10n.allGoalsAchievedNote,
               ),
             );
           }

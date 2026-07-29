@@ -44,9 +44,26 @@ class _DrawCheckBoxState extends State<DrawCheckBox>
   // успевает дорисоваться до того, как плитка уедет в «Выполненные».
   late bool _checked = widget.value;
 
+  /// Значение, которое мы уже показали оптимистично и сообщили наружу через
+  /// onChanged, но модель (widget.value) его ещё не отразила — вызывающий
+  /// код (см. _onCheckbox в today_screen.dart) нарочно откладывает реальное
+  /// обновление модели на ~400 мс, чтобы галочка успела дорисоваться. Пока
+  /// ждём подтверждения, любой промежуточный ребилд родителя (напр. от
+  /// тикающего Pomodoro-таймера) несёт СТАРОЕ widget.value — без этого флага
+  /// didUpdateWidget ошибочно принимал его за внешнюю отмену и откатывал
+  /// анимацию на середине (баг: «галочка иногда не рисуется, потом просто
+  /// появляется»).
+  bool? _pendingValue;
+
   @override
   void didUpdateWidget(DrawCheckBox old) {
     super.didUpdateWidget(old);
+    if (_pendingValue != null) {
+      // Модель наконец подтвердила наше оптимистичное изменение — снимаем
+      // ожидание. Анимация уже отыграна оптимистично, повторно не запускаем.
+      if (widget.value == _pendingValue) _pendingValue = null;
+      return;
+    }
     // Внешняя смена value (напр. «отметить все», сброс, перерисовка списка),
     // которую мы ещё не отыграли локально.
     if (widget.value != _checked) {
@@ -74,8 +91,15 @@ class _DrawCheckBoxState extends State<DrawCheckBox>
   void _toggle() {
     if (widget.onChanged == null) return;
     setState(() => _checked = !_checked);
-    _animateTo(_checked);
-    widget.onChanged!(_checked);
+    final next = _checked;
+    _pendingValue = next;
+    _animateTo(next);
+    widget.onChanged!(next);
+    // Страховка: если модель почему-то не подтвердит изменение (ошибка,
+    // задача удалена и т.п.), не блокируем внешнюю синхронизацию навсегда.
+    Future<void>.delayed(const Duration(seconds: 2), () {
+      if (_pendingValue == next) _pendingValue = null;
+    });
   }
 
   @override
@@ -197,7 +221,5 @@ class _CheckPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_CheckPainter old) =>
-      old.progress != progress ||
-      old.splash != splash ||
-      old.accent != accent;
+      old.progress != progress || old.splash != splash || old.accent != accent;
 }

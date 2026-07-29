@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/theme/app_colors.dart';
 import '../../core/utils/date_utils.dart';
 import '../../data/models/day_stats.dart';
 import '../../data/repositories/stats_repository.dart';
@@ -202,8 +203,15 @@ class _EndAlignedScrollState extends State<_EndAlignedScroll> {
 
 // Сплошные (непрозрачные) палитры — НЕ через alpha, иначе бледные клетки
 // сливаются с фоном карточки. По образцу GitHub, отдельно для светлой/тёмной.
-const _emptyLight = Color(0xFFEBEDF0);
-const _emptyDark = Color(0xFF2D333B);
+// Пустой день (нет данных) — «дорожка» из палитры приложения, та же, что у
+// незаполненной части колец и прогресс-баров: роль ровно та же — «здесь
+// пусто». Раньше тут стояли гитхабовские #EBEDF0/#2D333B, а они холодные
+// (в #2D333B синего 59 против красного 45), тогда как все поверхности
+// приложения тёплые (карточка #211E19 — красного 33 против синего 25).
+// Зелёные градации ниже оставлены гитхабовскими: зелёная шкала — узнаваемая
+// конвенция теплокарт, её менять незачем.
+const _emptyLight = AppColors.ringTrack;
+const _emptyDark = AppColors.ringTrackDark;
 const _greensLight = [
   Color(0xFF9BE9A8),
   Color(0xFF40C463),

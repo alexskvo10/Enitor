@@ -650,6 +650,10 @@ class _BestBucketCard extends StatelessWidget {
     final l10n = context.l10n;
     final subColor = theme.colorScheme.onSurface.withValues(alpha: 0.5);
     final best = _best;
+    // Значение плашки — ради него она и существует, поэтому даём ему две
+    // строки: «27 July – 2 August 2026» в одну треть ширины окна не влезает.
+    final valueText =
+        best == null ? '—' : _formatDate(context, best.bucketStart);
 
     return Card(
       margin: EdgeInsets.zero,
@@ -666,14 +670,19 @@ class _BestBucketCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              best == null ? '—' : _formatDate(context, best.bucketStart),
-              style: theme.textTheme.titleLarge?.copyWith(
-                color: AppColors.success,
-                fontWeight: FontWeight.w600,
+            // Tooltip на случай совсем узкого окна, когда и двух строк мало:
+            // на десктопе по наведению, на Android по долгому нажатию.
+            Tooltip(
+              message: valueText,
+              child: Text(
+                valueText,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: AppColors.success,
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
             if (best != null) ...[
               const SizedBox(height: 2),
@@ -1025,6 +1034,9 @@ class _BestGoalPeriodCard extends StatelessWidget {
     final subColor = theme.colorScheme.onSurface.withValues(alpha: 0.5);
     final best = summary.bestPeriod;
     final ru = Localizations.localeOf(context).languageCode == 'ru';
+    // Две строки на значение — см. комментарий в _BestBucketCard: у периода
+    // «27 July – 2 August 2026» в одну строку нет шансов.
+    final valueText = best == null ? '—' : best.labelFor(ru);
 
     return Card(
       margin: EdgeInsets.zero,
@@ -1041,14 +1053,17 @@ class _BestGoalPeriodCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              best == null ? '—' : best.labelFor(ru),
-              style: theme.textTheme.titleLarge?.copyWith(
-                color: AppColors.success,
-                fontWeight: FontWeight.w600,
+            Tooltip(
+              message: valueText,
+              child: Text(
+                valueText,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: AppColors.success,
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
             if (best != null && summary.bestCompletion != null) ...[
               const SizedBox(height: 2),

@@ -715,6 +715,21 @@ class _GoalSectionsState extends ConsumerState<_GoalSections> {
         ),
 
         // ── Невыполненные ─────────────────────────────────────────────────
+        // Заголовок только когда над списком уже есть «Требует внимания» —
+        // иначе обычные цели визуально сливаются с ними в один список без
+        // границы. Когда срочных нет, список и так первый — подпись не нужна.
+        if (_urg.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6, left: 2),
+            child: Text(
+              l10n.incompleteSectionLabel(_inc.length),
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ),
         AnimatedList(
           key: _incKey,
           shrinkWrap: true,
@@ -819,11 +834,6 @@ class _GoalTile extends StatelessWidget {
     // Редизайн «Живая бумага»: корешок 4px + лёгкий тинт вместо заливки.
     Color? spineColor;
     Color? cardColor;
-    // «Активная» цель (период уже начался) — единственный случай, где тинт
-    // должен быть НЕПРОЗРАЧНЫМ: карточка обозначает то, чем нужно заниматься
-    // прямо сейчас, и не должна казаться блёклой/просвечивающей (особенно
-    // заметно на фоне «Точки» — сквозь alpha-тинт видны точки).
-    var isActiveState = false;
     // Выполненная — зелёный корешок (независимо от периода: и в активном, и
     // в прошлом), кроме выполненных с опозданием — те остаются янтарными.
     // Порядок проверок — как у задач (_TaskTile): completed проверяется
@@ -841,17 +851,23 @@ class _GoalTile extends StatelessWidget {
         _GoalUrgency.active => theme.colorScheme.primary,
         _GoalUrgency.upcoming || _GoalUrgency.normal => null,
       };
-      isActiveState = urgency == _GoalUrgency.active;
     }
+    // Активная / требующая внимания / просроченная (в т.ч. недостигнутая в
+    // прошлом периоде = isPast-danger) — тинт НЕПРОЗРАЧНЫЙ: карточка
+    // обозначает то, чем нужно заниматься, и не должна казаться
+    // блёклой/просвечивающей (особенно заметно на фоне «Точки» — сквозь
+    // alpha-тинт видны точки). Выполненная (в т.ч. с опозданием) — ей не
+    // нужно привлекать внимание, остаётся мягкой полупрозрачной.
+    final needsOpaqueTint = spineColor != null && !goal.completed;
     cardColor ??= spineColor == null
         ? null
-        : isActiveState
+        : needsOpaqueTint
             // Тот же тинт, но заранее «впечённый» в сплошной цвет карточки —
             // альфа-канала не остаётся, фон экрана сквозь неё не виден.
             // Альфа выше, чем у остальных тинтов (0.08): на тёплом тёмном
             // cardColor в dark-теме 8% primarySoft даёт почти нейтральный
             // серый (каналы RGB после смешивания почти равны) — с 0.18
-            // синий оттенок читается уверенно в обеих темах.
+            // цвет читается уверенно в обеих темах.
             ? Color.alphaBlend(
                 spineColor.withValues(alpha: 0.18),
                 theme.cardTheme.color ?? theme.cardColor,
@@ -1746,6 +1762,7 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
         const SizedBox(height: 6),
         Wrap(
           spacing: 6,
+          runSpacing: 4,
           children: [
             for (final p in TaskPriority.values)
               SegChip(
@@ -1785,6 +1802,9 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
         const SizedBox(height: 12),
         Text(context.l10n.tagsSectionLabel, style: theme.textTheme.labelMedium),
         const SizedBox(height: 6),
+        // Тот же единый стиль пилюль, что у задач (см. _buildTagsSection в
+        // today_screen.dart) и у переключателей периода выше: выбранный тег —
+        // «включён», подсказка — нет, нажатие переключает.
         if (_tags.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(bottom: 6),
@@ -1793,10 +1813,10 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
               runSpacing: 4,
               children: [
                 for (final t in _tags)
-                  InputChip(
-                    label: Text('#$t'),
-                    visualDensity: VisualDensity.compact,
-                    onDeleted: () => setState(() => _tags.remove(t)),
+                  SegChip(
+                    label: '#$t',
+                    selected: true,
+                    onTap: () => setState(() => _tags.remove(t)),
                   ),
               ],
             ),
@@ -1829,14 +1849,10 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
                 runSpacing: 4,
                 children: [
                   for (final t in filtered)
-                    ActionChip(
-                      label: Text('#$t'),
-                      visualDensity: VisualDensity.compact,
-                      labelStyle: TextStyle(
-                        color:
-                            theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                      onPressed: () => setState(() {
+                    SegChip(
+                      label: '#$t',
+                      selected: false,
+                      onTap: () => setState(() {
                         _tags.add(t);
                         _tagSearchCtrl.clear();
                         _tagSearch = '';
@@ -2390,11 +2406,13 @@ class _MonthPickerDialogState extends State<_MonthPickerDialog> {
               children: [
                 IconButton(
                   icon: const Icon(Icons.chevron_left),
+                  tooltip: l10n.prevPeriodTooltip,
                   onPressed: canGoBack ? () => setState(() => _year--) : null,
                 ),
                 Text('$_year', style: theme.textTheme.titleMedium),
                 IconButton(
                   icon: const Icon(Icons.chevron_right),
+                  tooltip: l10n.nextPeriodTooltip,
                   onPressed: () => setState(() => _year++),
                 ),
               ],
@@ -2538,11 +2556,13 @@ class _SeasonPickerDialogState extends State<_SeasonPickerDialog> {
               children: [
                 IconButton(
                   icon: const Icon(Icons.chevron_left),
+                  tooltip: l10n.prevPeriodTooltip,
                   onPressed: canGoBack ? () => setState(() => _year--) : null,
                 ),
                 Text('$_year', style: theme.textTheme.titleMedium),
                 IconButton(
                   icon: const Icon(Icons.chevron_right),
+                  tooltip: l10n.nextPeriodTooltip,
                   onPressed: () => setState(() => _year++),
                 ),
               ],
@@ -2653,6 +2673,7 @@ class _YearPickerDialogState extends State<_YearPickerDialog> {
               children: [
                 IconButton(
                   icon: const Icon(Icons.chevron_left),
+                  tooltip: l10n.prevPeriodTooltip,
                   onPressed: canGoBack
                       ? () => setState(() => _pageStart -= _pageSize)
                       : null,
@@ -2663,6 +2684,7 @@ class _YearPickerDialogState extends State<_YearPickerDialog> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.chevron_right),
+                  tooltip: l10n.nextPeriodTooltip,
                   onPressed: () => setState(() => _pageStart += _pageSize),
                 ),
               ],

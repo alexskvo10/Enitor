@@ -8,7 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:path_provider/path_provider.dart';
-import 'package:win32_registry/win32_registry.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -107,66 +106,124 @@ class NotificationService {
       _tzReady = true;
     }
 
-    final iconPath = await _windowsIconPath();
+    _winIconPath = await _windowsIconPath();
     final initSettings = InitializationSettings(
       android: const AndroidInitializationSettings('@mipmap/ic_launcher'),
       windows: WindowsInitializationSettings(
         appName: _kWindowsAppName,
         appUserModelId: _kWindowsAumid,
-        guid: '050d04d6-626e-49f6-bb38-826023847f25',
-        iconPath: iconPath,
+        guid: _kWindowsActivatorGuid,
+        iconPath: _winIconPath,
       ),
     );
-    await _plugin.initialize(initSettings);
-    // Плагин пишет IconUri пустым (баг), поэтому проставляем лого тоста сами,
-    // поверх — иначе уведомление без иконки приложения. См. метод ниже.
-    if (iconPath != null) _writeWindowsToastIcon(iconPath);
+    // Реестровую «прописку» AUMID проставляем и ДО инициализации плагина
+    // (чтобы он регистрировался поверх валидного ключа), и ПОСЛЕ неё —
+    // подробности в доке к _ensureWindowsRegistration.
+    await _ensureWindowsRegistration();
+    var ok = await _plugin.initialize(initSettings) ?? false;
+    await _ensureWindowsRegistration();
+    if (!ok && _isWindows) {
+      // Регистрация могла падать именно из-за битого ключа — он только что
+      // починен, поэтому одна повторная попытка не бессмысленна.
+      ok = await _plugin.initialize(initSettings) ?? false;
+    }
+    if (!ok) {
+      debugPrint('NotificationService: plugin.initialize() вернул false — '
+          'расписание не будет работать');
+    }
   }
 
   static const _kWindowsAppName = 'Enitor';
   static const _kWindowsAumid = 'Dev.Enitor.App.Desktop';
+  static const _kWindowsActivatorGuid = '050d04d6-626e-49f6-bb38-826023847f25';
 
-  /// Пишет путь к иконке в реестровое значение IconUri у AUMID приложения —
-  /// именно оттуда Windows берёт лого для тоста неупакованного приложения.
-  void _writeWindowsToastIcon(String iconPath) {
-    if (defaultTargetPlatform != TargetPlatform.windows) return;
-    const keyPath = 'Software\\Classes\\AppUserModelId\\$_kWindowsAumid';
+  /// Путь к распакованной иконке тоста — считается один раз в [init] и потом
+  /// переиспользуется при повторной «прописке» в реестре.
+  String? _winIconPath;
+
+  /// Реестровая «прописка» приложения под своим AppUserModel.ID.
+  ///
+  /// Для неупакованного (не-MSIX) приложения Windows берёт отсюда всё, что
+  /// нужно, чтобы вообще показать тост: `DisplayName` (заголовок тоста и
+  /// строка в «Параметры → Уведомления»), `CustomActivator` (COM-класс,
+  /// которому отдаётся клик) и `IconUri` (лого). Если ключ пуст, платформа
+  /// молча выбрасывает уведомление в момент срабатывания — запланированные
+  /// тосты при этом спокойно лежат в очереди, поэтому со стороны приложения
+  /// всё выглядит исправным. Именно так уведомления и «пропали»: расписание
+  /// строилось, а доставки не было ни одной.
+  ///
+  /// Плагин пишет эти значения сам при `initialize()`, но полагаться на это
+  /// нельзя: `DisplayName` он кладёт без завершающего нуля
+  /// (`size() * sizeof(wchar_t)`), а на практике ключ ещё и оказывается
+  /// вычищенным между запусками. Поэтому проверяем и дописываем сами — через
+  /// системную `reg.exe`, а не через FFI-обёртки (те уже ловились на том, что
+  /// рапортуют успех, не изменив реестр).
+  ///
+  /// Идемпотентно и дёшево: один `reg query` на всё, запись — только если
+  /// значение реально отличается.
+  ///
+  /// ⚠️ Чего этот код принципиально НЕ может: пробиться через виртуализацию
+  /// реестра. Антивирусы с песочницей (проверено на Kaspersky) заворачивают
+  /// неподписанный exe в теневой реестр — `reg add` возвращает 0, чтение
+  /// сразу после записи возвращает записанное, а в настоящем HKCU не
+  /// появляется ничего. Windows же читает настоящий, видит пустой ключ и
+  /// молча выбрасывает каждый тост. Изнутри процесса это не детектируется
+  /// (readback тоже виртуализован) — лечится только доверием к приложению в
+  /// антивирусе, поэтому проверки «а долетело ли» тут нет намеренно.
+  Future<void> _ensureWindowsRegistration() async {
+    if (!_isWindows) return;
+    const keyPath = 'HKCU\\Software\\Classes\\AppUserModelId\\$_kWindowsAumid';
     try {
-      final key = Registry.openPath(
-        RegistryHive.currentUser,
-        path: keyPath,
-        desiredAccessRights: AccessRights.allAccess,
-      );
-      try {
-        key.createValue(RegistryValue.string('IconUri', iconPath));
-        // Проверяем, что значение реально записалось: RegSetValueEx умеет
-        // вернуть SUCCESS, а до ключа запись не долетает (наблюдалось на
-        // неупакованном релизе). Если так — фоллбэк на `reg add`.
-        if (key.getStringValue('IconUri') != iconPath) {
-          _regAddFallback(keyPath, iconPath);
-        }
-      } finally {
-        key.close();
+      final current = await _regQueryAll(keyPath);
+      final wanted = <String, String?>{
+        'DisplayName': _kWindowsAppName,
+        'CustomActivator': '{$_kWindowsActivatorGuid}',
+        'IconUri': _winIconPath,
+      };
+      for (final entry in wanted.entries) {
+        final value = entry.value;
+        if (value == null || current[entry.key] == value) continue;
+        await Process.run('reg', [
+          'add',
+          keyPath,
+          '/v',
+          entry.key,
+          '/t',
+          'REG_SZ',
+          '/d',
+          value,
+          '/f',
+        ]);
       }
-    } catch (_) {
-      _regAddFallback(keyPath, iconPath);
+    } catch (e) {
+      // Не критично для запуска: хуже всего — тост без лого/без доставки,
+      // но приложение работать не перестанет.
+      debugPrint('NotificationService: не удалось прописать AUMID: $e');
     }
   }
 
-  /// Фоллбэк записи через системную reg.exe (когда FFI-запись не приживается).
-  void _regAddFallback(String keyPath, String iconPath) {
-    try {
-      Process.runSync('reg', [
-        'add',
-        'HKCU\\$keyPath',
-        '/v', 'IconUri',
-        '/t', 'REG_SZ',
-        '/d', iconPath,
-        '/f',
-      ]);
-    } catch (_) {
-      // Не критично: уведомления работают и без лого.
+  /// Читает все строковые значения ключа реестра одним вызовом `reg query`.
+  /// Строки вывода имеют вид `<имя>    REG_SZ    <значение>`; всё, что не
+  /// разбирается (заголовок, пустые строки, не-REG_SZ), просто пропускаем.
+  ///
+  /// Значение без данных (`DisplayName    REG_SZ` и пустота) сюда не попадёт —
+  /// и это правильно: пустой DisplayName для нас неотличим от отсутствующего,
+  /// оба надо перезаписать.
+  ///
+  /// Известное ограничение: `reg.exe` печатает в консольной кодировке (cp866),
+  /// а Dart декодирует вывод как ANSI — путь с кириллицей в профиле совпадёт
+  /// не побайтово и IconUri будет переписываться на каждом вызове. Это лишний
+  /// `reg add`, а не ошибка: значение всё равно получается верным.
+  Future<Map<String, String>> _regQueryAll(String keyPath) async {
+    final result = await Process.run('reg', ['query', keyPath]);
+    if (result.exitCode != 0) return const {};
+    final values = <String, String>{};
+    for (final line in (result.stdout as String).split('\n')) {
+      final parts = line.trim().split(RegExp(r'\s+REG_SZ\s+'));
+      if (parts.length != 2) continue;
+      values[parts[0].trim()] = parts[1].trim();
     }
+    return values;
   }
 
   /// Абсолютный путь к иконке приложения для тоста Windows.
@@ -228,6 +285,10 @@ class NotificationService {
     required int pendingTransferCount,
   }) async {
     if (!_isSupportedPlatform) return;
+    // Ключ AUMID на Windows может быть вычищен уже ПОСЛЕ старта приложения —
+    // а расписание живёт дольше сессии, поэтому перед тем, как ставить тосты,
+    // убеждаемся, что к моменту их срабатывания приложение ещё «прописано».
+    await _ensureWindowsRegistration();
     await _plugin.cancelAll();
     if (!prefs.enabled) return;
     final l10n = _l10n;
@@ -490,8 +551,7 @@ class NotificationService {
     final day = task.date;
     final midnight =
         DateTime(day.year, day.month, day.day).add(const Duration(days: 1));
-    return tz.TZDateTime(
-        tz.local, midnight.year, midnight.month, midnight.day);
+    return tz.TZDateTime(tz.local, midnight.year, midnight.month, midnight.day);
   }
 
   /// Момент, когда задача становится «срочной» — за 30 минут до конца, либо,
@@ -680,8 +740,8 @@ class NotificationService {
   static String _fmt(int m) =>
       '${(m ~/ 60).toString().padLeft(2, '0')}:${(m % 60).toString().padLeft(2, '0')}';
 
-  AndroidFlutterLocalNotificationsPlugin? get _android => _plugin
-      .resolvePlatformSpecificImplementation<
+  AndroidFlutterLocalNotificationsPlugin? get _android =>
+      _plugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
 
   /// Уведомления поддерживаются на Android и Windows (iOS/macOS — позже).

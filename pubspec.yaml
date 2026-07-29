@@ -1,7 +1,7 @@
 name: enitor
 description: "Enitor — приложение для задач, целей и продуктивности."
 publish_to: 'none'
-version: 0.1.1+2
+version: 0.2.0+1
 
 environment:
   sdk: ^3.5.0
@@ -44,11 +44,6 @@ dependencies:
 
   # Звук завершения таймера Помодоро
   audioplayers: ^6.1.0
-
-  # Лого в тостах Windows: плагин уведомлений пишет IconUri в реестр некорректно
-  # (всегда пустая строка), поэтому проставляем значение сами — см.
-  # NotificationService._writeWindowsToastIcon.
-  win32_registry: ^2.1.0
 
   # Utils
   intl: ^0.20.2

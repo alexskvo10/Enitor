@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/appearance.dart';
 import '../../data/models/day_template.dart';
 import '../../data/models/task.dart';
 import '../../data/repositories/task_repository.dart';
@@ -69,7 +70,8 @@ class _TemplatesSheet extends ConsumerWidget {
               Icon(Icons.dashboard_customize_outlined,
                   color: theme.colorScheme.primary),
               const SizedBox(width: 8),
-              Text(l10n.templatesSheetTitle, style: theme.textTheme.titleMedium),
+              Text(l10n.templatesSheetTitle,
+                  style: theme.textTheme.titleMedium),
             ],
           ),
           const SizedBox(height: 12),
@@ -90,17 +92,9 @@ class _TemplatesSheet extends ConsumerWidget {
               )),
           const SizedBox(height: 4),
           if (templates.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Center(
-                child: Text(
-                  l10n.noTemplatesYet,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                  ),
-                ),
-              ),
+            NotebookEmptyState(
+              icon: Icons.bookmark_border,
+              text: l10n.noTemplatesYet,
             )
           else
             Flexible(
@@ -138,7 +132,8 @@ class _TemplatesSheet extends ConsumerWidget {
                               leading: const Icon(Icons.delete_outline,
                                   color: AppColors.danger),
                               title: Text(l10n.deleteMenuItem,
-                                  style: const TextStyle(color: AppColors.danger)),
+                                  style:
+                                      const TextStyle(color: AppColors.danger)),
                               contentPadding: EdgeInsets.zero,
                             ),
                           ),

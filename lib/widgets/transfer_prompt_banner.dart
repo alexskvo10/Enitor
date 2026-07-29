@@ -169,12 +169,17 @@ class _TransferPromptBannerState extends State<_TransferPromptBanner>
                                 ),
                               ),
                               const SizedBox(height: 2),
-                              Text(
-                                widget.title,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.titleSmall
-                                    ?.copyWith(fontWeight: FontWeight.w700),
+                              // Обрезается многоточием на узких экранах —
+                              // полный текст по наведению/долгому нажатию.
+                              Tooltip(
+                                message: widget.title,
+                                child: Text(
+                                  widget.title,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.titleSmall
+                                      ?.copyWith(fontWeight: FontWeight.w700),
+                                ),
                               ),
                             ],
                           ),

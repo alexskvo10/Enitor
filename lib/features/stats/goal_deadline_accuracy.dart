@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/appearance.dart';
 import '../../core/utils/date_utils.dart';
 import '../../core/utils/stats_math.dart' as stats_math;
 import '../../data/models/goal.dart';
@@ -66,7 +67,6 @@ class GoalDeadlineMetric {
   /// Короткая характеристика для подписи рядом с числом.
   String phrase(AppLocalizations l10n) =>
       isOnTime ? l10n.deadlineOnTimePhrase : l10n.deadlineOverrunPhrase;
-
 }
 
 /// Бакет: либо по типу периода цели ([goalPeriod]), либо по тегу ([label]).
@@ -338,7 +338,12 @@ class GoalDeadlineScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.goalDeadlineTitle)),
       body: stats == null
-          ? Center(child: Text(l10n.notEnoughData))
+          ? Center(
+              child: NotebookEmptyState(
+                icon: Icons.insert_chart_outlined,
+                text: l10n.notEnoughData,
+              ),
+            )
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
@@ -605,8 +610,7 @@ class _BucketRow extends StatelessWidget {
                 ),
                 Expanded(
                   child: _MiniMetric(
-                      label: l10n.byPeriodWeightLabel,
-                      metric: bucket.byWeight),
+                      label: l10n.byPeriodWeightLabel, metric: bucket.byWeight),
                 ),
               ],
             ),
@@ -631,8 +635,7 @@ class _MiniMetric extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: theme.textTheme.labelSmall?.copyWith(color: muted)),
+        Text(label, style: theme.textTheme.labelSmall?.copyWith(color: muted)),
         const SizedBox(height: 2),
         Text(
           metric.rowLabel(l10n),

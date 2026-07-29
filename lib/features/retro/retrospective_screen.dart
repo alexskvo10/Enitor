@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/appearance.dart';
 import '../../core/utils/date_utils.dart';
 import '../../data/models/day_stats.dart';
 import '../../data/models/goal.dart';
@@ -117,8 +118,7 @@ class _RetrospectiveScreenState extends ConsumerState<RetrospectiveScreen> {
     // Средняя оценка дней (рефлексия 1..10) — только оценённые дни.
     final weekRatings = <int>[];
     for (var i = 0; i < 7; i++) {
-      final key =
-          RatingRepository.dayKey(weekStart.add(Duration(days: i)));
+      final key = RatingRepository.dayKey(weekStart.add(Duration(days: i)));
       final r = ratings[key];
       if (r != null) weekRatings.add(r);
     }
@@ -139,9 +139,8 @@ class _RetrospectiveScreenState extends ConsumerState<RetrospectiveScreen> {
     final ratings = ref.watch(dayRatingsMapProvider).value;
 
     final loading = allStats == null || goals == null || ratings == null;
-    final stats = loading
-        ? null
-        : _compute(_weekStart, allStats, goals, ratings);
+    final stats =
+        loading ? null : _compute(_weekStart, allStats, goals, ratings);
     final prev = loading
         ? null
         : _compute(_weekStart.subtract(const Duration(days: 7)), allStats,
@@ -199,17 +198,9 @@ class _RetrospectiveScreenState extends ConsumerState<RetrospectiveScreen> {
                     ),
                   ),
                 if (stats!.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 48),
-                    child: Center(
-                      child: Text(
-                        l10n.noDataThisWeek,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.5),
-                        ),
-                      ),
-                    ),
+                  NotebookEmptyState(
+                    icon: Icons.insights_outlined,
+                    text: l10n.noDataThisWeek,
                   )
                 else ...[
                   _heroCard(theme, l10n, stats, prev!),
@@ -262,8 +253,7 @@ class _RetrospectiveScreenState extends ConsumerState<RetrospectiveScreen> {
                   Text(
                     l10n.daysWithDataLabel(s.daysWithData),
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color:
-                          theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                     ),
                   ),
                 ],

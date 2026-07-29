@@ -98,7 +98,13 @@ class PomodoroBanner extends ConsumerWidget {
       ),
       child: Card(
         margin: EdgeInsets.zero,
-        color: accent.withValues(alpha: 0.08),
+        // alphaBlend поверх непрозрачной surface, а не голый
+        // accent.withValues(alpha: 0.08) — иначе Card.color сам полупрозрачный,
+        // и сквозь карточку просвечивает фон (баг: «таймер прозрачный»).
+        color: Color.alphaBlend(
+          accent.withValues(alpha: 0.08),
+          theme.colorScheme.surface,
+        ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
           child: Column(

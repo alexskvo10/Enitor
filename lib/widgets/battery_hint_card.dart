@@ -24,7 +24,13 @@ class BatteryHintCard extends ConsumerWidget {
     final l10n = context.l10n;
     return Card(
       margin: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-      color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.5),
+      // alphaBlend поверх непрозрачной surface — голый withValues(alpha)
+      // делает саму карточку полупрозрачной (см. тот же фикс в
+      // pomodoro_banner.dart).
+      color: Color.alphaBlend(
+        theme.colorScheme.secondaryContainer.withValues(alpha: 0.5),
+        theme.colorScheme.surface,
+      ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 12, 8, 8),
         child: Column(
@@ -52,8 +58,7 @@ class BatteryHintCard extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton(
-                  onPressed: () =>
-                      ref.read(batteryHintProvider).dismiss(),
+                  onPressed: () => ref.read(batteryHintProvider).dismiss(),
                   child: Text(l10n.hideBtn),
                 ),
                 FilledButton(

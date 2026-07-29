@@ -208,7 +208,8 @@ class GoalRepository {
       );
 
   Future<void> _save() async {
-    await _storage.writeList(_kGoalsKey, _cache.map((g) => g.toJson()).toList());
+    await _storage.writeList(
+        _kGoalsKey, _cache.map((g) => g.toJson()).toList());
     if (_recordSnapshots()) await _persistSnapshots();
     _controller.add(List.unmodifiable(_cache));
   }
@@ -305,7 +306,8 @@ class GoalRepository {
 
   /// Группирует цели типа [period] по конкретному периоду (ref.key) — общая
   /// часть для сводки и точек графика.
-  static Map<String, List<Goal>> _byPeriodKey(List<Goal> all, GoalPeriod period) {
+  static Map<String, List<Goal>> _byPeriodKey(
+      List<Goal> all, GoalPeriod period) {
     final byKey = <String, List<Goal>>{};
     for (final g in all) {
       if (g.period != period) continue;
@@ -358,9 +360,8 @@ class GoalRepository {
         totalGoals += goals.length;
         final done = goals.where((g) => g.completed).toList();
         completedGoals += done.length;
-        final rate =
-            goals.fold<double>(0, (s, g) => s + g.completionValue) /
-                goals.length;
+        final rate = goals.fold<double>(0, (s, g) => s + g.completionValue) /
+            goals.length;
         typeSumRate += rate;
         final onTime = done.where((g) => g.isOnTime).length;
         // Своевременность для СКОРА = 0, если ни одна цель не доведена до конца:
@@ -531,7 +532,6 @@ class GoalRepository {
     return (rate, done.isEmpty ? null : onTime / done.length);
   }
 
-
   GoalChartData _goalChartOf(
     List<Goal> all,
     GoalPeriod? period,
@@ -554,13 +554,13 @@ class GoalRepository {
 
     return cumulative
         ? GoalChartData(
-            points: _cumulativePoints(byKey, period, grouping, from, toDay,
-                todayDate),
+            points: _cumulativePoints(
+                byKey, period, grouping, from, toDay, todayDate),
             cumulative: true,
           )
         : GoalChartData(
-            points: _aggregatePoints(byKey, period, grouping, from, toDay,
-                todayDate),
+            points: _aggregatePoints(
+                byKey, period, grouping, from, toDay, todayDate),
             cumulative: false,
           );
   }
@@ -646,8 +646,8 @@ class GoalRepository {
       guard++;
       final ref = GoalPeriodRef.current(period, cursor);
       // Конец бакета, но не позже конца периода и не позже сегодня.
-      var bucketEnd = _chartNextBucket(cursor, grouping)
-          .subtract(const Duration(days: 1));
+      var bucketEnd =
+          _chartNextBucket(cursor, grouping).subtract(const Duration(days: 1));
       if (bucketEnd.isAfter(ref.endInclusive)) bucketEnd = ref.endInclusive;
       if (bucketEnd.isAfter(todayDate)) bucketEnd = todayDate;
 
@@ -750,7 +750,8 @@ class GoalRepository {
         prevKey[t] = ref.key;
 
         final goals = byType[t]![ref.key];
-        if (goals == null || goals.isEmpty) continue; // нет целей типа → пропуск
+        if (goals == null || goals.isEmpty)
+          continue; // нет целей типа → пропуск
         typesCounted++;
         totalGoals += goals.length;
         sumRing += goals.fold<double>(
@@ -854,7 +855,8 @@ class GoalRepository {
     final manual = (desired - cur.linkedProgress).clamp(0, cur.targetCount!);
     if (manual == cur.manualProgress) return;
     _cache[idx] = _withProgress(cur, manual: manual);
-    if (_cache[idx].completed && !cur.completed) Haptics.completed(); // цель добита
+    if (_cache[idx].completed && !cur.completed)
+      Haptics.completed(); // цель добита
     await _save();
   }
 
@@ -906,7 +908,8 @@ class GoalRepository {
         .toList();
     final allDone = subs.isNotEmpty && subs.every((s) => s.done);
     final now = DateTime.now();
-    if (allDone && !cur.completed) Haptics.completed(); // последняя подзадача цели
+    if (allDone && !cur.completed)
+      Haptics.completed(); // последняя подзадача цели
     _cache[idx] = cur.copyWith(
       subtasks: subs,
       completed: allDone,
@@ -963,9 +966,8 @@ class GoalRepository {
 
     // Если удаляется перенесённая копия → отправляем в бэклог
     if (goal != null && goal.transferredFromId != null && !goal.completed) {
-      final original = _cache
-          .where((g) => g.id == goal.transferredFromId)
-          .firstOrNull;
+      final original =
+          _cache.where((g) => g.id == goal.transferredFromId).firstOrNull;
       await _goalBacklogRepo.add(GoalBacklogItem(
         id: _uuid.v4(),
         title: goal.title,
@@ -996,9 +998,8 @@ class GoalRepository {
         year: target.year,
         month: target.month,
         season: target.season,
-        weekStart: target.weekStart == null
-            ? null
-            : dateOnly(target.weekStart!),
+        weekStart:
+            target.weekStart == null ? null : dateOnly(target.weekStart!),
         targetCount: src.targetCount,
         subtasks: [
           for (final s in src.subtasks) SubTask(id: _uuid.v4(), title: s.title),
@@ -1033,7 +1034,8 @@ class GoalRepository {
   /// Переносит цель в период [targetRef]:
   /// • создаёт копию в целевом периоде (с [transferredFromId] = goal.id)
   /// • помечает оригинал как [isTransferred] = true
-  Future<void> transferGoal(Goal goal, {required GoalPeriodRef targetRef}) async {
+  Future<void> transferGoal(Goal goal,
+      {required GoalPeriodRef targetRef}) async {
     final now = DateTime.now();
     final copy = Goal(
       id: _uuid.v4(),
@@ -1043,9 +1045,8 @@ class GoalRepository {
       year: targetRef.year,
       month: targetRef.month,
       season: targetRef.season,
-      weekStart: targetRef.weekStart == null
-          ? null
-          : dateOnly(targetRef.weekStart!),
+      weekStart:
+          targetRef.weekStart == null ? null : dateOnly(targetRef.weekStart!),
       targetCount: goal.targetCount,
       manualProgress: goal.manualProgress,
       // Переносим подзадачи С их состоянием (живая копия).
@@ -1068,8 +1069,8 @@ class GoalRepository {
   }
 
   /// Переносит все незавершённые цели периода [ref] в [targetRef].
-  Future<void> transferAllUncompletedForPeriod(
-      GoalPeriodRef ref, {required GoalPeriodRef targetRef}) async {
+  Future<void> transferAllUncompletedForPeriod(GoalPeriodRef ref,
+      {required GoalPeriodRef targetRef}) async {
     final toTransfer = _cache
         .where((g) =>
             _matches(g, ref) &&
@@ -1101,7 +1102,8 @@ class GoalRepository {
 
   /// Переносит выбранные цели в их текущий период — вызывается после
   /// подтверждения пользователем (баннер или догоняющий список).
-  Future<void> transferSelected(List<Goal> goals, {required DateTime now}) async {
+  Future<void> transferSelected(List<Goal> goals,
+      {required DateTime now}) async {
     for (final g in goals) {
       final currentRef = GoalPeriodRef.current(g.period, now);
       await transferGoal(g, targetRef: currentRef);
@@ -1113,31 +1115,37 @@ class GoalRepository {
   Future<void> declineTransfer(Goal goal) async {
     final idx = _cache.indexWhere((g) => g.id == goal.id);
     if (idx == -1) return;
-    _cache[idx] = _cache[idx]
-        .copyWith(transferDeclined: true, updatedAt: DateTime.now());
+    _cache[idx] =
+        _cache[idx].copyWith(transferDeclined: true, updatedAt: DateTime.now());
     await _save();
   }
 
-  /// Незавершённые КОПИИ, чей (новый) период тоже завершился → в бэклог
-  /// «Недостигнутые цели». Тихая автоматическая механика списания — не тот
-  /// же смысл, что «перенести или нет» (это уже вторая, а не первая,
-  /// неудачная попытка).
+  /// Незавершённые КОПИИ, чей (новый) период тоже завершился, И незавершённые
+  /// ОРИГИНАЛЫ, от переноса которых пользователь явно отказался
+  /// ([Goal.transferDeclined]), → в бэклог «Недостигнутые цели». Без второй
+  /// ветки отказ от переноса был тупиком: цель переставала предлагаться
+  /// ([transferCandidates] уже фильтрует по `!transferDeclined`) и никогда
+  /// не попадала в бэклог — исчезала из вида навсегда (см. тот же фикс в
+  /// TaskRepository.demoteStaleTransferredCopies). Тихая автоматическая
+  /// механика списания — не тот же смысл, что «перенести или нет»: решение
+  /// уже принято одним из двух способов.
   Future<void> demoteStaleTransferredCopies({required DateTime now}) async {
     final todayDate = dateOnly(now);
-    final staleCopies = _cache
+    final stale = _cache
         .where((g) =>
             !g.completed &&
             !g.isTransferred &&
-            g.transferredFromId != null &&
-            g.periodEnd.isBefore(todayDate))
+            g.periodEnd.isBefore(todayDate) &&
+            (g.transferredFromId != null || g.transferDeclined))
         .toList();
-    for (final g in staleCopies) {
+    for (final g in stale) {
       await _sendGoalToBacklogAndMark(g);
     }
   }
 
-  /// Отправляет недостигнутую копию цели в бэклог и помечает её
-  /// [isTransferred] (серый след в прошлом периоде).
+  /// Отправляет недостигнутую цель (перенесённую копию ИЛИ оригинал с
+  /// отклонённым переносом) в бэклог и помечает её [isTransferred] (серый
+  /// след в прошлом периоде — уже учтена, больше не предлагается).
   Future<void> _sendGoalToBacklogAndMark(Goal goal) async {
     final original =
         _cache.where((g) => g.id == goal.transferredFromId).firstOrNull;

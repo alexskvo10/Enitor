@@ -226,6 +226,8 @@
 
   "urgentSectionLabel": "Needs attention · {count}",
   "@urgentSectionLabel": { "placeholders": { "count": { "type": "int" } } },
+  "incompleteSectionLabel": "Unfinished · {count}",
+  "@incompleteSectionLabel": { "placeholders": { "count": { "type": "int" } } },
   "completedSectionLabel": "Completed · {count}",
   "@completedSectionLabel": { "placeholders": { "count": { "type": "int" } } },
   "templatesLabel": "Templates",

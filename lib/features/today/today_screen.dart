@@ -708,11 +708,6 @@ class _TaskTile extends ConsumerWidget {
     // тонкий цветной КОРЕШОК 4px слева + лёгкий тинт (~8%). Спокойнее читается.
     Color? spineColor;
     Color? cardColor;
-    // «Активная» задача (время начала уже наступило) — единственный случай,
-    // где тинт должен быть НЕПРОЗРАЧНЫМ: карточка обозначает то, чем нужно
-    // заниматься прямо сейчас, и не должна казаться блёклой/просвечивающей
-    // (особенно заметно на фоне «Точки» — сквозь alpha-тинт видны точки).
-    var isActiveState = false;
     if (task.isCompleted) {
       // Выполненная — зелёный корешок (независимо от дня: и сегодня, и в
       // прошлом), кроме выполненных с опозданием — те остаются янтарными.
@@ -726,17 +721,23 @@ class _TaskTile extends ConsumerWidget {
         _TimeState.overdue => AppColors.danger,
         _ => null,
       };
-      isActiveState = state == _TimeState.active;
     }
+    // Активная / требующая внимания / просроченная (в т.ч. невыполненная в
+    // прошлом = readOnly-danger) — тинт НЕПРОЗРАЧНЫЙ: карточка обозначает то,
+    // чем нужно заниматься, и не должна казаться блёклой/просвечивающей
+    // (особенно заметно на фоне «Точки» — сквозь alpha-тинт видны точки).
+    // Выполненная (в т.ч. с опозданием) — ей не нужно привлекать внимание,
+    // остаётся мягкой полупрозрачной.
+    final needsOpaqueTint = spineColor != null && !task.isCompleted;
     cardColor ??= spineColor == null
         ? null
-        : isActiveState
+        : needsOpaqueTint
             // Тот же тинт, но заранее «впечённый» в сплошной цвет карточки —
             // альфа-канала не остаётся, фон экрана сквозь неё не виден.
             // Альфа выше, чем у остальных тинтов (0.08): на тёплом тёмном
             // cardColor в dark-теме 8% primarySoft даёт почти нейтральный
             // серый (каналы RGB после смешивания почти равны) — с 0.18
-            // синий оттенок читается уверенно в обеих темах.
+            // цвет читается уверенно в обеих темах.
             ? Color.alphaBlend(
                 spineColor.withValues(alpha: 0.18),
                 theme.cardTheme.color ?? theme.cardColor,
@@ -1856,6 +1857,7 @@ class _TaskFormSheetState extends ConsumerState<_TaskFormSheet> {
         const SizedBox(height: 6),
         Wrap(
           spacing: 6,
+          runSpacing: 4,
           children: [
             for (final p in TaskPriority.values)
               SegChip(
@@ -1899,6 +1901,10 @@ class _TaskFormSheetState extends ConsumerState<_TaskFormSheet> {
         const SizedBox(height: 12),
         Text(context.l10n.tagsSectionLabel, style: theme.textTheme.labelMedium),
         const SizedBox(height: 6),
+        // Теги — теми же пилюлями [SegChip], что оценка времени и приоритет:
+        // выбранный тег «включён» (сплошная заливка), подсказка — нет. Нажатие
+        // переключает, поэтому крестик удаления больше не нужен: снимается так
+        // же, как снимается приоритет.
         if (_tags.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(bottom: 6),
@@ -1907,10 +1913,10 @@ class _TaskFormSheetState extends ConsumerState<_TaskFormSheet> {
               runSpacing: 4,
               children: [
                 for (final t in _tags)
-                  InputChip(
-                    label: Text('#$t'),
-                    visualDensity: VisualDensity.compact,
-                    onDeleted: () => setState(() => _tags.remove(t)),
+                  SegChip(
+                    label: '#$t',
+                    selected: true,
+                    onTap: () => setState(() => _tags.remove(t)),
                   ),
               ],
             ),
@@ -1943,14 +1949,10 @@ class _TaskFormSheetState extends ConsumerState<_TaskFormSheet> {
                 runSpacing: 4,
                 children: [
                   for (final t in filtered)
-                    ActionChip(
-                      label: Text('#$t'),
-                      visualDensity: VisualDensity.compact,
-                      labelStyle: TextStyle(
-                        color:
-                            theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                      onPressed: () => setState(() {
+                    SegChip(
+                      label: '#$t',
+                      selected: false,
+                      onTap: () => setState(() {
                         _tags.add(t);
                         _tagSearchCtrl.clear();
                         _tagSearch = '';
@@ -2060,6 +2062,7 @@ class _TaskFormSheetState extends ConsumerState<_TaskFormSheet> {
         if (_isRecurring) ...[
           Wrap(
             spacing: 6,
+            runSpacing: 4,
             children: [
               for (final k in RecurrenceKind.values)
                 SegChip(
@@ -2081,6 +2084,7 @@ class _TaskFormSheetState extends ConsumerState<_TaskFormSheet> {
           const SizedBox(height: 6),
           Wrap(
             spacing: 6,
+            runSpacing: 4,
             children: [
               for (final d in _RecDuration.values)
                 SegChip(
@@ -2131,6 +2135,7 @@ class _TaskFormSheetState extends ConsumerState<_TaskFormSheet> {
     ];
     return Wrap(
       spacing: 6,
+      runSpacing: 4,
       children: [
         for (var i = 0; i < 7; i++)
           SegChip(
@@ -2687,6 +2692,21 @@ class _TaskSectionsState extends ConsumerState<_TaskSections> {
         ),
 
         // ── Невыполненные ─────────────────────────────────────────────────
+        // Заголовок только когда над списком уже есть «Срочные» — иначе
+        // обычные задачи визуально сливаются с ними в один список без
+        // границы. Когда срочных нет, список и так первый — подпись не нужна.
+        if (_urg.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6, left: 2),
+            child: Text(
+              l10n.incompleteSectionLabel(_inc.length),
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ),
         AnimatedList(
           key: _incKey,
           shrinkWrap: true,
@@ -3031,9 +3051,31 @@ class _DayBudgetRow extends StatelessWidget {
 
     final textColor =
         spine ?? theme.colorScheme.onSurface.withValues(alpha: 0.6);
-    final trackColor = theme.brightness == Brightness.dark
-        ? AppColors.ringTrackDark
-        : AppColors.ringTrack;
+    final isDark = theme.brightness == Brightness.dark;
+
+    // Фактический фон карточки — нужен и самой Card (ниже), и дорожке бара,
+    // которая от него отсчитывается. Тинт «впекаем» в непрозрачный цвет —
+    // почему именно так, см. комментарий у Card.
+    final cardSurface = theme.cardTheme.color ?? theme.cardColor;
+    final cardBg = spine == null
+        ? cardSurface
+        : Color.alphaBlend(spine.withValues(alpha: 0.18), cardSurface);
+
+    // Дорожка (незаполненная часть бара). На нейтральной карточке — тёплая
+    // «бумажная» из палитры. На цветной её брать нельзя: ringTrack подобран
+    // под чистую surface и на тинте сливается с фоном (в светлой теме разница
+    // с красной карточкой — единицы на канал, в тёмной дорожка вообще
+    // оказывается ТЕМНЕЕ карточки, хотя должна быть светлее). Поэтому на
+    // цветной карточке отсчитываем дорожку от её фактического фона — шаг тем
+    // же тёплым чернилом/кремом, что и остальные приглушённые тона, так что
+    // контраст держится в обеих темах и при любом цвете состояния.
+    final trackColor = spine == null
+        ? (isDark ? AppColors.ringTrackDark : AppColors.ringTrack)
+        : Color.alphaBlend(
+            (isDark ? AppColors.textPrimaryDark : AppColors.textPrimary)
+                .withValues(alpha: 0.12),
+            cardBg,
+          );
 
     // Справа — остаток времени (для «готово» — галочка вместо текста).
     trailing ??= Text(
@@ -3090,7 +3132,15 @@ class _DayBudgetRow extends StatelessWidget {
         margin: EdgeInsets.zero,
         // Цветная карточка с корешком: зелёная (готово), жёлтая (после 23:05),
         // красная (перегруз) — как у задач соответствующих состояний.
-        color: spine == null ? null : spine.withValues(alpha: 0.08),
+        //
+        // Тинт «впекаем» в сплошной цвет карточки через alphaBlend, а не
+        // отдаём голый spine.withValues(alpha:) — иначе сам Card.color
+        // полупрозрачный и сквозь карточку просвечивает фон экрана и уезжающий
+        // под неё список (тот же баг, что чинили у карточек задач и баннера
+        // помодоро). Альфа 0.18, как у карточек задач: на тёплом тёмном
+        // cardColor 8% дают почти нейтральный серый, 0.18 читается в обеих
+        // темах — и карточка визуально совпадает с задачами того же состояния.
+        color: spine == null ? null : cardBg,
         clipBehavior: spine == null ? Clip.none : Clip.antiAlias,
         child: spine == null
             ? content

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/appearance.dart';
 import '../../core/utils/stats_math.dart' as stats_math;
 import '../../data/models/task.dart';
 import '../../data/repositories/task_repository.dart';
@@ -248,7 +249,9 @@ EstimateAccuracy? _compute(List<Task> tasks) {
     for (final tag in t.tags) {
       byTagRatios.putIfAbsent(tag, () => []).add(ratio);
       byTagDiffs.putIfAbsent(tag, () => []).add(diff);
-      byTagWeights.putIfAbsent(tag, () => []).add(t.estimatedMinutes!.toDouble());
+      byTagWeights
+          .putIfAbsent(tag, () => [])
+          .add(t.estimatedMinutes!.toDouble());
     }
   }
   // Только теги с ≥ _kMinPairs пар; сортируем по убыванию величины отклонения
@@ -312,7 +315,8 @@ class EstimateAccuracyCard extends ConsumerWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => const EstimateAccuracyScreen()),
+          MaterialPageRoute<void>(
+              builder: (_) => const EstimateAccuracyScreen()),
         ),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -431,7 +435,12 @@ class EstimateAccuracyScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.estimateAccuracyTitle)),
       body: acc == null
-          ? Center(child: Text(l10n.notEnoughData))
+          ? Center(
+              child: NotebookEmptyState(
+                icon: Icons.insert_chart_outlined,
+                text: l10n.notEnoughData,
+              ),
+            )
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
@@ -760,8 +769,7 @@ class _MiniMetric extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: theme.textTheme.labelSmall?.copyWith(color: muted)),
+        Text(label, style: theme.textTheme.labelSmall?.copyWith(color: muted)),
         const SizedBox(height: 2),
         Text(
           metric.rowLabel(l10n),

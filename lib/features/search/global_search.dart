@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/appearance.dart';
 import '../../core/utils/date_utils.dart';
 import '../../data/models/goal.dart';
 import '../../data/models/task.dart';
@@ -55,16 +56,13 @@ class GlobalSearchDelegate extends SearchDelegate<DateTime?> {
   }
 
   Widget _buildList(BuildContext context) {
-    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final q = query.trim().toLowerCase();
     if (q.isEmpty) {
       return Center(
-        child: Text(
-          l10n.searchTasksEmptyHint,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-          ),
+        child: NotebookEmptyState(
+          icon: Icons.search_outlined,
+          text: l10n.searchTasksEmptyHint,
         ),
       );
     }
@@ -74,7 +72,12 @@ class GlobalSearchDelegate extends SearchDelegate<DateTime?> {
       ..sort((a, b) => b.date.compareTo(a.date));
 
     if (found.isEmpty) {
-      return Center(child: Text(l10n.searchNothingFound));
+      return Center(
+        child: NotebookEmptyState(
+          icon: Icons.search_off_outlined,
+          text: l10n.searchNothingFound,
+        ),
+      );
     }
 
     final df =
@@ -133,23 +136,25 @@ class GoalSearchDelegate extends SearchDelegate<Goal?> {
       g.tags.any((tag) => tag.toLowerCase().contains(q));
 
   Widget _buildList(BuildContext context) {
-    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final q = query.trim().toLowerCase();
     if (q.isEmpty) {
       return Center(
-        child: Text(
-          l10n.searchGoalsEmptyHint,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-          ),
+        child: NotebookEmptyState(
+          icon: Icons.search_outlined,
+          text: l10n.searchGoalsEmptyHint,
         ),
       );
     }
 
     final found = goals.where((g) => _matches(g, q)).toList();
     if (found.isEmpty) {
-      return Center(child: Text(l10n.searchNothingFound));
+      return Center(
+        child: NotebookEmptyState(
+          icon: Icons.search_off_outlined,
+          text: l10n.searchNothingFound,
+        ),
+      );
     }
 
     return ListView(

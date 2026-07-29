@@ -40,8 +40,7 @@ class _TransferCatchupDialog extends StatefulWidget {
   final List<Goal> goals;
 
   @override
-  State<_TransferCatchupDialog> createState() =>
-      _TransferCatchupDialogState();
+  State<_TransferCatchupDialog> createState() => _TransferCatchupDialogState();
 }
 
 class _TransferCatchupDialogState extends State<_TransferCatchupDialog> {
@@ -92,6 +91,7 @@ class _TransferCatchupDialogState extends State<_TransferCatchupDialog> {
             alignment: Alignment.centerRight,
             child: Wrap(
               spacing: 2,
+              runSpacing: 2,
               children: [
                 TextButton(
                   onPressed: _selectAll,
@@ -146,16 +146,21 @@ class _TransferCatchupDialogState extends State<_TransferCatchupDialog> {
             ),
           ),
           const SizedBox(height: 18),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+          // Wrap, а не Row: у FilledButton текст растёт с числом кандидатов
+          // («Перенести (12)») и на узком диалоге вместе с «Не переносить»
+          // может не влезть в ширину — тогда вторая кнопка просто уходит на
+          // новую строку, а не вылезает за пределы карточки.
+          Wrap(
+            alignment: WrapAlignment.end,
+            spacing: 8,
+            runSpacing: 8,
             children: [
               // «Не переносить» — серая кнопка: явный отказ от ВСЕХ
               // кандидатов (как «Нет» у баннера, но разом), в отличие от
               // Esc/тапа по затемнению, который просто откладывает решение.
               TextButton(
                 style: TextButton.styleFrom(
-                  backgroundColor:
-                      theme.colorScheme.surfaceContainerHighest,
+                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
                   foregroundColor: theme.colorScheme.onSurface,
                 ),
                 onPressed: () => Navigator.pop(
@@ -164,7 +169,6 @@ class _TransferCatchupDialogState extends State<_TransferCatchupDialog> {
                 ),
                 child: Text(l10n.transferCatchupDeclineAll),
               ),
-              const SizedBox(width: 8),
               FilledButton(
                 onPressed: () => Navigator.pop(context, (
                   taskIds: _checkedTaskIds,
@@ -221,7 +225,13 @@ class _CandidateRow extends StatelessWidget {
             ),
             const SizedBox(width: 4),
             Expanded(
-              child: Text(title, overflow: TextOverflow.ellipsis),
+              // Обрезается многоточием на узких экранах — полный текст по
+              // наведению/долгому нажатию.
+              child: Tooltip(
+                message: title,
+                child:
+                    Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
             ),
           ],
         ),

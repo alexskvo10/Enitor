@@ -49,12 +49,17 @@ class BacklogNudgeCard extends StatelessWidget {
                   children: [
                     Text(title, style: theme.textTheme.bodyMedium),
                     if (subtitle != null)
-                      Text(
-                        subtitle!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
+                      // Обрезается многоточием на узких экранах — полный
+                      // текст по наведению/долгому нажатию.
+                      Tooltip(
+                        message: subtitle!,
+                        child: Text(
+                          subtitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ),
                   ],
