@@ -125,24 +125,40 @@ class StatsRepository {
   // ─── On-time хелпер ────────────────────────────────────────────────────────
 
   /// Задача выполнена вовремя если:
-  /// • completedAt раньше или в тот же день что task.date (выполнена заранее → вовремя), И
-  /// • если completedAt в тот же день И есть endMinutes — completedAt.time ≤ endMinutes.
+  /// • выполнена раньше своего дня → вовремя;
+  /// • выполнена позже своего дня → с опозданием;
+  /// • в свой день — уложилась в срок: во время окончания задачи, а если оно
+  ///   не задано, то до полуночи.
   ///
-  /// Если completedAt позже taskDay → с опозданием.
+  /// «День» здесь — день приложения ([effectiveDay]): ночные часы относятся к
+  /// уходящему дню. Без этого любая задача, законченная между 00:00 и 4:00,
+  /// считалась опоздавшей — даже с проставленным временем окончания, потому
+  /// что проверка календарной даты срабатывала раньше проверки времени. То
+  /// есть правило «день начинается в 4:00» действовало везде, кроме метрики,
+  /// которая за опоздания и наказывает.
+  ///
+  /// Обычная задача без времени окончания всё же считается опоздавшей, если
+  /// закрыта после полуночи: её неявный срок — конец календарного дня.
+  ///
   /// Публичная — единственный источник истины для всех экранов/агрегатов.
   static bool taskIsOnTime(Task task) {
     if (!task.isCompleted || task.completedAt == null) return false;
-    final completedDay = dateOnly(task.completedAt!);
+    final done = task.completedAt!;
+    final completedDay = effectiveDay(done);
     final taskDay = dateOnly(task.date);
-    if (completedDay.isAfter(taskDay)) return false; // выполнена после дня задачи → опоздание
-    if (completedDay.isBefore(taskDay)) return true; // выполнена заранее → вовремя
-    // completedDay == taskDay: проверяем время, если задано
-    if (task.endMinutes != null) {
-      final completedMins =
-          task.completedAt!.hour * 60 + task.completedAt!.minute;
-      return completedMins <= task.endMinutes!;
-    }
-    return true;
+    if (completedDay.isAfter(taskDay)) return false;
+    if (completedDay.isBefore(taskDay)) return true;
+
+    // Один день: сравниваем по общей шкале минут, где ночь после полуночи
+    // продолжает уходящий день (01:30 → 1530).
+    final completedMins = minutesFromDayStart(done);
+    final end = task.endMinutes;
+    if (end == null) return completedMins <= 1440; // неявный срок — полночь
+    // Задача «через полночь» (22:00 → 01:00): конец лежит уже за 1440 —
+    // тот же признак, что и в _taskEndAt/_calcTimeState на экране «Сегодня».
+    final start = task.startMinutes;
+    final overnight = start != null && end < start;
+    return completedMins <= (overnight ? end + 1440 : end);
   }
 
   // ─── CRUD ──────────────────────────────────────────────────────────────────
@@ -175,8 +191,7 @@ class StatsRepository {
 
   Stream<DayStats?> watchDay(DateTime date) async* {
     final day = dateOnly(date);
-    DayStats? find(List<DayStats> all) =>
-        all.cast<DayStats?>().firstWhere(
+    DayStats? find(List<DayStats> all) => all.cast<DayStats?>().firstWhere(
           (s) => s != null && dateOnly(s.date) == day,
           orElse: () => null,
         );
@@ -520,8 +535,7 @@ class StatsRepository {
         ChartGrouping.yearly => startOfYear(date),
       };
 
-  static DateTime _nextBucketStatic(DateTime c, ChartGrouping g) =>
-      switch (g) {
+  static DateTime _nextBucketStatic(DateTime c, ChartGrouping g) => switch (g) {
         ChartGrouping.daily => c.add(const Duration(days: 1)),
         ChartGrouping.weekly => c.add(const Duration(days: 7)),
         ChartGrouping.monthly => DateTime(c.year, c.month + 1),

@@ -69,8 +69,9 @@ String _fmtDuration(int minutes, BuildContext context) {
 // ─── Граница «прошлое» с учётом ночного времени ──────────────────────────────
 
 /// До 4:00 утра вчерашний день ещё считается «сегодняшним» для редактирования.
-DateTime _effectiveToday(DateTime now) =>
-    now.hour < 4 ? today().subtract(const Duration(days: 1)) : today();
+// Само правило живёт в effectiveDay() — здесь только псевдоним «для сейчас»,
+// чтобы правило не разъезжалось между UI и статистикой (уже разъезжалось).
+DateTime _effectiveToday(DateTime now) => effectiveDay(now);
 
 // ─── Порог показа «Оцените день» на сегодня ──────────────────────────────────
 

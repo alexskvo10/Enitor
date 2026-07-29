@@ -4,6 +4,29 @@ DateTime dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
 DateTime today() => dateOnly(DateTime.now());
 
+/// Час, с которого начинается «день приложения»: до него ночные часы ещё
+/// относятся к уходящему дню.
+const kDayStartHour = 4;
+
+/// День, которому принадлежит момент [d] с точки зрения приложения. До 4:00
+/// это ВЧЕРАШНЯЯ дата: ночные часы засчитываются уходящему дню.
+///
+/// Единый источник правила — раньше оно было продублировано в UI
+/// (`_effectiveToday`) и не применялось в статистике, из-за чего задача,
+/// законченная в 01:30, попадала в «опоздания», хотя приложение всё ещё
+/// показывало её вчерашним днём.
+DateTime effectiveDay(DateTime d) => d.hour < kDayStartHour
+    ? dateOnly(d).subtract(const Duration(days: 1))
+    : dateOnly(d);
+
+/// Минуты от начала [effectiveDay] для момента [d]. Ночь после полуночи
+/// продолжает шкалу уходящего дня: 01:30 → 1530, а не 90. Нужно, чтобы
+/// сравнение со временем окончания задачи не «перепрыгивало» через полночь.
+int minutesFromDayStart(DateTime d) {
+  final mins = d.hour * 60 + d.minute;
+  return d.hour < kDayStartHour ? mins + 1440 : mins;
+}
+
 /// Понедельник текущей недели для переданной даты.
 DateTime startOfWeek(DateTime d) {
   final day = dateOnly(d);
