@@ -92,6 +92,36 @@ const List<_Section> _kFaq = [
           'separate stats by tag.',
     ),
     _Qa(
+      'Как найти старую задачу или цель?',
+      'Лупа в шапке экрана. На «Сегодня» она ищет по задачам, на «Целях» — по '
+          'целям. Ищет по названию, описанию и тегам одновременно, так что '
+          'можно искать и по «#работа». Выбранный результат открывает свой '
+          'день (для задачи) или свою цель.',
+      'How do I find an old task or goal?',
+      'The magnifier in the screen header. On Today it searches tasks, on '
+          'Goals it searches goals. It looks at the title, the description and '
+          'the tags at once, so searching by "#work" works too. Picking a '
+          'result opens the day it belongs to (for a task) or the goal itself.',
+    ),
+    _Qa(
+      'Что делают «Скопировать» и «Удалить все»?',
+      '«Скопировать» переносит задачи выбранного дня в другой день — удобно, '
+          'когда день похож на прошлый и не хочется набивать всё заново; для '
+          'целей так же, но копируется в другой период. «Удалить все» очищает '
+          'весь список выбранного дня (или периода) разом и спрашивает '
+          'подтверждение — отменить это нельзя. Если один и тот же набор '
+          'нужен регулярно, лучше не копировать каждый раз, а сохранить его '
+          'шаблоном дня.',
+      'What do "Copy" and "Delete all" do?',
+      '"Copy" puts the selected day\'s tasks onto another day — handy when a '
+          'day resembles a previous one and you\'d rather not retype it; for '
+          'goals it works the same way, copying into another period. "Delete '
+          'all" clears the whole list for the selected day (or period) at '
+          'once and asks for confirmation — it cannot be undone. If you need '
+          'the same set regularly, save it as a day template instead of '
+          'copying it every time.',
+    ),
+    _Qa(
       'Как сделать повторяющуюся задачу?',
       'В форме задачи включи «Повторяется» и выбери режим: ежедневно, по дням '
           'недели, по числам месяца или через интервал. Экземпляры создаются '
@@ -191,7 +221,7 @@ const List<_Section> _kFaq = [
       'A deadline is an optional date within the period by which the goal '
           "should be done. A goal counts as achieved on time if it's closed no "
           "later than the deadline — or, if there's no deadline, no later than "
-          'the last day of the period. This feeds the “Deadline adherence” '
+          'the last day of the period. This feeds the “Deadline compliance” '
           'stats.',
     ),
     _Qa(
@@ -269,6 +299,39 @@ const List<_Section> _kFaq = [
       'By a composite score: productivity × a small bonus for being on '
           'time × a weight for volume. So a busy, productive day beats a '
           'day with just one task "at 100%".',
+    ),
+    _Qa(
+      'Что показывает «Соблюдение дедлайнов»?',
+      'Насколько рано или поздно ты закрываешь цели относительно срока. За '
+          'срок берётся дедлайн цели, а если он не задан — конец её периода. '
+          'Показывается медиана по всем достигнутым целям, в днях, со знаком: '
+          '«−2 д» значит, что обычно ты закрываешь цель за два дня до срока, '
+          '«+2 д» — что на два дня позже. Ноль и любой минус считаются '
+          '«в срок» и подсвечиваются зелёным. Медиана, а не среднее, — чтобы '
+          'одна забытая на месяц цель не портила всю картину.',
+      'What does "Deadline compliance" show?',
+      'How early or late you close goals relative to their due date. The due '
+          'date is the goal deadline, or the end of its period if no deadline '
+          'is set. It shows the median across all achieved goals, in days, '
+          'with a sign: "−2 d" means you usually close a goal two days before '
+          'the due date, "+2 d" means two days after. Zero and any negative '
+          'value count as on time and are shown in green. It is a median '
+          'rather than an average so that one goal forgotten for a month '
+          "doesn't skew the whole picture.",
+    ),
+    _Qa(
+      'Где посмотреть статистику по тегам?',
+      'Статистика → «Статистика по тегам» (для целей — «Статистика по тегам '
+          'целей» на вкладке «Цели»). Там по каждому тегу видно, сколько дел '
+          'выполнено и какая доля из них закрыта в срок. Удобно, чтобы '
+          'заметить, что какая-то область жизни систематически проваливается, '
+          'а не тонет в общей цифре.',
+      'Where do I see stats per tag?',
+      'Stats → "Tag stats" (for goals, "Goal tag stats" on the Goals tab). '
+          'For each tag it shows how many items you completed and what share '
+          'of them were on time. Useful for noticing that one area of life is '
+          'consistently slipping instead of it being hidden inside the overall '
+          'number.',
     ),
     _Qa(
       'Что за «точность оценок»?',
@@ -389,19 +452,65 @@ const List<_Section> _kFaq = [
     ),
     _Qa(
       'Почему уведомления не приходят?',
-      'Чаще всего телефон усыпляет приложение в фоне (особенно Infinix/'
-          'Transsion, Xiaomi, Huawei). Разреши работу в фоне по подсказке в '
-          'приложении или вручную: Настройки телефона → Батарея → отключить '
-          'оптимизацию для Enitor и включить автозапуск.',
+      'На телефоне чаще всего система усыпляет приложение в фоне (особенно '
+          'Infinix/Transsion, Xiaomi, Huawei). Разреши работу в фоне по '
+          'подсказке в приложении или вручную: Настройки телефона → Батарея → '
+          'отключить оптимизацию для Enitor и включить автозапуск.\n\n'
+          'На Windows причина обычно другая — антивирус. Чтобы показать '
+          'уведомление, система опознаёт приложение по записи, которую Enitor '
+          'делает в реестре при запуске. Антивирусы с песочницей (замечено за '
+          'Kaspersky и 360 Total Security) считают неподписанное приложение '
+          'недоверенным и заворачивают эту запись в теневую копию: Enitor '
+          'думает, что прописался, а система его не видит и молча выбрасывает '
+          'каждое уведомление. Само приложение это обнаружить не может — '
+          'читая запись обратно, оно получает ту же теневую копию. Лечится '
+          'добавлением Enitor в доверенные (исключения) в антивирусе.',
       "Why aren't notifications arriving?",
-      'Most often the phone puts the app to sleep in the background '
-          '(especially on Infinix/Transsion, Xiaomi, Huawei). Allow '
+      'On the phone the system usually puts the app to sleep in the '
+          'background (especially on Infinix/Transsion, Xiaomi, Huawei). Allow '
           'background activity via the in-app hint, or manually: Phone '
           'Settings → Battery → disable optimization for Enitor and enable '
-          'autostart.',
+          'autostart.\n\n'
+          'On Windows the cause is usually different — your antivirus. To show '
+          'a notification, the system identifies the app by an entry Enitor '
+          'writes to the registry on startup. Antivirus suites that sandbox '
+          'unknown applications (Kaspersky and 360 Total Security both do) '
+          'treat an unsigned app as untrusted and redirect that write into a '
+          'shadow copy: Enitor believes it registered, the system never sees '
+          'it, and every notification is silently discarded. The app cannot '
+          'detect this itself — reading the value back returns the same '
+          'shadow copy. Adding Enitor to your antivirus trusted list fixes it.',
     ),
   ]),
   _Section('Резервные копии', 'Backups', Icons.backup_outlined, [
+    _Qa(
+      'Данные куда-то отправляются?',
+      'Нет. Аккаунта нет, сервера нет, аналитики и телеметрии нет — всё '
+          'лежит только на этом устройстве. В сеть приложение ходит ровно за '
+          'одним: спросить у GitHub, не вышла ли новая версия (и скачать её, '
+          'если ты согласишься). Задачи, цели и статистика при этом никуда '
+          'не передаются.',
+      'Is my data sent anywhere?',
+      'No. There is no account, no server, no analytics and no telemetry — '
+          'everything lives on this device only. The app reaches the network '
+          'for exactly one thing: asking GitHub whether a newer version '
+          'exists (and downloading it if you agree). Your tasks, goals and '
+          'stats are never sent anywhere.',
+    ),
+    _Qa(
+      'Где физически лежат мои данные?',
+      'На Windows — в папке %APPDATA%\\Enitor\\Enitor, на Android — в '
+          'песочнице приложения. Это отдельно от файлов самой программы, '
+          'поэтому обновление или перенос папки с приложением данные не '
+          'трогает. Скопировать эту папку целиком — тоже рабочий способ '
+          'бэкапа, но переносимее всё-таки экспорт в файл.',
+      'Where is my data physically stored?',
+      'On Windows, in %APPDATA%\\Enitor\\Enitor; on Android, in the app '
+          'sandbox. That is separate from the program files, which is why '
+          'updating the app — or moving its folder — leaves your data alone. '
+          'Copying that folder is a valid backup too, though the file export '
+          'is the more portable option.',
+    ),
     _Qa(
       'Мои данные где-то сохраняются?',
       'Да. Приложение само хранит свежую резервную копию всех данных и '
@@ -409,6 +518,41 @@ const List<_Section> _kFaq = [
       'Is my data saved anywhere?',
       'Yes. The app automatically keeps a fresh backup of all your data '
           'and restores it on a clean reinstall or after "clear data".',
+    ),
+    _Qa(
+      'Что делает «Сбросить настройки»?',
+      'Возвращает к значениям по умолчанию тему, фон, виньетку, язык и все '
+          'настройки уведомлений — то есть приложение выглядит и напоминает '
+          'так же, как при первом запуске. Задачи, цели, статистика и '
+          'достижения не трогаются. Перезапуск не нужен, всё применяется '
+          'сразу.',
+      'What does "Reset settings" do?',
+      'It returns the theme, background, vignette, language and every '
+          'notification setting to their defaults — the app looks and reminds '
+          'you exactly as it did on first launch. Tasks, goals, stats and '
+          'achievements are left untouched. No restart needed, it applies '
+          'immediately.',
+    ),
+    _Qa(
+      'Что делает «Удалить все данные»?',
+      'Стирает всё содержимое: задачи, цели, статистику, достижения, шаблоны '
+          'и повторы — и вместе с ними автоматическую резервную копию. '
+          'Последнее важно: без этого приложение подняло бы копию на '
+          'следующем запуске, '
+          'и удаление выглядело бы не сработавшим. Поэтому восстановить будет '
+          'нечем — в диалоге есть кнопка «Сначала экспорт», лучше ей '
+          'воспользоваться. Настройки при этом тоже сбрасываются, а после '
+          'удаления приложение просит перезапуск, чтобы все экраны увидели '
+          'пустое хранилище.',
+      'What does "Delete all data" do?',
+      'It erases everything: tasks, goals, stats, achievements, templates and '
+          'repeats — and the automatic backup along with them. That last part '
+          'matters: without it the app would restore the copy on the next '
+          'launch and the deletion would look like it had failed. So there '
+          'will be nothing to restore from — the dialog offers an "Export '
+          'first" button, and it is worth using. Settings are reset too, and '
+          'afterwards the app asks for a restart so every screen sees the '
+          'empty storage.',
     ),
     _Qa(
       'Зачем тогда экспорт/импорт?',

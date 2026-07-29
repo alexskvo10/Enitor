@@ -36,7 +36,7 @@ And the fundamentals that make trusting it with your habits worthwhile:
 
 - **Carry-over is never silent.** At the 4:00 AM day boundary Enitor *asks* what to carry over, creates a fresh copy on today, and leaves the original in its own day with a small arrow badge. History is never rewritten — your past stays exactly as it happened, which is what makes the stats above trustworthy in the first place.
 - **The calendar won't guilt-trip you.** Days with no tasks are neutral, not red. An empty *future* day is blue, not red — there's a real difference between "you did nothing" and "you haven't gotten there yet."
-- **The day starts at 4:00, not midnight.** If you're up late finishing something, your "today" doesn't flip under your feet at 00:00 and quietly mark it "yesterday's task, done late" — late-night hours still belong to the day that's ending, so the one time you actually push through doesn't get punished by the calendar.
+- **The day starts at 4:00, not midnight.** If you're up late finishing something, your "today" doesn't flip under your feet at 00:00 — late-night hours still belong to the day that's ending, for the task list, for carry-over, and for the on-time stat alike. Finish a task scheduled until 2:00 AM at 1:30 and it counts as on time, not as "yesterday's task, done late." A task with no time set is the honest exception: its implicit deadline is the end of the calendar day, so finishing it after midnight does count as late.
 - **A design system, not a coat of paint.** Warm "paper" surfaces, ink-colored shadows, a single sparing accent color, a spring-eased checkbox stroke that *draws itself* — every choice answers to one consistent metaphor ("a paper journal"), documented down to the hex code in [`docs/design-overview.md`](docs/design-overview.md).
 - **Genuinely yours.** No account, no cloud, no telemetry. Everything lives in local storage; a manual export/import covers backups and device migration. The app also checks GitHub for new releases and updates itself — no store gatekeeping, no forced updates.
 - **One codebase, two real platforms.** Windows and Android from a single Flutter codebase — not a phone app with a resized desktop wrapper, both get the same features, the same design, and fixes at the same time. Fully localized in Russian and English with an instant, no-restart language switch.
@@ -113,7 +113,7 @@ After the first install, Enitor checks GitHub for new releases on its own (about
 ### Tasks
 - A rotating quote from a curated collection about discipline and small daily progress opens the Today screen — not a widget nobody asked for, the same idea the rest of the app is built around.
 - Start/end time, priority, tags, sub-tasks (checklist), or a numeric counter ("drink 5 glasses of water") — partial progress counts honestly toward productivity.
-- Recurring tasks (daily, by weekday, by day of month, or every N days), with a choice of how far ahead to generate.
+- Recurring tasks — by weekday, by day of month, or every N days — with a choice of how far ahead to generate.
 - Copy a whole day's task set to another day, or save it as a reusable **template**.
 - Global search across task titles, descriptions, and tags.
 
@@ -145,7 +145,8 @@ After the first install, Enitor checks GitHub for new releases on its own (about
 - On Windows, if no notification ever arrives, see the antivirus note under [Installation](#installation) — a sandboxing security suite is the usual cause.
 
 ### Data & updates
-- 100% local storage, no account, no telemetry. Manual JSON export/import for backups and moving between devices.
+- 100% local storage, no account, no telemetry. Manual JSON export/import for backups and moving between devices, plus an automatic backup the app keeps on its own and restores after a clean reinstall.
+- Settings can be reset to their defaults without touching your data, and there's a full data wipe for starting over — the wipe clears the automatic backup too, so it offers an export first.
 - Built-in self-update: checks GitHub Releases (throttled to once a day automatically, or on demand), shows the changelog, and installs itself — the system installer on Android, an automatic relaunch on Windows.
 
 ### Personalization
@@ -234,7 +235,8 @@ Enitor/
 ├── assets/
 │   ├── fonts/
 │   ├── icon/
-│   └── quotes/                   # quote JSON files
+│   ├── quotes/                   # quote JSON files
+│   └── sounds/                   # Pomodoro chime
 ├── test/
 ├── docs/
 └── pubspec.yaml
