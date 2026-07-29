@@ -6,7 +6,8 @@ import '../../data/sources/local/local_storage.dart';
 const _kLocaleKey = 'app_locale';
 
 /// Язык приложения. `system` — берём язык устройства (если он входит в
-/// список поддерживаемых, иначе фолбэк на русский).
+/// список поддерживаемых, иначе фолбэк на английский — `template-arb-file`
+/// в l10n.yaml это `app_en.arb`, он первый в `supportedLocales`).
 enum AppLocaleOption { system, ru, en }
 
 /// Выбор языка интерфейса. Persist в SharedPreferences — как [AppearanceController].

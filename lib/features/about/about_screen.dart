@@ -101,8 +101,12 @@ class AboutScreen extends ConsumerWidget {
           const SizedBox(height: 12),
           Card(
             margin: EdgeInsets.zero,
+            // Без этого InkWell-подсветка ListTile.onTap рисуется прямым
+            // прямоугольником поверх скруглённых углов карточки (тот же
+            // баг, что чинили у плиток задач/целей).
+            clipBehavior: Clip.antiAlias,
             child: ListTile(
-              leading: Icon(Icons.system_update_alt_outlined,
+              leading: Icon(Icons.cloud_download_outlined,
                   color: theme.colorScheme.primary),
               title: Text(l10n.checkForUpdatesLabel),
               onTap: () => checkAndShowUpdateDialog(context, ref, manual: true),

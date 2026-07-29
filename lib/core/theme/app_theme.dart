@@ -64,6 +64,11 @@ abstract final class AppTheme {
         shadowColor: const Color(0x332A2722),
         surfaceTintColor: Colors.transparent,
         margin: EdgeInsets.zero,
+        // По умолчанию Card ничего не обрезает — без этого InkWell-подсветка
+        // любой нажимаемой карточки (ListTile.onTap и т.п.) рисуется прямым
+        // прямоугольником поверх скруглённых углов. Отдельные карточки могут
+        // переопределить на Clip.none, если внутри есть намеренный overflow.
+        clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: AppColors.ringTrack),
@@ -133,6 +138,7 @@ abstract final class AppTheme {
         shadowColor: Colors.black,
         surfaceTintColor: Colors.transparent,
         margin: EdgeInsets.zero,
+        clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: AppColors.surfaceDarkMuted),
