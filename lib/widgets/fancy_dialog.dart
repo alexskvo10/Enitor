@@ -69,7 +69,17 @@ Future<T?> showFancyDialog<T>({
           textAlign: TextAlign.center,
         );
       }
-      final acts = actions?.call(ctx) ?? const <Widget>[];
+      // Промежутки между кнопками задаёт сам Wrap (spacing ниже), поэтому
+      // распорки, которые call-site'ы вставляли во времена Row, отбрасываем.
+      // Иначе на переносе строки такая распорка застревает в конце первой
+      // строки и сдвигает её на 8px относительно второй — кнопки выглядят
+      // невыровненными по правому краю.
+      // Отбрасываем только ПУСТЫЕ SizedBox — если внутри что-то есть, это
+      // не распорка, а кнопка в обёртке, и терять её нельзя.
+      final acts = [
+        for (final w in actions?.call(ctx) ?? const <Widget>[])
+          if (w is! SizedBox || w.child != null) w,
+      ];
       return FancyDialogCard(
         icon: icon,
         iconColor: iconColor,
@@ -89,6 +99,10 @@ Future<T?> showFancyDialog<T>({
               // transfer_catchup_sheet.
               Wrap(
                 alignment: WrapAlignment.end,
+                // По центру, а не по верху: Row выравнивал так же, и кнопки
+                // разных типов (TextButton/FilledButton) не «прыгают».
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
                 runSpacing: 8,
                 children: acts,
               ),
