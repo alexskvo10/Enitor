@@ -89,7 +89,12 @@ Future<T?> showFancyDialog<T>({
           children: [
             if (body != null) ...[
               const SizedBox(height: 10),
-              body,
+              // Flexible: контент забирает остаток высоты карточки, а не
+              // растёт в бесконечность (см. FancyDialogCard). Кнопки внизу
+              // остаются на месте, а длинный/прокручиваемый контент —
+              // например список выбора дня недели — сжимается под экран
+              // вместо того, чтобы вылезти за него.
+              Flexible(child: body),
             ],
             if (acts.isNotEmpty) ...[
               const SizedBox(height: 18),
@@ -206,7 +211,13 @@ class _FancyDialogCardState extends State<FancyDialogCard>
               ),
               textAlign: TextAlign.center,
             ),
-            widget.child,
+            // Flexible, а не голый child: Dialog отдаёт карточке ОГРАНИЧЕННУЮ
+            // по экрану высоту, но обычному ребёнку Column раздаёт по главной
+            // оси бесконечность — и содержимое, которое хочет прокручиваться
+            // (список переноса, разбор недели), не знает, где остановиться, и
+            // вылезает за экран на низких телефонах и в ландшафте. Через
+            // Flexible ребёнок получает ровно остаток высоты карточки.
+            Flexible(child: widget.child),
           ],
         ),
       ),

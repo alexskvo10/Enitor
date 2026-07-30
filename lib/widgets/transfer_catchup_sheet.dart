@@ -104,44 +104,50 @@ class _TransferCatchupDialogState extends State<_TransferCatchupDialog> {
               ],
             ),
           ),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 260),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (widget.tasks.isNotEmpty) ...[
-                    _groupLabel(theme, l10n.navToday),
-                    for (final t in widget.tasks)
-                      _CandidateRow(
-                        title: t.title,
-                        checked: _checkedTaskIds.contains(t.id),
-                        onChanged: (v) => setState(() {
-                          if (v) {
-                            _checkedTaskIds.add(t.id);
-                          } else {
-                            _checkedTaskIds.remove(t.id);
-                          }
-                        }),
-                      ),
+          // Flexible поверх потолка в 260: на низком экране (или в ландшафте)
+          // одного потолка мало — 260 списка плюс медальон, заголовок и
+          // кнопки не влезали, и диалог вылезал за экран. Теперь список
+          // берёт меньшее из 260 и того, что реально осталось в карточке.
+          Flexible(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 260),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (widget.tasks.isNotEmpty) ...[
+                      _groupLabel(theme, l10n.navToday),
+                      for (final t in widget.tasks)
+                        _CandidateRow(
+                          title: t.title,
+                          checked: _checkedTaskIds.contains(t.id),
+                          onChanged: (v) => setState(() {
+                            if (v) {
+                              _checkedTaskIds.add(t.id);
+                            } else {
+                              _checkedTaskIds.remove(t.id);
+                            }
+                          }),
+                        ),
+                    ],
+                    if (widget.goals.isNotEmpty) ...[
+                      _groupLabel(theme, l10n.navGoals),
+                      for (final g in widget.goals)
+                        _CandidateRow(
+                          title: g.title,
+                          checked: _checkedGoalIds.contains(g.id),
+                          onChanged: (v) => setState(() {
+                            if (v) {
+                              _checkedGoalIds.add(g.id);
+                            } else {
+                              _checkedGoalIds.remove(g.id);
+                            }
+                          }),
+                        ),
+                    ],
                   ],
-                  if (widget.goals.isNotEmpty) ...[
-                    _groupLabel(theme, l10n.navGoals),
-                    for (final g in widget.goals)
-                      _CandidateRow(
-                        title: g.title,
-                        checked: _checkedGoalIds.contains(g.id),
-                        onChanged: (v) => setState(() {
-                          if (v) {
-                            _checkedGoalIds.add(g.id);
-                          } else {
-                            _checkedGoalIds.remove(g.id);
-                          }
-                        }),
-                      ),
-                  ],
-                ],
+                ),
               ),
             ),
           ),
