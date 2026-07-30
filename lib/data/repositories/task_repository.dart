@@ -245,6 +245,43 @@ class TaskRepository {
       ..sort((a, b) => _sortKey(a).compareTo(_sortKey(b)));
   }
 
+  /// Сколько невыполненного на каждый из ближайших [days] дней: ключ —
+  /// смещение от сегодня (0 = сегодня), значение — число задач. Дни, где
+  /// напоминать не о чем, в карту не попадают вовсе.
+  ///
+  /// Нужно общим напоминаниям «не забудь про задачи»: без этого они шлются
+  /// по часам вслепую и обесценивают все остальные уведомления приложения.
+  Map<int, int> unfinishedCountsByDay({int days = 7}) {
+    final today = dateOnly(DateTime.now());
+    final result = <int, int>{};
+    for (var d = 0; d < days; d++) {
+      final day = today.add(Duration(days: d));
+      final count = _unfinishedCountFor(day);
+      if (count > 0) result[d] = count;
+    }
+    return result;
+  }
+
+  int _unfinishedCountFor(DateTime day) {
+    var count = 0;
+    final materializedRuleIds = <String>{};
+    for (final t in _cache) {
+      if (dateOnly(t.date) != day) continue;
+      final ruleId = t.recurrenceRuleId;
+      if (ruleId != null) materializedRuleIds.add(ruleId);
+      if (!t.isCompleted && !t.isTransferred) count++;
+    }
+    // Повторы для будущих дней создаются лениво — только когда день открыли
+    // (см. ensureRecurrencesForDay). Поэтому считаем и сами правила: иначе у
+    // человека, чей день целиком состоит из повторяющихся задач, будущие дни
+    // выглядели бы пустыми и напоминания замолчали бы навсегда.
+    for (final rule in _recurrenceRepo.all) {
+      if (materializedRuleIds.contains(rule.id)) continue;
+      if (rule.occursOn(day)) count++;
+    }
+    return count;
+  }
+
   /// Невыполненные задачи с временем начала на ближайшие [days] дней — без
   /// фильтра «старт ещё впереди» (нужны не только напоминания к началу, но и
   /// к концу / «требует внимания» / «просрочена», которые должны сработать и

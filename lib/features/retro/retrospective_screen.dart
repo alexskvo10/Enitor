@@ -12,31 +12,17 @@ import '../../data/repositories/stats_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../../widgets/delta_indicator.dart';
+import 'week_stats.dart';
 
 /// Итоги недели: продуктивность с дельтой к прошлой неделе, задачи, лучший
-/// день, идеальные дни, достигнутые цели, средняя оценка дней (рефлексия).
-/// Всё считается из УЖЕ собранных данных — никаких новых вводов.
+/// день, идеальные дни, цели недели, достигнутые цели, средняя оценка дней
+/// (рефлексия). Всё считается из УЖЕ собранных данных — никаких новых вводов.
 class RetrospectiveScreen extends ConsumerStatefulWidget {
   const RetrospectiveScreen({super.key});
 
   @override
   ConsumerState<RetrospectiveScreen> createState() =>
       _RetrospectiveScreenState();
-}
-
-/// Сводка одной недели.
-class _WeekStats {
-  double? avgProductivity;
-  double? avgOnTime;
-  int totalTasks = 0;
-  int completedTasks = 0;
-  int perfectDays = 0;
-  int daysWithData = 0;
-  DayStats? bestDay;
-  double? avgDayRating;
-  List<Goal> goalsDone = [];
-
-  bool get isEmpty => daysWithData == 0 && goalsDone.isEmpty;
 }
 
 class _RetrospectiveScreenState extends ConsumerState<RetrospectiveScreen> {
@@ -51,84 +37,6 @@ class _RetrospectiveScreenState extends ConsumerState<RetrospectiveScreen> {
 
   bool get _isCurrentWeek => _weekStart == startOfWeek(today());
 
-  static List<String> _weekdays(AppLocalizations l10n) => [
-        l10n.weekdayMonday,
-        l10n.weekdayTuesday,
-        l10n.weekdayWednesday,
-        l10n.weekdayThursday,
-        l10n.weekdayFriday,
-        l10n.weekdaySaturday,
-        l10n.weekdaySunday,
-      ];
-
-  _WeekStats _compute(
-    DateTime weekStart,
-    List<DayStats> allStats,
-    List<Goal> goals,
-    Map<String, int> ratings,
-  ) {
-    final res = _WeekStats();
-    final weekEnd = weekStart.add(const Duration(days: 6));
-    bool inWeek(DateTime d) =>
-        !dateOnly(d).isBefore(weekStart) && !dateOnly(d).isAfter(weekEnd);
-
-    final todayDate = today();
-    var prodSum = 0.0;
-    var onTimeSum = 0.0;
-    var onTimeDays = 0;
-    var bestScore = -1.0;
-
-    for (final s in allStats) {
-      if (!inWeek(s.date) || s.date.isAfter(todayDate)) continue;
-      res.totalTasks += s.totalTasks;
-      res.completedTasks += s.completedTasks;
-      final p = s.productivity;
-      if (p == null) continue;
-      res.daysWithData++;
-      prodSum += p;
-      if (p >= 1.0 - 1e-9 && s.totalTasks > 0) res.perfectDays++;
-      final t = s.timeliness;
-      if (t != null) {
-        onTimeSum += t;
-        onTimeDays++;
-      }
-      // Лучший день — составной скор с весом за объём (как в профиле).
-      // Тайбрейк при равном скоре: более поздняя дата — детерминированно,
-      // независимо от порядка обхода allStats.
-      final score = p * (0.7 + 0.3 * (t ?? 1.0)) * volumeWeight(s.totalTasks);
-      final better = score > bestScore + 1e-9 ||
-          ((score - bestScore).abs() < 1e-9 &&
-              res.bestDay != null &&
-              dateOnly(s.date).isAfter(dateOnly(res.bestDay!.date)));
-      if (res.bestDay == null || better) {
-        bestScore = score;
-        res.bestDay = s;
-      }
-    }
-    if (res.daysWithData > 0) {
-      res.avgProductivity = prodSum / res.daysWithData;
-    }
-    if (onTimeDays > 0) res.avgOnTime = onTimeSum / onTimeDays;
-
-    // Цели, достигнутые на этой неделе (любого типа периода).
-    res.goalsDone = goals
-        .where((g) => g.completedAt != null && inWeek(g.completedAt!))
-        .toList();
-
-    // Средняя оценка дней (рефлексия 1..10) — только оценённые дни.
-    final weekRatings = <int>[];
-    for (var i = 0; i < 7; i++) {
-      final key = RatingRepository.dayKey(weekStart.add(Duration(days: i)));
-      final r = ratings[key];
-      if (r != null) weekRatings.add(r);
-    }
-    if (weekRatings.isNotEmpty) {
-      res.avgDayRating =
-          weekRatings.fold<int>(0, (a, b) => a + b) / weekRatings.length;
-    }
-    return res;
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -140,11 +48,15 @@ class _RetrospectiveScreenState extends ConsumerState<RetrospectiveScreen> {
 
     final loading = allStats == null || goals == null || ratings == null;
     final stats =
-        loading ? null : _compute(_weekStart, allStats, goals, ratings);
+        loading ? null : computeWeekStats(_weekStart, allStats, goals, ratings);
     final prev = loading
         ? null
-        : _compute(_weekStart.subtract(const Duration(days: 7)), allStats,
-            goals, ratings);
+        : computeWeekStats(
+            _weekStart.subtract(const Duration(days: 7)),
+            allStats,
+            goals,
+            ratings,
+          );
 
     final weekLabel = GoalPeriodRef(
       period: GoalPeriod.week,
@@ -210,6 +122,12 @@ class _RetrospectiveScreenState extends ConsumerState<RetrospectiveScreen> {
                     const SizedBox(height: 8),
                     _bestDayCard(theme, l10n, stats.bestDay!),
                   ],
+                  // Цели именно на эту неделю — показываем всегда, в том
+                  // числе когда их не ставили: «целей не было» это тоже
+                  // ответ, и без него неделя без целей выглядит так же, как
+                  // неделя, где про цели просто забыли посмотреть.
+                  const SizedBox(height: 8),
+                  _weekGoalsCard(theme, l10n, stats),
                   if (stats.goalsDone.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     _goalsCard(theme, l10n, stats.goalsDone),
@@ -226,7 +144,7 @@ class _RetrospectiveScreenState extends ConsumerState<RetrospectiveScreen> {
 
   /// Главная карточка: продуктивность недели + дельта к прошлой.
   Widget _heroCard(
-      ThemeData theme, AppLocalizations l10n, _WeekStats s, _WeekStats prev) {
+      ThemeData theme, AppLocalizations l10n, WeekStats s, WeekStats prev) {
     final avg = s.avgProductivity;
     final delta = (avg != null && prev.avgProductivity != null)
         ? (avg - prev.avgProductivity!) * 100
@@ -277,7 +195,7 @@ class _RetrospectiveScreenState extends ConsumerState<RetrospectiveScreen> {
     );
   }
 
-  Widget _miniRow(ThemeData theme, AppLocalizations l10n, _WeekStats s) {
+  Widget _miniRow(ThemeData theme, AppLocalizations l10n, WeekStats s) {
     Widget cell(String value, String caption) => Expanded(
           child: Card(
             margin: EdgeInsets.zero,
@@ -321,7 +239,7 @@ class _RetrospectiveScreenState extends ConsumerState<RetrospectiveScreen> {
 
   Widget _bestDayCard(ThemeData theme, AppLocalizations l10n, DayStats best) {
     final d = dateOnly(best.date);
-    final weekday = _weekdays(l10n)[d.weekday - 1];
+    final weekday = weekdayNames(l10n)[d.weekday - 1];
     return Card(
       child: ListTile(
         leading: const Text('🏆', style: TextStyle(fontSize: 26)),
@@ -334,16 +252,77 @@ class _RetrospectiveScreenState extends ConsumerState<RetrospectiveScreen> {
     );
   }
 
+  /// Цели, поставленные ИМЕННО на эту неделю: «достигнуто N из M» + список.
+  /// Когда таких целей не было — говорим об этом прямо, а не прячем карточку.
+  Widget _weekGoalsCard(ThemeData theme, AppLocalizations l10n, WeekStats s) {
+    if (s.weekGoals.isEmpty) {
+      return Card(
+        child: ListTile(
+          leading: const Text('📌', style: TextStyle(fontSize: 26)),
+          title: Text(l10n.weekGoalsNoneTitle),
+          subtitle: Text(l10n.weekGoalsNoneSubtitle),
+        ),
+      );
+    }
+    final done = s.weekGoalsDone;
+    final missed = s.weekGoals.where((g) => !g.completed).toList();
+    final preview = missed.take(3).map((g) => g.title).join(' · ');
+    // Grace-окно недели ещё открыто — недостигнутое можно закрыть, и об этом
+    // честнее сказать, чем показывать «1 из 3» как окончательный счёт.
+    final graceEnd = missed.isEmpty ? null : weekGoalsGraceEnd(_weekStart);
+    return Card(
+      child: ListTile(
+        isThreeLine: graceEnd != null,
+        leading: const Text('📌', style: TextStyle(fontSize: 26)),
+        title: Text(l10n.weekGoalsTitle(done, s.weekGoals.length)),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (missed.isEmpty)
+              Text(l10n.weekGoalsAllDone)
+            else
+              // Полный список незакрытых — по наведению/долгому нажатию:
+              // превью обрезано и по числу целей, и по ширине карточки.
+              Tooltip(
+                message: missed.map((g) => g.title).join('\n'),
+                child: Text(
+                  l10n.weekGoalsMissed(
+                    missed.length > 3 ? '$preview …' : preview,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            if (graceEnd != null)
+              Text(
+                l10n.weekGoalsGraceNote(
+                  weekdayNames(l10n)[graceEnd.weekday - 1],
+                ),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: AppColors.warning,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _goalsCard(ThemeData theme, AppLocalizations l10n, List<Goal> goals) {
     final preview = goals.take(3).map((g) => g.title).join(' · ');
     return Card(
       child: ListTile(
         leading: const Text('🎯', style: TextStyle(fontSize: 26)),
         title: Text(l10n.goalsAchievedCount(goals.length)),
-        subtitle: Text(
-          goals.length > 3 ? '$preview …' : preview,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
+        subtitle: Tooltip(
+          message: goals.map((g) => g.title).join('\n'),
+          child: Text(
+            goals.length > 3 ? '$preview …' : preview,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ),
     );

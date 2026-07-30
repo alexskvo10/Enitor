@@ -4,7 +4,7 @@
 
 # Enitor
 
-**A paper journal for people who actually want to get things done.**
+**Staying out of your way isn't the goal. Getting better is.**
 
 Tasks, goals, and honest productivity stats — cross-platform, fully local, no account required.
 
@@ -20,14 +20,14 @@ Tasks, goals, and honest productivity stats — cross-platform, fully local, no 
 
 ## Why Enitor
 
-Most productivity apps aim for one thing: stay out of your way. Log a task, check it off, forget it. Enitor is built on a different premise — **staying out of your way isn't the goal, getting better is.** A task list is only useful if it eventually shows you something about yourself: that you're more consistent than you think, that your estimates are always 20% short, that Tuesdays are where you fall off. Enitor is designed to surface that, not hide it behind a clean checklist.
+Most productivity apps aim for one thing: stay out of your way. Log a task, check it off, forget it. That's the premise Enitor argues with. A task list is only useful if it eventually shows you something about yourself: that you're more consistent than you think, that your estimates are always 20% short, that Tuesdays are where you fall off. Enitor is designed to surface that, not hide it behind a clean checklist.
 
 Concretely, not as slogans:
 
 - **A quote about discipline, not decoration.** Every day on the Today screen opens with a line pulled from a curated collection about showing up and improving in small increments ("Compare yourself to who you were yesterday, not to who someone else is today.") — not filler, the same idea the rest of the app is built around.
 - **Streaks that are actually fair, so they're worth keeping.** Days with no tasks neither break nor pad your streak, and today (while still open) never breaks it either — a streak here means something, so chasing it is a legitimate motivator, not a guilt trip.
 - **A year you can actually see.** A GitHub-style heatmap turns months of effort into one glance — the kind of feedback that makes consistency feel real instead of abstract.
-- **A weekly retrospective that asks "how did it go," not just "what's next."** Productivity delta vs. last week, your best day, perfect days, an optional 1–10 day rating — a five-minute check-in that turns a busy week into something you actually learn from, instead of just rolling into the next one.
+- **A weekly retrospective that comes to you, instead of waiting to be found.** Monday evening by default, Enitor opens the past week for you: productivity against the week before, your best day, perfect days, the goals you'd actually set for that week, and whether your estimates got closer or further off. Five minutes that turn a busy week into something you learn from instead of just rolling into the next one. Nothing to log — it's all data you already have. No data for that week, no window.
 - **Estimate accuracy that quietly makes you better at planning.** Planned vs. actual time, shown both by task count and by time weight, broken down by tag — most trackers never close this loop, so you never learn you're always 20% short.
 - **Pomodoro that feeds that same loop.** A completed focus session logs itself as real time spent on the task — it's not a separate stopwatch gimmick, it's more data for the estimate-accuracy picture above.
 - **Achievements that track real progress**, not just "opened the app" streaks — volume, consistency, punctuality, and milestones, so unlocking one actually means something happened, not that a day passed. Top-tier ones are hidden as "???" until you earn them, so there's always a next one worth finding out about.
@@ -82,7 +82,7 @@ From the Windows build, on the generated demo data (`scripts/generate_demo_backu
 <tr>
   <td width="33%"><img src="docs/screenshots/windows/pomodoro_fuul.png" alt="Pomodoro timer" /><br/><sub>Pomodoro — the running session pins itself above the day, so the timer is never a screen you have to go find</sub></td>
   <td width="33%"><img src="docs/screenshots/windows/transfer.png" alt="Carry-over dialog" /><br/><sub>Carry-over at 4:00 — you pick what moves to today, nothing migrates silently</sub></td>
-  <td width="33%"><img src="docs/screenshots/windows/week_summary.png" alt="Week summary" /><br/><sub>Weekly retrospective — this week against last, best day, goals achieved, average day rating</sub></td>
+  <td width="33%"><img src="docs/screenshots/windows/week_summary.png" alt="Week summary" /><br/><sub>Weekly retrospective — the week against the one before, best day, goals set for that week, average day rating</sub></td>
 </tr>
 <tr>
   <td width="33%"><img src="docs/screenshots/windows/achievements.png" alt="Achievements" /><br/><sub>Achievements — 25 in all, some staying hidden until you unlock them</sub></td>
@@ -136,12 +136,16 @@ After the first install, Enitor checks GitHub for new releases on its own (about
 - 25 minutes of focus / 5 minutes of break, tied to a specific task. Switching tabs doesn't reset the countdown, and a completed session is logged straight into the task's actual time.
 
 ### Profile & achievements
-- Daily streak (fair — empty days don't touch it), a GitHub-style year heatmap, a weekly retrospective with a productivity delta vs. last week.
+- Daily streak (fair — empty days don't touch it), a GitHub-style year heatmap, a weekly retrospective with a productivity delta vs. last week, the goals set for that week, and estimate accuracy against the week before.
+- The retrospective opens itself once a week — Monday 19:00 by default, day and time configurable — at the first launch after that moment, and waits for the next launch if you missed the evening. Monday rather than Sunday because the week has to be over first: measured on Sunday evening, your unfinished Sunday tasks land in the denominator and every week looks slightly worse than the last purely because of when it was measured.
 - Optional daily mood/quality rating that feeds the weekly summary — purely reflective, it never affects productivity numbers.
 - Achievement badges for volume, streaks, punctuality, and milestones; top-tier ones stay hidden as "???" until unlocked.
 
 ### Notifications
-- Per-task start/end reminders, "needs attention," and overdue nudges, plus goal reminders, a morning plan, an evening review prompt, and quiet hours — every kind toggled independently in Settings.
+- Per-task start/end reminders, "needs attention," and overdue nudges, plus goal reminders, a morning plan, an evening review prompt, a week-summary nudge (Monday 19:00 by default, day and time configurable), and quiet hours — every kind toggled independently in Settings.
+- The backlog gets its own nudge — twice a week for tasks, once a month for goals, on the 1st. It's the one place in the app that never spoke up for itself: things land there when they fall out of a day, and then go quiet until you happen to look.
+- Nothing fires into an empty day. The "don't forget your tasks" nudges are scheduled only for days that actually have unfinished tasks and say how many; the backlog nudges stay quiet when the backlog is empty; the carry-over reminder stays quiet when there's nothing to carry over; the week summary skips a week with no data. A notification you can safely ignore is one that devalues every other notification the app sends.
+- The one thing off by default is the carry-over reminder — it's pinned to the 4:00 day rollover, which puts it outside quiet hours, and unfinished items greet you in a dialog at the next launch anyway.
 - On Windows, if no notification ever arrives, see the antivirus note under [Installation](#installation) — a sandboxing security suite is the usual cause.
 
 ### Data & updates

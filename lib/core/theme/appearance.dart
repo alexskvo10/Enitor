@@ -7,14 +7,11 @@ import 'app_colors.dart';
 const _kAppearanceKey = 'appearance';
 
 /// Стиль фоновой текстуры. Применяется поверх однотонного фона темы.
-enum BackgroundStyle {
-  plain('Гладкий'),
-  paper('Бумага'),
-  dots('Точки');
-
-  const BackgroundStyle(this.label);
-  final String label;
-}
+///
+/// Порядок значений менять нельзя: в SharedPreferences хранится индекс.
+/// Подписи для UI берутся из локализации (bgPlain/bgPaper/bgDots), а не из
+/// самого enum.
+enum BackgroundStyle { plain, paper, dots }
 
 /// Настройки оформления (фон + виньетка). Persist в SharedPreferences.
 class AppearanceController extends ChangeNotifier {

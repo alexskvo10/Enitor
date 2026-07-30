@@ -290,6 +290,10 @@ EstimateAccuracy? _compute(List<Task> tasks) {
   );
 }
 
+/// Та же аналитика, но по произвольной выборке задач (например, за одну
+/// неделю — см. окно разбора недели). null — пар меньше [_kMinPairs].
+EstimateAccuracy? computeEstimateAccuracy(List<Task> tasks) => _compute(tasks);
+
 /// null — данных меньше [_kMinPairs] пар (карточка скрыта).
 final estimateAccuracyProvider = Provider<EstimateAccuracy?>((ref) {
   final tasks = ref.watch(allTasksProvider).value;

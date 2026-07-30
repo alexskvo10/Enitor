@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/repositories/backlog_repository.dart';
 import '../data/repositories/goal_repository.dart';
 import '../data/repositories/task_repository.dart';
 import '../data/sources/local/local_storage.dart';
@@ -16,7 +17,13 @@ const _kNotifPrefsKey = 'notif_prefs';
 /// экрана настроек.
 class NotificationController extends ChangeNotifier {
   NotificationController(
-      this._storage, this._service, this._tasks, this._goals) {
+    this._storage,
+    this._service,
+    this._tasks,
+    this._goals,
+    this._backlog,
+    this._goalBacklog,
+  ) {
     final raw = _storage.readMap(_kNotifPrefsKey);
     if (raw != null) _prefs = NotificationPrefs.fromJson(raw);
   }
@@ -25,6 +32,8 @@ class NotificationController extends ChangeNotifier {
   final NotificationService _service;
   final TaskRepository _tasks;
   final GoalRepository _goals;
+  final BacklogRepository _backlog;
+  final GoalBacklogRepository _goalBacklog;
 
   NotificationPrefs _prefs = const NotificationPrefs();
   NotificationPrefs get prefs => _prefs;
@@ -45,6 +54,9 @@ class NotificationController extends ChangeNotifier {
           goals: _goals.activeGoals(),
           pendingTransferCount: _tasks.transferCandidates(now: now).length +
               _goals.transferCandidates(now: now).length,
+          unfinishedByDay: _tasks.unfinishedCountsByDay(),
+          taskBacklogCount: _backlog.all.length,
+          goalBacklogCount: _goalBacklog.all.length,
         );
       } catch (e, st) {
         // Планирование не критично — не роняем приложение. Но раньше ошибка
@@ -93,8 +105,18 @@ class NotificationController extends ChangeNotifier {
       _update(_prefs.copyWith(eveningMinutes: minutes));
   Future<void> setGeneralReminders(bool v) =>
       _update(_prefs.copyWith(generalReminders: v));
+  Future<void> setWeeklyRetro(bool v) =>
+      _update(_prefs.copyWith(weeklyRetro: v));
+  Future<void> setRetroWeekday(int weekday) =>
+      _update(_prefs.copyWith(retroWeekday: weekday.clamp(1, 7)));
+  Future<void> setRetroTime(int minutes) =>
+      _update(_prefs.copyWith(retroMinutes: minutes));
   Future<void> setTransferReminder(bool v) =>
       _update(_prefs.copyWith(transferReminder: v));
+  Future<void> setTaskBacklogReminder(bool v) =>
+      _update(_prefs.copyWith(taskBacklogReminder: v));
+  Future<void> setGoalBacklogReminder(bool v) =>
+      _update(_prefs.copyWith(goalBacklogReminder: v));
   Future<void> setGoalUrgentAlerts(bool v) =>
       _update(_prefs.copyWith(goalUrgentAlerts: v));
   Future<void> setGoalOverdueAlerts(bool v) =>
@@ -120,5 +142,7 @@ final notificationControllerProvider =
     ref.read(notificationServiceProvider),
     ref.read(taskRepositoryProvider),
     ref.read(goalRepositoryProvider),
+    ref.read(backlogRepositoryProvider),
+    ref.read(goalBacklogRepositoryProvider),
   );
 });

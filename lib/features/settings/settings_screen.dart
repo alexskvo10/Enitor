@@ -262,6 +262,37 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const Divider(height: 1, indent: 16, endIndent: 16),
 
+            // Разбор недели: уведомление + окно с итогами при первом открытии
+            // после назначенного момента. День и время настраиваемые — 19:00
+            // понедельника подходит большинству, но не всем.
+            SwitchListTile(
+              title: _tileTitle(context, l10n.weeklyRetroTitle),
+              subtitle: Text(
+                on && prefs.weeklyRetro
+                    ? l10n.weeklyRetroSubtitleOn(
+                        weekdayNames(l10n)[prefs.retroWeekday - 1],
+                        _fmt(prefs.retroMinutes),
+                      )
+                    : l10n.weeklyRetroSubtitleOff,
+              ),
+              value: prefs.weeklyRetro,
+              onChanged: on
+                  ? (v) =>
+                      ref.read(notificationControllerProvider).setWeeklyRetro(v)
+                  : null,
+            ),
+            if (on && prefs.weeklyRetro)
+              _weekdayAndTimeTile(
+                context,
+                weekday: prefs.retroWeekday,
+                minutes: prefs.retroMinutes,
+                onWeekdayPicked: (d) =>
+                    ref.read(notificationControllerProvider).setRetroWeekday(d),
+                onTimePicked: (m) =>
+                    ref.read(notificationControllerProvider).setRetroTime(m),
+              ),
+            const Divider(height: 1, indent: 16, endIndent: 16),
+
             // Общие напоминания по целям (отдельно от общих напоминаний по
             // задачам выше) — пару раз в неделю, а не каждый день.
             SwitchListTile(
@@ -285,6 +316,33 @@ class SettingsScreen extends ConsumerWidget {
                   ? (v) => ref
                       .read(notificationControllerProvider)
                       .setTransferReminder(v)
+                  : null,
+            ),
+            const Divider(height: 1, indent: 16, endIndent: 16),
+
+            // Бэклог задач — единственное место, которое само о себе не
+            // напоминает: попало туда и молчит, пока не вспомнят.
+            SwitchListTile(
+              title: _tileTitle(context, l10n.taskBacklogReminderTitle),
+              subtitle: Text(l10n.taskBacklogReminderSubtitle),
+              value: prefs.taskBacklogReminder,
+              onChanged: on
+                  ? (v) => ref
+                      .read(notificationControllerProvider)
+                      .setTaskBacklogReminder(v)
+                  : null,
+            ),
+            const Divider(height: 1, indent: 16, endIndent: 16),
+
+            // Бэклог целей — реже: он и наполняется несравнимо медленнее.
+            SwitchListTile(
+              title: _tileTitle(context, l10n.goalBacklogReminderTitle),
+              subtitle: Text(l10n.goalBacklogReminderSubtitle),
+              value: prefs.goalBacklogReminder,
+              onChanged: on
+                  ? (v) => ref
+                      .read(notificationControllerProvider)
+                      .setGoalBacklogReminder(v)
                   : null,
             ),
             const Divider(height: 1, indent: 16, endIndent: 16),
@@ -548,43 +606,169 @@ class SettingsScreen extends ConsumerWidget {
     required int minutes,
     required ValueChanged<int> onPicked,
   }) {
-    final theme = Theme.of(context);
-    final accent = theme.colorScheme.primary;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: Align(
         alignment: Alignment.centerLeft,
-        child: Material(
-          color: accent.withValues(alpha: 0.10),
-          shape: const StadiumBorder(),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
+        child: _pill(
+          context,
+          icon: Icons.schedule,
+          label: _fmt(minutes),
+          onTap: () async {
+            final picked = await _pickTime(context, minutes);
+            if (picked != null) onPicked(picked);
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Пара пилюль «день недели + время» для настроек, которые срабатывают раз
+  /// в неделю (разбор недели). Wrap, а не Row: на узком экране длинное имя
+  /// дня («воскресенье») вместе со временем в строку не влезает.
+  Widget _weekdayAndTimeTile(
+    BuildContext context, {
+    required int weekday,
+    required int minutes,
+    required ValueChanged<int> onWeekdayPicked,
+    required ValueChanged<int> onTimePicked,
+  }) {
+    final l10n = context.l10n;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          _pill(
+            context,
+            icon: Icons.event_outlined,
+            label: _capitalize(weekdayNames(l10n)[weekday - 1]),
+            showChevron: true,
+            onTap: () async {
+              final picked = await _pickWeekday(context, weekday);
+              if (picked != null) onWeekdayPicked(picked);
+            },
+          ),
+          _pill(
+            context,
+            icon: Icons.schedule,
+            label: _fmt(minutes),
             onTap: () async {
               final picked = await _pickTime(context, minutes);
-              if (picked != null) onPicked(picked);
+              if (picked != null) onTimePicked(picked);
             },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.schedule, size: 18, color: accent),
-                  const SizedBox(width: 8),
-                  Text(
-                    _fmt(minutes),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: accent,
-                      fontWeight: FontWeight.w600,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Выбор дня недели: семь строк с галочкой у текущего. Свои строки, а не
+  /// RadioListTile — тот в новых версиях Flutter требует RadioGroup, да и
+  /// высотой не влезал бы в карточку диалога.
+  Future<int?> _pickWeekday(BuildContext context, int current) {
+    final l10n = context.l10n;
+    final names = weekdayNames(l10n);
+    return showFancyDialog<int>(
+      context: context,
+      icon: Icons.event_outlined,
+      iconColor: AppColors.primary,
+      title: l10n.retroDayPickerTitle,
+      contentBuilder: (ctx) {
+        final theme = Theme.of(ctx);
+        final accent = theme.colorScheme.primary;
+        // Потолок 340 — чтобы на большом экране список не растягивал окно;
+        // под низкий экран его дожимает Flexible внутри showFancyDialog.
+        return ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 340),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (var d = 1; d <= 7; d++)
+                  InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () => Navigator.pop(ctx, d),
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _capitalize(names[d - 1]),
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: d == current ? accent : null,
+                                fontWeight: d == current
+                                    ? FontWeight.w700
+                                    : FontWeight.w400,
+                              ),
+                            ),
+                          ),
+                          if (d == current)
+                            Icon(Icons.check, size: 18, color: accent),
+                        ],
+                      ),
                     ),
                   ),
-                ],
-              ),
+              ],
             ),
+          ),
+        );
+      },
+      actions: (ctx) => [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: Text(l10n.cancel),
+        ),
+      ],
+    );
+  }
+
+  /// Пилюля с иконкой и текстом (акцентный тинт) — общая основа для
+  /// [_timeTile] и выбора дня недели.
+  Widget _pill(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool showChevron = false,
+  }) {
+    final theme = Theme.of(context);
+    final accent = theme.colorScheme.primary;
+    return Material(
+      color: accent.withValues(alpha: 0.10),
+      shape: const StadiumBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 18, color: accent),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: accent,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (showChevron)
+                Icon(Icons.chevron_right, size: 18, color: accent),
+            ],
           ),
         ),
       ),
     );
   }
+
+  /// Русские названия дней недели в l10n лежат строчными («понедельник») —
+  /// в пилюле и списке выбора нужна заглавная. Для английского это no-op.
+  static String _capitalize(String s) =>
+      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
   /// Пилюля с часиками и диапазоном времени («23:00 – 08:00») — тот же стиль,
   /// что и [_timeTile], плюс шеврон: тихие часы — единственная настройка с

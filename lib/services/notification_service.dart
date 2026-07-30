@@ -39,6 +39,44 @@ AppLocalizations get _l10n =>
 /// показанные тосты (историю Action Center) — `cancel`/`cancelAll` для ещё
 /// не сработавших запланированных уведомлений работают нормально, так что
 /// applySchedule() (снять всё → поставить заново) остаётся корректным.
+/// Ближайшие [count] вхождений [dayOfMonth]-го числа месяца в [minutesOfDay],
+/// строго позже [from].
+///
+/// Отдельной чистой функцией, а не внутри планировщика: месячного повтора у
+/// плагина нет ни на одной платформе, вхождения приходится считать руками, а
+/// переход через декабрь и короткий февраль ломаются незаметно — уведомление
+/// просто не приходит, и узнаёшь об этом через месяц.
+List<DateTime> monthlyOccurrencesAfter(
+  DateTime from, {
+  required int dayOfMonth,
+  required int minutesOfDay,
+  required int count,
+}) {
+  final result = <DateTime>[];
+  var year = from.year;
+  var month = from.month;
+  while (result.length < count) {
+    // Зажимаем по длине месяца: 31-е в феврале иначе перетекло бы на март.
+    final lastDay = DateTime(year, month + 1, 0).day;
+    final day = dayOfMonth < lastDay ? dayOfMonth : lastDay;
+    final when = DateTime(
+      year,
+      month,
+      day,
+      minutesOfDay ~/ 60,
+      minutesOfDay % 60,
+    );
+    // Вхождение текущего месяца могло уже пройти — тогда пропускаем его.
+    if (when.isAfter(from)) result.add(when);
+    month++;
+    if (month > 12) {
+      month = 1;
+      year++;
+    }
+  }
+  return result;
+}
+
 class NotificationService {
   final _plugin = FlutterLocalNotificationsPlugin();
   bool _tzReady = false;
@@ -65,15 +103,42 @@ class NotificationService {
   static const _idEvening = 2;
   static const _idTransfer = 3;
   // Общие напоминания: фиксированные слоты в течение дня.
+  static const _idGeneral1 = 10;
+  static const _idGeneral2 = 11;
   static const _generalSlots = <int, int>{
-    10: 12 * 60 + 30, // 12:30
-    11: 16 * 60 + 30, // 16:30
+    _idGeneral1: 12 * 60 + 30, // 12:30
+    _idGeneral2: 16 * 60 + 30, // 16:30
   };
+  // На сколько дней вперёд расписываем общие напоминания. Больше нет смысла:
+  // расписание пересобирается при каждом открытии приложения и любой правке
+  // задач, а лишние отложенные уведомления только занимают лимит ОС.
+  static const _generalHorizonDays = 7;
   // Общие напоминания по целям — не каждый день, а пару раз в неделю:
   // понедельник утром (спланировать неделю) и пятница вечером (проверить
   // прогресс перед выходными).
   static const _idGoalWeekly1 = 4; // понедельник
   static const _idGoalWeekly2 = 5; // пятница
+  // Разбор недели. День и время настраиваемые (по умолчанию понедельник
+  // 19:00, см. NotificationPrefs.retroWeekday) — поэтому слот берётся из
+  // prefs, а не из константы, как у напоминаний по целям ниже.
+  static const _idWeeklyRetro = 6;
+  // Бэклог задач — середина недели и выходной: успеть разгрести, пока хвост
+  // не оброс, и когда на это есть время.
+  static const _idTaskBacklog1 = 7; // среда
+  static const _idTaskBacklog2 = 8; // суббота
+  static const _taskBacklogSlots = <int, (int, int)>{
+    _idTaskBacklog1: (DateTime.wednesday, 18 * 60),
+    _idTaskBacklog2: (DateTime.saturday, 12 * 60),
+  };
+  // Бэклог целей — 1-е число месяца: момент, когда ставят цели на новый
+  // месяц, и отложенное стоит пересмотреть прежде, чем придумывать новое.
+  static const _idGoalBacklog = 9;
+  static const _goalBacklogDay = 1;
+  static const _goalBacklogMinutes = 11 * 60; // 11:00
+  // Месячного повтора у плагина нет ни на одной платформе — расписываем
+  // столько ближайших месяцев явно. Расписание пересобирается при каждом
+  // открытии приложения, так что запаса хватает с большим избытком.
+  static const _monthlyOccurrences = 4;
   static const _goalWeeklySlots = <int, (int, int)>{
     // id: (weekday 1..7, minutesOfDay)
     _idGoalWeekly1: (DateTime.monday, 9 * 60),
@@ -283,6 +348,9 @@ class NotificationService {
     required List<Task> tasks,
     required List<Goal> goals,
     required int pendingTransferCount,
+    required Map<int, int> unfinishedByDay,
+    required int taskBacklogCount,
+    required int goalBacklogCount,
   }) async {
     if (!_isSupportedPlatform) return;
     // Ключ AUMID на Windows может быть вычищен уже ПОСЛЕ старта приложения —
@@ -315,24 +383,74 @@ class NotificationService {
       );
     }
 
-    // 3. Общие напоминания — несколько раз в день, между умными.
+    // 3. Общие напоминания — пара раз в день. Не «по будильнику»: ставятся
+    // только на дни, где реально есть невыполненное, и несут его число.
+    // Пустое «не забудь про задачи» в день, когда задач нет, приучает
+    // отмахиваться от уведомлений приложения целиком.
     if (prefs.generalReminders) {
-      final messages = {
-        10: l10n.notifGeneral1,
-        11: l10n.notifGeneral2,
-      };
       for (final entry in _generalSlots.entries) {
         final id = entry.key;
         final minute = entry.value;
         if (prefs.isQuiet(minute)) continue;
-        await _scheduleDaily(
+        await _scheduleOnDays(
           id: id,
           minutesOfDay: minute,
+          countsByDay: unfinishedByDay,
           title: 'Enitor',
-          body: messages[id] ?? l10n.notifGeneral1,
+          body: (count) => id == _idGeneral2
+              ? l10n.notifGeneral2(count)
+              : l10n.notifGeneral1(count),
           channel: _Channel.general,
         );
       }
+    }
+
+    // Разбор недели. Единственный экран, который сравнивает неделю с прошлой,
+    // и он спрятан в профиле — без напоминания про него просто не вспоминают.
+    // Парой к уведомлению идёт окно с итогами при первом открытии приложения
+    // после этого момента (см. WeeklyRetroController).
+    if (prefs.weeklyRetro && !prefs.isQuiet(prefs.retroMinutes)) {
+      await _scheduleWeekly(
+        id: _idWeeklyRetro,
+        weekday: prefs.retroWeekday,
+        minutesOfDay: prefs.retroMinutes,
+        title: l10n.notifRetroTitle,
+        body: l10n.notifRetroBody,
+        channel: _Channel.planning,
+      );
+    }
+
+    // Бэклог задач. Единственное место в приложении, которое само о себе не
+    // напоминает: задача попадает туда, когда её выкидывают из дня, и дальше
+    // молчит. Пустой бэклог — молчим и мы.
+    if (prefs.taskBacklogReminder && taskBacklogCount > 0) {
+      for (final entry in _taskBacklogSlots.entries) {
+        final (weekday, minute) = entry.value;
+        if (prefs.isQuiet(minute)) continue;
+        await _scheduleWeekly(
+          id: entry.key,
+          weekday: weekday,
+          minutesOfDay: minute,
+          title: l10n.notifTaskBacklogTitle,
+          body: l10n.notifTaskBacklogBody(taskBacklogCount),
+          channel: _Channel.general,
+        );
+      }
+    }
+
+    // Бэклог целей — раз в месяц: наполняется он несравнимо медленнее, чем
+    // задачный, и чаще напоминать не о чем.
+    if (prefs.goalBacklogReminder &&
+        goalBacklogCount > 0 &&
+        !prefs.isQuiet(_goalBacklogMinutes)) {
+      await _scheduleMonthly(
+        id: _idGoalBacklog,
+        dayOfMonth: _goalBacklogDay,
+        minutesOfDay: _goalBacklogMinutes,
+        title: l10n.notifGoalBacklogTitle,
+        body: l10n.notifGoalBacklogBody(goalBacklogCount),
+        channel: _Channel.goal,
+      );
     }
 
     // Общие напоминания по целям — отдельно от общих напоминаний по задачам:
@@ -614,6 +732,49 @@ class NotificationService {
     );
   }
 
+  /// Слот в [minutesOfDay], но только в те дни, где есть о чём напоминать:
+  /// [countsByDay] — смещение от сегодня → число невыполненного.
+  ///
+  /// В отличие от [_scheduleDaily] расписывается явными одноразовыми
+  /// уведомлениями на ВСЕХ платформах, а не системным ежедневным повтором:
+  /// повтор сработал бы и в день, когда напоминать нечего, и уж точно не смог
+  /// бы назвать число задач — то есть вся «умность» терялась бы на следующий
+  /// же день.
+  Future<void> _scheduleOnDays({
+    required int id,
+    required int minutesOfDay,
+    required Map<int, int> countsByDay,
+    required String title,
+    required String Function(int count) body,
+    required _Channel channel,
+  }) async {
+    final now = tz.TZDateTime.now(tz.local);
+    final today = DateTime(now.year, now.month, now.day);
+    for (var d = 0; d < _generalHorizonDays; d++) {
+      final count = countsByDay[d];
+      if (count == null || count <= 0) continue;
+      final day = today.add(Duration(days: d));
+      // Через конструктор, а не сложением Duration: при переходе на летнее
+      // время сложение сдвинуло бы час, а нам нужны те же 12:30 по стене.
+      final when = tz.TZDateTime(
+        tz.local,
+        day.year,
+        day.month,
+        day.day,
+        minutesOfDay ~/ 60,
+        minutesOfDay % 60,
+      );
+      if (!when.isAfter(now)) continue; // сегодняшний слот уже прошёл
+      await _scheduleAt(
+        id: id * 100 + d,
+        when: when,
+        title: title,
+        body: body(count),
+        channel: channel,
+      );
+    }
+  }
+
   // На Windows столько же занятых недель вперёд планируем явно (нет
   // matchDateTimeComponents для еженедельного повтора — та же причина, что и
   // у _scheduleDaily выше).
@@ -657,6 +818,39 @@ class NotificationService {
       matchDateTimeComponents:
           DateTimeComponents.dayOfWeekAndTime, // повтор каждую неделю
     );
+  }
+
+  /// Ежемесячное уведомление [dayOfMonth]-го числа в [minutesOfDay].
+  ///
+  /// Месячного повтора нет в плагине ни на одной платформе (у
+  /// matchDateTimeComponents есть только «время» и «день недели + время»),
+  /// поэтому расписываем ближайшие [_monthlyOccurrences] месяцев явно —
+  /// как это уже делается для еженедельных на Windows.
+  Future<void> _scheduleMonthly({
+    required int id,
+    required int dayOfMonth,
+    required int minutesOfDay,
+    required String title,
+    required String body,
+    required _Channel channel,
+  }) async {
+    final now = tz.TZDateTime.now(tz.local);
+    final moments = monthlyOccurrencesAfter(
+      now,
+      dayOfMonth: dayOfMonth,
+      minutesOfDay: minutesOfDay,
+      count: _monthlyOccurrences,
+    );
+    for (var i = 0; i < moments.length; i++) {
+      final m = moments[i];
+      await _scheduleAt(
+        id: id * 100 + i,
+        when: tz.TZDateTime(tz.local, m.year, m.month, m.day, m.hour, m.minute),
+        title: title,
+        body: body,
+        channel: channel,
+      );
+    }
   }
 
   /// Одноразовое уведомление в конкретный момент [when].

@@ -8,6 +8,8 @@ import '../theme/app_colors.dart';
 import '../../data/models/achievement.dart';
 import '../../data/repositories/achievements_repository.dart';
 import '../../data/repositories/goal_repository.dart';
+import '../../data/repositories/rating_repository.dart';
+import '../../data/repositories/stats_repository.dart';
 import '../../data/repositories/task_repository.dart';
 import '../../features/about/about_screen.dart';
 import '../../features/goals/goals_screen.dart';
@@ -18,10 +20,12 @@ import '../../features/stats/stats_screen.dart';
 import '../../features/today/today_screen.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../../services/transfer_prompt_controller.dart';
+import '../../services/weekly_retro_controller.dart';
 import '../../widgets/achievement_popup.dart';
 import '../../widgets/transfer_catchup_sheet.dart';
 import '../../widgets/transfer_prompt_banner.dart';
 import '../../widgets/update_dialog.dart';
+import '../../widgets/weekly_retro_sheet.dart';
 
 /// Главный роутер. Использует ShellRoute с нижней навигацией для пяти
 /// основных разделов. Настройки и «О приложении» — на отдельных страницах поверх.
@@ -98,14 +102,60 @@ class _RootScaffoldState extends ConsumerState<_RootScaffold> {
   void initState() {
     super.initState();
     _scheduleTransferPrompt();
+    // Всё, что может встретить пользователя при запуске, — строго по очереди,
+    // а не тремя параллельными колбэками: иначе диалоги наслаиваются друг на
+    // друга. Порядок по срочности: сначала перенос (это про данные), потом
+    // итоги недели, потом обновление. После первого кадра — нужен готовый
+    // Navigator.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _runStartupPrompts());
+  }
+
+  Future<void> _runStartupPrompts() async {
     // Догоняющий список — если пропустили границу 4:00, пока приложения не
-    // было открыто. После первого кадра (нужен готовый Navigator для шита).
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowCatchup());
+    // было открыто.
+    await _maybeShowCatchup();
+    if (!mounted) return;
+    await _maybeShowWeeklyRetro();
+    if (!mounted) return;
     // Тихая автопроверка обновлений (не чаще раза в сутки, см.
     // UpdateService._throttle) — молчит, если обновления нет или сети нет.
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => checkAndShowUpdateDialog(context, ref, manual: false),
+    await checkAndShowUpdateDialog(context, ref, manual: false);
+  }
+
+  /// Окно с разбором прошедшей недели — при первом открытии приложения после
+  /// настроенного момента (по умолчанию понедельник, 19:00).
+  Future<void> _maybeShowWeeklyRetro() async {
+    final controller = ref.read(weeklyRetroControllerProvider);
+    // Один снимок времени на обе проверки: иначе запуск ровно на границе
+    // 4:00 мог бы решить «пора» про одну неделю, а показать другую.
+    final now = DateTime.now();
+    if (!controller.shouldShow(now)) return;
+    final weekStart = controller.reviewWeekStart(now);
+
+    // Данные могли ещё не подняться из хранилища — ждём первое значение
+    // каждого потока, иначе неделя выглядела бы пустой на холодном старте.
+    final allStats = await ref.read(allDayStatsProvider.future);
+    final goals = await ref.read(allGoalsProvider.future);
+    final ratings = await ref.read(dayRatingsMapProvider.future);
+    final tasks = await ref.read(allTasksProvider.future);
+    if (!mounted) return;
+
+    final data = WeeklyRetroData.build(
+      weekStart: weekStart,
+      allStats: allStats,
+      goals: goals,
+      ratings: ratings,
+      tasks: tasks,
     );
+    // Неделя прошла мимо приложения — показывать нечего. Отметку НЕ ставим:
+    // если данные за ту неделю появятся позже на этой же неделе, разбор
+    // всё-таки покажется.
+    if (data.isEmpty) return;
+
+    await showWeeklyRetroSheet(context, data: data);
+    // Отмечаем показанным в любом случае — даже если закрыли по Esc: это
+    // сводка, а не вопрос, и повторять её при каждом запуске незачем.
+    await controller.markShown(weekStart);
   }
 
   @override
