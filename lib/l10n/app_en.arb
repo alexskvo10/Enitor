@@ -80,7 +80,7 @@
   "quietHoursSubtitle": "Do not disturb from {start} to {end}",
   "quietHoursDisabledSubtitle": "Off — smart/general reminders can arrive at any time",
   "@quietHoursSubtitle": { "placeholders": { "start": { "type": "String" }, "end": { "type": "String" } } },
-  "quietHoursNote": "Task-start reminders always fire — even during quiet hours (you set that time yourself).",
+  "quietHoursNote": "Quiet hours don't cover task reminders (you set those times yourself) or the carry-over reminder — it is pinned to the 4:00 day rollover.",
   "quietHoursStartHelp": "Start",
   "quietHoursEndHelp": "End",
 

@@ -538,12 +538,20 @@ const List<_Section> _kFaq = [
     _Qa(
       'Что такое тихие часы?',
       'Окно (по умолчанию 23:00–08:00), когда умные и общие напоминания '
-          'молчат. Напоминания к началу конкретных задач работают всегда — ты '
-          'сам назначил это время.',
+          'молчат.\n\n'
+          'Два исключения. Напоминания к началу и концу конкретных задач '
+          'работают всегда — время им назначил ты сам. И напоминание о '
+          'переносе: его момент жёстко привязан к границе дня (4:00), сдвинуть '
+          'его нельзя, поэтому подчиняться тихим часам ему нечем. Именно '
+          'поэтому оно единственное выключено по умолчанию.',
       'What are quiet hours?',
       'A window (23:00–08:00 by default) during which smart and general '
-          'reminders stay silent. Reminders for the start of a specific '
-          'task always fire — you set that time yourself.',
+          'reminders stay silent.\n\n'
+          'Two exceptions. Reminders for the start and end of a specific task '
+          'always fire — you picked those times yourself. And the carry-over '
+          'reminder: its moment is pinned to the day rollover (4:00) and can\'t '
+          'be moved, so there is nothing for quiet hours to shift. That is '
+          'exactly why it is the one reminder off by default.',
     ),
     _Qa(
       'Почему уведомления не приходят?',
