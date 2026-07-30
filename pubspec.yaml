@@ -78,11 +78,6 @@ flutter_launcher_icons:
     # (в отличие от скруглённого мобильного icon.png).
     image_path: "assets/icon/icon_windows.png"
     icon_size: 256
-  web:
-    generate: true
-    image_path: "assets/icon/icon.png"
-    background_color: "#141A2E"
-    theme_color: "#141A2E"
 
 flutter:
   uses-material-design: true
