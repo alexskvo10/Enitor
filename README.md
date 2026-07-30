@@ -146,7 +146,7 @@ After the first install, Enitor checks GitHub for new releases on its own (about
 
 ### Data & updates
 - 100% local storage, no account, no telemetry. Manual JSON export/import for backups and moving between devices, plus an automatic backup the app keeps on its own and restores after a clean reinstall.
-- Settings can be reset to their defaults without touching your data, and there's a full data wipe for starting over — the wipe clears the automatic backup too, so it offers an export first.
+- Settings can be reset to their defaults without touching your data, and there's a full data wipe for starting over — the wipe clears the automatic backup too, so it offers to export and delete in one step, and only deletes if the file actually got saved.
 - Built-in self-update: checks GitHub Releases (throttled to once a day automatically, or on demand), shows the changelog, and installs itself — the system installer on Android, an automatic relaunch on Windows.
 
 ### Personalization

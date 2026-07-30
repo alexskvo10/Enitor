@@ -540,8 +540,10 @@ const List<_Section> _kFaq = [
           'Последнее важно: без этого приложение подняло бы копию на '
           'следующем запуске, '
           'и удаление выглядело бы не сработавшим. Поэтому восстановить будет '
-          'нечем — в диалоге есть кнопка «Сначала экспорт», лучше ей '
-          'воспользоваться. Настройки при этом тоже сбрасываются, а после '
+          'нечем — в диалоге есть кнопка «Экспорт и удаление»: она сохраняет '
+          'файл и стирает данные одним действием, причём стирает только если '
+          'файл действительно сохранён. Настройки при этом тоже сбрасываются, '
+          'а после '
           'удаления приложение просит перезапуск, чтобы все экраны увидели '
           'пустое хранилище.',
       'What does "Delete all data" do?',
@@ -549,8 +551,9 @@ const List<_Section> _kFaq = [
           'repeats — and the automatic backup along with them. That last part '
           'matters: without it the app would restore the copy on the next '
           'launch and the deletion would look like it had failed. So there '
-          'will be nothing to restore from — the dialog offers an "Export '
-          'first" button, and it is worth using. Settings are reset too, and '
+          'will be nothing to restore from — the dialog has an "Export and '
+          'delete" button that saves a file and wipes in one go, and it only '
+          'wipes if the file really was saved. Settings are reset too, and '
           'afterwards the app asks for a restart so every screen sees the '
           'empty storage.',
     ),

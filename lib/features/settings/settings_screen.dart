@@ -644,23 +644,31 @@ class SettingsScreen extends ConsumerWidget {
     await ref.read(notificationControllerProvider).setQuietHours(start, end);
   }
 
-  Future<void> _export(BuildContext context, WidgetRef ref) async {
+  /// Возвращает true, только если файл РЕАЛЬНО сохранён: отмена диалога
+  /// сохранения и ошибка записи дают false. От этого зависит удаление данных
+  /// в [_wipeData] — стереть всё после несостоявшегося экспорта нельзя.
+  Future<bool> _export(BuildContext context, WidgetRef ref) async {
     final l10n = context.l10n;
     try {
       final path = await ref.read(backupServiceProvider).exportToFile();
-      if (path == null || !context.mounted) return; // отмена
-      showFancyToast(
-        context,
-        message: l10n.exportedToast(path),
-        tone: ToastTone.success,
-      );
+      if (path == null) return false; // отмена
+      if (context.mounted) {
+        showFancyToast(
+          context,
+          message: l10n.exportedToast(path),
+          tone: ToastTone.success,
+        );
+      }
+      return true;
     } catch (e) {
-      if (!context.mounted) return;
-      showFancyToast(
-        context,
-        message: l10n.exportFailedToast('$e'),
-        tone: ToastTone.error,
-      );
+      if (context.mounted) {
+        showFancyToast(
+          context,
+          message: l10n.exportFailedToast('$e'),
+          tone: ToastTone.error,
+        );
+      }
+      return false;
     }
   }
 
@@ -709,32 +717,85 @@ class SettingsScreen extends ConsumerWidget {
       icon: Icons.delete_forever_outlined,
       iconColor: AppColors.danger,
       title: l10n.wipeDataConfirmTitle,
-      content: '${l10n.wipeDataConfirmContent}\n\n${l10n.cannotUndo}',
+      // contentBuilder, а не content: нужно выделить жирным только последнюю
+      // строку — она здесь важнее всего остального текста.
+      contentBuilder: (ctx) {
+        final base = Theme.of(ctx)
+            .textTheme
+            .bodyMedium
+            ?.copyWith(color: AppColors.textSecondary);
+        return Text.rich(
+          TextSpan(
+            style: base,
+            children: [
+              TextSpan(text: '${l10n.wipeDataConfirmContent}\n\n'),
+              TextSpan(
+                text: l10n.cannotUndo,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+          textAlign: TextAlign.center,
+        );
+      },
+      // Раскладка тут намеренно своя, а не общая для диалогов: безопасные
+      // действия в одну строку, а необратимое «удалить» — отдельной строкой
+      // ниже, с большим отступом. Так его не задеть, целясь в соседнюю
+      // кнопку, и оно требует отдельного осознанного движения.
       actions: (ctx) => [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx, 'cancel'),
-          child: Text(l10n.cancel),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(ctx, 'export'),
-          child: Text(l10n.wipeDataExportFirstBtn),
-        ),
-        const SizedBox(width: 8),
-        FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
-          onPressed: () => Navigator.pop(ctx, 'wipe'),
-          child: Text(l10n.wipeDataConfirmBtn),
+        SizedBox(
+          width: double.infinity,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  TextButton(
+                    // Фокус по умолчанию — на безопасной кнопке, чтобы Enter
+                    // не оказался «удалить».
+                    autofocus: true,
+                    onPressed: () => Navigator.pop(ctx, 'cancel'),
+                    child: Text(l10n.cancel),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, 'export'),
+                    child: Text(l10n.wipeDataExportThenWipeBtn),
+                  ),
+                ],
+              ),
+              // Отступ ровно в высоту кнопочной строки — «ещё на строку ниже».
+              const SizedBox(height: 48),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+                onPressed: () => Navigator.pop(ctx, 'wipe'),
+                child: Text(l10n.wipeDataConfirmBtn),
+              ),
+            ],
+          ),
         ),
       ],
     );
     if (choice == null || choice == 'cancel') return;
     if (choice == 'export') {
-      // Экспорт и выход: пусть человек убедится, что файл на месте, и вернётся
-      // удалять осознанно, а не одним движением следом за диалогом.
+      // Экспорт и удаление одним действием. Удаляем ТОЛЬКО если файл
+      // действительно сохранён: отмена диалога сохранения или ошибка записи
+      // означают, что копии нет, и стирать данные в этот момент нельзя.
       if (!context.mounted) return;
-      await _export(context, ref);
-      return;
+      final saved = await _export(context, ref);
+      if (!saved) return;
     }
+    // Между открытием диалога и этим моментом экран мог быть закрыт.
+    if (!context.mounted) return;
+    await _performWipe(context, ref);
+  }
+
+  /// Собственно удаление + сообщение о результате. Вынесено отдельно, потому
+  /// что путей сюда два: «удалить всё» сразу и «экспорт и удаление».
+  Future<void> _performWipe(BuildContext context, WidgetRef ref) async {
+    final l10n = context.l10n;
     try {
       await ref.read(backupServiceProvider).wipeEverything();
       if (!context.mounted) return;

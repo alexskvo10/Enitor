@@ -106,7 +106,7 @@
   "wipeDataSubtitle": "Start from a clean slate",
   "wipeDataConfirmTitle": "Delete all data?",
   "wipeDataConfirmContent": "Tasks, goals, stats, achievements, templates and repeats will be gone — along with the automatic backup, so there will be nothing left to restore from. If the data might still be useful, save it to a file first.",
-  "wipeDataExportFirstBtn": "Export first",
+  "wipeDataExportThenWipeBtn": "Export and delete",
   "wipeDataConfirmBtn": "Delete everything",
   "wipeDataDoneTitle": "Data deleted",
   "wipeDataDoneContent": "Restart the app for the changes to apply on every screen.",
