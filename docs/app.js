@@ -147,6 +147,21 @@
 
   if (stage && cells && cells.length && !calmDown) {
     var count = stage.querySelector('.count');
+    var unit = stage.querySelector('[data-forms]');
+    // Формы слова приходят из разметки: два варианта — английский, три —
+    // русский. Без этого счётчик по дороге показал бы «1 дней».
+    var forms = unit && unit.dataset.forms ? unit.dataset.forms.split(',') : null;
+
+    var pluralize = function (n) {
+      if (!forms) return '';
+      if (forms.length < 3) return forms[n === 1 ? 0 : 1];
+      var t = n % 100;
+      if (t > 10 && t < 20) return forms[2];
+      t = n % 10;
+      if (t === 1) return forms[0];
+      if (t >= 2 && t <= 4) return forms[1];
+      return forms[2];
+    };
     // Накопительный ряд считаем по самой разметке, чтобы число отмеченных
     // дней не пришлось дублировать отдельным списком и потом сверять.
     var marked = 0;
@@ -165,7 +180,9 @@
       p = p < 0 ? 0 : (p > 1 ? 1 : p);
       stage.style.setProperty('--p', p.toFixed(4));
       if (count) {
-        count.textContent = cum[Math.min(total - 1, Math.floor(p * total))];
+        var marked = cum[Math.min(total - 1, Math.floor(p * total))];
+        count.textContent = marked;
+        if (unit && forms) unit.textContent = pluralize(marked);
       }
     };
 

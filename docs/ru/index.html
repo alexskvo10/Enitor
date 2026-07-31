@@ -258,45 +258,76 @@
         <div class="wrap">
           <p class="eyebrow">Регулярность</p>
           <h2>Год одним взглядом</h2>
-          <p class="lede">Тепловая карта в духе GitHub превращает месяцы усилий в одну картинку. Прокрути — и она соберётся так же, как собиралась в жизни: пусто до июня, когда приложение только поставили, дальше почти каждый день.</p>
+          <p class="lede">Тепловая карта в духе GitHub превращает целый год усилий в одну картинку. Прокрути — и она соберётся так же, как собирается в жизни: пусто, пока приложения ещё не было, дальше почти каждый день.</p>
 
           <div class="hm-months" aria-hidden="true">
-            <span>Март</span><span>Апрель</span><span>Май</span><span>Июнь</span><span>Июль</span>
+            <span>Янв</span><span>Фев</span><span>Мар</span><span>Апр</span><span>Май</span><span>Июн</span><span>Июл</span><span>Авг</span><span>Сен</span><span>Окт</span><span>Ноя</span><span>Дек</span>
           </div>
 
           <!-- Ячейки лежат в разметке, а не строятся скриптом: без него CSS
                покажет готовую карту, а не пустое место. --i — порядковый
-               номер дня, --c — цвет ступени. -->
-          <div class="hm" aria-hidden="true">
-          <b style="--i:0"></b><b style="--i:1"></b><b style="--i:2"></b><b style="--i:3"></b><b style="--i:4"></b><b style="--i:5"></b><b style="--i:6"></b>
-          <b style="--i:7"></b><b style="--i:8"></b><b style="--i:9"></b><b style="--i:10"></b><b style="--i:11"></b><b style="--i:12"></b><b style="--i:13"></b>
-          <b style="--i:14"></b><b style="--i:15"></b><b style="--i:16"></b><b style="--i:17"></b><b style="--i:18"></b><b style="--i:19"></b><b style="--i:20"></b>
-          <b style="--i:21"></b><b style="--i:22"></b><b style="--i:23"></b><b style="--i:24"></b><b style="--i:25"></b><b style="--i:26"></b><b style="--i:27"></b>
-          <b style="--i:28"></b><b style="--i:29"></b><b style="--i:30"></b><b style="--i:31"></b><b style="--i:32"></b><b style="--i:33"></b><b style="--i:34"></b>
-          <b style="--i:35"></b><b style="--i:36"></b><b style="--i:37"></b><b style="--i:38"></b><b style="--i:39"></b><b style="--i:40"></b><b style="--i:41"></b>
-          <b style="--i:42"></b><b style="--i:43"></b><b style="--i:44"></b><b style="--i:45"></b><b style="--i:46"></b><b style="--i:47"></b><b style="--i:48"></b>
-          <b style="--i:49"></b><b style="--i:50"></b><b style="--i:51"></b><b style="--i:52"></b><b style="--i:53"></b><b style="--i:54"></b><b style="--i:55"></b>
-          <b style="--i:56"></b><b style="--i:57"></b><b style="--i:58"></b><b style="--i:59"></b><b style="--i:60"></b><b style="--i:61"></b><b style="--i:62"></b>
-          <b style="--i:63"></b><b style="--i:64"></b><b style="--i:65"></b><b style="--i:66"></b><b style="--i:67"></b><b style="--i:68"></b><b style="--i:69"></b>
-          <b style="--i:70"></b><b style="--i:71"></b><b style="--i:72"></b><b style="--i:73"></b><b style="--i:74"></b><b style="--i:75"></b><b style="--i:76"></b>
-          <b style="--i:77"></b><b style="--i:78"></b><b style="--i:79"></b><b style="--i:80"></b><b style="--i:81"></b><b style="--i:82"></b><b style="--i:83"></b>
-          <b style="--i:84"></b><b style="--i:85"></b><b style="--i:86"></b><b style="--i:87"></b><b style="--i:88"></b><b style="--i:89"></b><b style="--i:90"></b>
-          <b style="--i:91"></b><b style="--i:92"></b><b style="--i:93"></b><b style="--i:94"></b><b style="--i:95"></b><b style="--i:96"></b><b style="--i:97;--c:var(--hm2)"></b>
-          <b style="--i:98;--c:var(--hm1)"></b><b style="--i:99;--c:var(--hm3)"></b><b style="--i:100"></b><b style="--i:101;--c:var(--hm3)"></b><b style="--i:102;--c:var(--hm2)"></b><b style="--i:103"></b><b style="--i:104;--c:var(--hm3)"></b>
-          <b style="--i:105"></b><b style="--i:106;--c:var(--hm3)"></b><b style="--i:107"></b><b style="--i:108"></b><b style="--i:109;--c:var(--hm3)"></b><b style="--i:110;--c:var(--hm4)"></b><b style="--i:111;--c:var(--hm1)"></b>
-          <b style="--i:112;--c:var(--hm2)"></b><b style="--i:113;--c:var(--hm3)"></b><b style="--i:114;--c:var(--hm4)"></b><b style="--i:115;--c:var(--hm3)"></b><b style="--i:116;--c:var(--hm2)"></b><b style="--i:117;--c:var(--hm4)"></b><b style="--i:118"></b>
-          <b style="--i:119;--c:var(--hm4)"></b><b style="--i:120;--c:var(--hm2)"></b><b style="--i:121;--c:var(--hm1)"></b><b style="--i:122"></b><b style="--i:123;--c:var(--hm2)"></b><b style="--i:124;--c:var(--hm4)"></b><b style="--i:125;--c:var(--hm1)"></b>
-          <b style="--i:126;--c:var(--hm3)"></b><b style="--i:127;--c:var(--hm3)"></b><b style="--i:128;--c:var(--hm2)"></b><b style="--i:129;--c:var(--hm3)"></b><b style="--i:130"></b><b style="--i:131"></b><b style="--i:132;--c:var(--hm1)"></b>
-          <b style="--i:133;--c:var(--hm3)"></b><b style="--i:134;--c:var(--hm3)"></b><b style="--i:135;--c:var(--hm2)"></b><b style="--i:136;--c:var(--hm3)"></b><b style="--i:137;--c:var(--hm3)"></b><b style="--i:138;--c:var(--hm2)"></b><b style="--i:139;--c:var(--hm4)"></b>
-          <b style="--i:140;--c:var(--hm3)"></b><b style="--i:141;--c:var(--hm2)"></b><b style="--i:142;--c:var(--hm3)"></b><b style="--i:143;--c:var(--hm3)"></b><b style="--i:144;--c:var(--hm4)"></b><b style="--i:145;--c:var(--hm4)"></b><b style="--i:146;--c:var(--hm2)"></b>
-          <b style="--i:147;--c:var(--hm4)"></b><b style="--i:148"></b><b style="--i:149;--c:var(--hm3)"></b><b style="--i:150;--c:var(--hm4)"></b><b style="--i:151;--c:var(--hm1)"></b><b style="--i:152;--c:var(--hm3)"></b><b style="--i:153"></b>
+               номер дня, --c — цвет ступени, --n на контейнере — сколько
+               всего дней (от него считается фронт заполнения). -->
+          <div class="hm" style="--n:364" aria-hidden="true">
+            <b style="--i:0"></b><b style="--i:1"></b><b style="--i:2"></b><b style="--i:3"></b><b style="--i:4"></b><b style="--i:5"></b><b style="--i:6"></b>
+            <b style="--i:7"></b><b style="--i:8"></b><b style="--i:9"></b><b style="--i:10"></b><b style="--i:11"></b><b style="--i:12"></b><b style="--i:13"></b>
+            <b style="--i:14"></b><b style="--i:15"></b><b style="--i:16"></b><b style="--i:17"></b><b style="--i:18"></b><b style="--i:19"></b><b style="--i:20"></b>
+            <b style="--i:21"></b><b style="--i:22"></b><b style="--i:23"></b><b style="--i:24"></b><b style="--i:25"></b><b style="--i:26"></b><b style="--i:27"></b>
+            <b style="--i:28"></b><b style="--i:29"></b><b style="--i:30"></b><b style="--i:31"></b><b style="--i:32"></b><b style="--i:33"></b><b style="--i:34"></b>
+            <b style="--i:35"></b><b style="--i:36"></b><b style="--i:37"></b><b style="--i:38"></b><b style="--i:39"></b><b style="--i:40"></b><b style="--i:41"></b>
+            <b style="--i:42"></b><b style="--i:43"></b><b style="--i:44"></b><b style="--i:45"></b><b style="--i:46"></b><b style="--i:47"></b><b style="--i:48"></b>
+            <b style="--i:49"></b><b style="--i:50"></b><b style="--i:51"></b><b style="--i:52"></b><b style="--i:53"></b><b style="--i:54"></b><b style="--i:55"></b>
+            <b style="--i:56"></b><b style="--i:57"></b><b style="--i:58"></b><b style="--i:59"></b><b style="--i:60"></b><b style="--i:61"></b><b style="--i:62"></b>
+            <b style="--i:63"></b><b style="--i:64"></b><b style="--i:65"></b><b style="--i:66"></b><b style="--i:67"></b><b style="--i:68"></b><b style="--i:69"></b>
+            <b style="--i:70"></b><b style="--i:71"></b><b style="--i:72"></b><b style="--i:73"></b><b style="--i:74"></b><b style="--i:75"></b><b style="--i:76"></b>
+            <b style="--i:77"></b><b style="--i:78"></b><b style="--i:79"></b><b style="--i:80"></b><b style="--i:81"></b><b style="--i:82"></b><b style="--i:83"></b>
+            <b style="--i:84"></b><b style="--i:85"></b><b style="--i:86"></b><b style="--i:87"></b><b style="--i:88"></b><b style="--i:89"></b><b style="--i:90"></b>
+            <b style="--i:91"></b><b style="--i:92"></b><b style="--i:93"></b><b style="--i:94"></b><b style="--i:95"></b><b style="--i:96"></b><b style="--i:97"></b>
+            <b style="--i:98"></b><b style="--i:99"></b><b style="--i:100"></b><b style="--i:101"></b><b style="--i:102"></b><b style="--i:103"></b><b style="--i:104"></b>
+            <b style="--i:105"></b><b style="--i:106"></b><b style="--i:107"></b><b style="--i:108"></b><b style="--i:109"></b><b style="--i:110"></b><b style="--i:111"></b>
+            <b style="--i:112"></b><b style="--i:113"></b><b style="--i:114"></b><b style="--i:115"></b><b style="--i:116"></b><b style="--i:117"></b><b style="--i:118"></b>
+            <b style="--i:119"></b><b style="--i:120"></b><b style="--i:121"></b><b style="--i:122"></b><b style="--i:123"></b><b style="--i:124"></b><b style="--i:125"></b>
+            <b style="--i:126"></b><b style="--i:127"></b><b style="--i:128"></b><b style="--i:129"></b><b style="--i:130"></b><b style="--i:131"></b><b style="--i:132"></b>
+            <b style="--i:133"></b><b style="--i:134"></b><b style="--i:135"></b><b style="--i:136"></b><b style="--i:137"></b><b style="--i:138"></b><b style="--i:139"></b>
+            <b style="--i:140"></b><b style="--i:141"></b><b style="--i:142"></b><b style="--i:143"></b><b style="--i:144"></b><b style="--i:145"></b><b style="--i:146"></b>
+            <b style="--i:147"></b><b style="--i:148"></b><b style="--i:149"></b><b style="--i:150"></b><b style="--i:151"></b><b style="--i:152"></b><b style="--i:153"></b>
+            <b style="--i:154"></b><b style="--i:155"></b><b style="--i:156"></b><b style="--i:157"></b><b style="--i:158"></b><b style="--i:159"></b><b style="--i:160;--c:var(--hm3)"></b>
+            <b style="--i:161;--c:var(--hm3)"></b><b style="--i:162;--c:var(--hm4)"></b><b style="--i:163;--c:var(--hm3)"></b><b style="--i:164;--c:var(--hm3)"></b><b style="--i:165;--c:var(--hm3)"></b><b style="--i:166;--c:var(--hm1)"></b><b style="--i:167;--c:var(--hm3)"></b>
+            <b style="--i:168;--c:var(--hm3)"></b><b style="--i:169;--c:var(--hm4)"></b><b style="--i:170"></b><b style="--i:171;--c:var(--hm2)"></b><b style="--i:172"></b><b style="--i:173;--c:var(--hm4)"></b><b style="--i:174;--c:var(--hm3)"></b>
+            <b style="--i:175"></b><b style="--i:176;--c:var(--hm4)"></b><b style="--i:177;--c:var(--hm4)"></b><b style="--i:178;--c:var(--hm3)"></b><b style="--i:179;--c:var(--hm3)"></b><b style="--i:180;--c:var(--hm1)"></b><b style="--i:181"></b>
+            <b style="--i:182;--c:var(--hm3)"></b><b style="--i:183"></b><b style="--i:184;--c:var(--hm1)"></b><b style="--i:185;--c:var(--hm2)"></b><b style="--i:186"></b><b style="--i:187;--c:var(--hm3)"></b><b style="--i:188;--c:var(--hm3)"></b>
+            <b style="--i:189;--c:var(--hm4)"></b><b style="--i:190;--c:var(--hm3)"></b><b style="--i:191;--c:var(--hm3)"></b><b style="--i:192;--c:var(--hm3)"></b><b style="--i:193;--c:var(--hm3)"></b><b style="--i:194;--c:var(--hm3)"></b><b style="--i:195;--c:var(--hm2)"></b>
+            <b style="--i:196;--c:var(--hm4)"></b><b style="--i:197;--c:var(--hm4)"></b><b style="--i:198;--c:var(--hm4)"></b><b style="--i:199;--c:var(--hm3)"></b><b style="--i:200;--c:var(--hm2)"></b><b style="--i:201;--c:var(--hm2)"></b><b style="--i:202;--c:var(--hm2)"></b>
+            <b style="--i:203"></b><b style="--i:204;--c:var(--hm4)"></b><b style="--i:205;--c:var(--hm3)"></b><b style="--i:206;--c:var(--hm4)"></b><b style="--i:207;--c:var(--hm2)"></b><b style="--i:208;--c:var(--hm4)"></b><b style="--i:209;--c:var(--hm4)"></b>
+            <b style="--i:210"></b><b style="--i:211;--c:var(--hm1)"></b><b style="--i:212;--c:var(--hm4)"></b><b style="--i:213;--c:var(--hm3)"></b><b style="--i:214;--c:var(--hm4)"></b><b style="--i:215;--c:var(--hm3)"></b><b style="--i:216"></b>
+            <b style="--i:217;--c:var(--hm3)"></b><b style="--i:218;--c:var(--hm4)"></b><b style="--i:219;--c:var(--hm2)"></b><b style="--i:220"></b><b style="--i:221;--c:var(--hm2)"></b><b style="--i:222;--c:var(--hm4)"></b><b style="--i:223;--c:var(--hm4)"></b>
+            <b style="--i:224;--c:var(--hm1)"></b><b style="--i:225;--c:var(--hm2)"></b><b style="--i:226"></b><b style="--i:227"></b><b style="--i:228;--c:var(--hm4)"></b><b style="--i:229;--c:var(--hm1)"></b><b style="--i:230;--c:var(--hm3)"></b>
+            <b style="--i:231;--c:var(--hm3)"></b><b style="--i:232;--c:var(--hm1)"></b><b style="--i:233;--c:var(--hm4)"></b><b style="--i:234;--c:var(--hm1)"></b><b style="--i:235;--c:var(--hm3)"></b><b style="--i:236;--c:var(--hm1)"></b><b style="--i:237;--c:var(--hm3)"></b>
+            <b style="--i:238;--c:var(--hm2)"></b><b style="--i:239;--c:var(--hm2)"></b><b style="--i:240;--c:var(--hm4)"></b><b style="--i:241;--c:var(--hm4)"></b><b style="--i:242;--c:var(--hm2)"></b><b style="--i:243;--c:var(--hm4)"></b><b style="--i:244;--c:var(--hm2)"></b>
+            <b style="--i:245;--c:var(--hm3)"></b><b style="--i:246;--c:var(--hm4)"></b><b style="--i:247;--c:var(--hm3)"></b><b style="--i:248"></b><b style="--i:249;--c:var(--hm4)"></b><b style="--i:250;--c:var(--hm2)"></b><b style="--i:251;--c:var(--hm2)"></b>
+            <b style="--i:252;--c:var(--hm4)"></b><b style="--i:253;--c:var(--hm2)"></b><b style="--i:254;--c:var(--hm2)"></b><b style="--i:255"></b><b style="--i:256"></b><b style="--i:257;--c:var(--hm3)"></b><b style="--i:258;--c:var(--hm2)"></b>
+            <b style="--i:259;--c:var(--hm3)"></b><b style="--i:260;--c:var(--hm2)"></b><b style="--i:261;--c:var(--hm3)"></b><b style="--i:262;--c:var(--hm4)"></b><b style="--i:263;--c:var(--hm3)"></b><b style="--i:264;--c:var(--hm3)"></b><b style="--i:265;--c:var(--hm4)"></b>
+            <b style="--i:266;--c:var(--hm1)"></b><b style="--i:267;--c:var(--hm1)"></b><b style="--i:268;--c:var(--hm4)"></b><b style="--i:269;--c:var(--hm4)"></b><b style="--i:270;--c:var(--hm2)"></b><b style="--i:271;--c:var(--hm1)"></b><b style="--i:272;--c:var(--hm4)"></b>
+            <b style="--i:273;--c:var(--hm4)"></b><b style="--i:274;--c:var(--hm1)"></b><b style="--i:275;--c:var(--hm4)"></b><b style="--i:276;--c:var(--hm4)"></b><b style="--i:277;--c:var(--hm3)"></b><b style="--i:278;--c:var(--hm3)"></b><b style="--i:279"></b>
+            <b style="--i:280"></b><b style="--i:281;--c:var(--hm4)"></b><b style="--i:282;--c:var(--hm2)"></b><b style="--i:283;--c:var(--hm3)"></b><b style="--i:284;--c:var(--hm2)"></b><b style="--i:285;--c:var(--hm4)"></b><b style="--i:286;--c:var(--hm3)"></b>
+            <b style="--i:287;--c:var(--hm2)"></b><b style="--i:288;--c:var(--hm1)"></b><b style="--i:289;--c:var(--hm4)"></b><b style="--i:290"></b><b style="--i:291;--c:var(--hm2)"></b><b style="--i:292;--c:var(--hm3)"></b><b style="--i:293;--c:var(--hm4)"></b>
+            <b style="--i:294;--c:var(--hm3)"></b><b style="--i:295;--c:var(--hm2)"></b><b style="--i:296;--c:var(--hm4)"></b><b style="--i:297;--c:var(--hm1)"></b><b style="--i:298"></b><b style="--i:299;--c:var(--hm2)"></b><b style="--i:300;--c:var(--hm3)"></b>
+            <b style="--i:301"></b><b style="--i:302;--c:var(--hm1)"></b><b style="--i:303;--c:var(--hm2)"></b><b style="--i:304;--c:var(--hm3)"></b><b style="--i:305;--c:var(--hm1)"></b><b style="--i:306;--c:var(--hm2)"></b><b style="--i:307;--c:var(--hm4)"></b>
+            <b style="--i:308;--c:var(--hm4)"></b><b style="--i:309;--c:var(--hm3)"></b><b style="--i:310;--c:var(--hm3)"></b><b style="--i:311;--c:var(--hm3)"></b><b style="--i:312;--c:var(--hm1)"></b><b style="--i:313"></b><b style="--i:314"></b>
+            <b style="--i:315;--c:var(--hm4)"></b><b style="--i:316;--c:var(--hm3)"></b><b style="--i:317;--c:var(--hm4)"></b><b style="--i:318"></b><b style="--i:319;--c:var(--hm3)"></b><b style="--i:320;--c:var(--hm3)"></b><b style="--i:321;--c:var(--hm4)"></b>
+            <b style="--i:322;--c:var(--hm2)"></b><b style="--i:323;--c:var(--hm4)"></b><b style="--i:324"></b><b style="--i:325;--c:var(--hm3)"></b><b style="--i:326;--c:var(--hm4)"></b><b style="--i:327;--c:var(--hm4)"></b><b style="--i:328;--c:var(--hm4)"></b>
+            <b style="--i:329;--c:var(--hm3)"></b><b style="--i:330;--c:var(--hm4)"></b><b style="--i:331;--c:var(--hm4)"></b><b style="--i:332;--c:var(--hm2)"></b><b style="--i:333;--c:var(--hm3)"></b><b style="--i:334;--c:var(--hm4)"></b><b style="--i:335;--c:var(--hm4)"></b>
+            <b style="--i:336;--c:var(--hm3)"></b><b style="--i:337;--c:var(--hm4)"></b><b style="--i:338;--c:var(--hm4)"></b><b style="--i:339;--c:var(--hm3)"></b><b style="--i:340;--c:var(--hm3)"></b><b style="--i:341;--c:var(--hm2)"></b><b style="--i:342;--c:var(--hm3)"></b>
+            <b style="--i:343;--c:var(--hm3)"></b><b style="--i:344"></b><b style="--i:345;--c:var(--hm3)"></b><b style="--i:346;--c:var(--hm4)"></b><b style="--i:347;--c:var(--hm4)"></b><b style="--i:348;--c:var(--hm4)"></b><b style="--i:349;--c:var(--hm2)"></b>
+            <b style="--i:350;--c:var(--hm4)"></b><b style="--i:351;--c:var(--hm3)"></b><b style="--i:352;--c:var(--hm3)"></b><b style="--i:353;--c:var(--hm4)"></b><b style="--i:354"></b><b style="--i:355;--c:var(--hm4)"></b><b style="--i:356"></b>
+            <b style="--i:357;--c:var(--hm3)"></b><b style="--i:358;--c:var(--hm3)"></b><b style="--i:359;--c:var(--hm2)"></b><b style="--i:360;--c:var(--hm3)"></b><b style="--i:361;--c:var(--hm3)"></b><b style="--i:362;--c:var(--hm3)"></b><b style="--i:363;--c:var(--hm4)"></b>
           </div>
 
           <div class="hm-legend" aria-hidden="true">
             <span>меньше</span><i style="--c:var(--hm1)"></i><i style="--c:var(--hm2)"></i><i style="--c:var(--hm3)"></i><i style="--c:var(--hm4)"></i><span>больше</span>
           </div>
 
-          <p class="hm-status"><span class="count">0</span> из 154 дней отмечено</p>
+          <p class="hm-status"><span class="count">0</span> <span data-forms="день,дня,дней">дней</span> с отметкой</p>
         </div>
       </div>
     </div>
@@ -318,6 +349,11 @@
           <div class="ico" aria-hidden="true">🔔</div>
           <h3>Напоминания, которые умеют молчать</h3>
           <p>Общие напоминания приходят, только когда есть незавершённые задачи. О бэклоге — дважды в неделю, о целях — раз в месяц. Ничего не приходит просто потому, что тикнули часы.</p>
+        </div>
+        <div class="tile reveal">
+          <div class="ico" aria-hidden="true">📥</div>
+          <h3>Ничего не списывается молча</h3>
+          <p>Незавершённые задачи и недостигнутые цели уходят в бэклог и ждут там на отдельном экране, пока их не сделают или сознательно не выбросят. Дважды в неделю о них напоминает уведомление. Это не список провалов, а второй шанс для задуманного — вместо того чтобы ему просто исчезнуть.</p>
         </div>
         <div class="tile reveal">
           <div class="ico" aria-hidden="true">🔒</div>
