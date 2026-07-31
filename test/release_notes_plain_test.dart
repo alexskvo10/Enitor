@@ -52,6 +52,28 @@ void main() {
     expect(releaseNotesToPlainText(null), isNull);
   });
 
+  test('курсив одной звёздочкой снимается вместе с жирным', () {
+    // В заметках v0.2.0 такой курсив стоял в четырёх местах и доезжал до
+    // окна обновления вместе со звёздочками: снимались только пары `**`.
+    final s = releaseNotesToPlainText(
+      'The screen answers *how did it go* rather than *what next*.\n'
+      '**Goals set *for* the week** are new.',
+    )!;
+    expect(s, 'The screen answers how did it go rather than what next.\n'
+        'Goals set for the week are new.');
+    expect(s, isNot(contains('*')));
+  });
+
+  test('одинокая звёздочка и маркеры списка не трогаются', () {
+    // Закрывающей пары нет — значит это не курсив, а обычный символ.
+    final s = releaseNotesToPlainText(
+      '* first item\n'
+      '* second item\n'
+      'Two * three is not italics.',
+    )!;
+    expect(s, '* first item\n* second item\nTwo * three is not italics.');
+  });
+
   test('обычный текст не портится', () {
     const raw = 'Enitor treats a day as ending at 4:00 AM, not midnight.';
     expect(releaseNotesToPlainText(raw), raw);
