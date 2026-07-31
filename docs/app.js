@@ -133,6 +133,53 @@
     }
   }
 
+  /* ── Тепловая карта года, привязанная к прокрутке ────────────────────────
+     Здесь прокрутка не запускает анимацию, а служит ей шкалой: положение
+     дорожки в окне превращается в число 0..1, и от него зависит, докуда
+     дошёл фронт заполнения. Отмотал назад — карта разобралась обратно.
+
+     Скрипт не строит ячейки: они лежат в разметке, и без него CSS покажет
+     готовую карту (запасное значение var(--p, 1)). Единственное, что он
+     делает, — считает прогресс и ведёт счётчик отмеченных дней. */
+  var track = document.querySelector('.scrolly-track');
+  var stage = track && track.querySelector('.scrolly-stage');
+  var cells = stage && stage.querySelectorAll('.hm b');
+
+  if (stage && cells && cells.length && !calmDown) {
+    var count = stage.querySelector('.count');
+    // Накопительный ряд считаем по самой разметке, чтобы число отмеченных
+    // дней не пришлось дублировать отдельным списком и потом сверять.
+    var marked = 0;
+    var cum = Array.prototype.map.call(cells, function (c) {
+      if (c.style.getPropertyValue('--c')) marked++;
+      return marked;
+    });
+    var total = cells.length;
+    var pending = false;
+
+    var draw = function () {
+      pending = false;
+      var r = track.getBoundingClientRect();
+      var span = r.height - window.innerHeight;
+      var p = span > 0 ? -r.top / span : 1;
+      p = p < 0 ? 0 : (p > 1 ? 1 : p);
+      stage.style.setProperty('--p', p.toFixed(4));
+      if (count) {
+        count.textContent = cum[Math.min(total - 1, Math.floor(p * total))];
+      }
+    };
+
+    var onScroll = function () {
+      // Событий прокрутки приходит куда больше, чем кадров, поэтому счёт
+      // откладываем до ближайшего кадра — иначе пересчёт идёт вхолостую.
+      if (!pending) { pending = true; requestAnimationFrame(draw); }
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    draw();
+  }
+
   /* ── Номер последней версии в «таблетке» ─────────────────────────────────
      Ничего не ломается, если GitHub не ответит или упрётся в лимит запросов:
      в разметке уже лежит осмысленный текст, и он просто останется на месте. */
