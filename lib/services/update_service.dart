@@ -91,6 +91,46 @@ class UpdateCheckResult {
 /// (SharedPreferences/APPDATA, вне каталога установки) — замена файлов
 /// приложения на новую версию их не затрагивает, никакого экспорта/импорта
 /// вокруг обновления не требуется.
+/// Превращает markdown-тело релиза в обычный текст для окна обновления.
+///
+/// GitHub отдаёт заметки ровно так, как они написаны на странице релиза, а
+/// диалог рисует их простым [Text] — без разбора разметки. Стоило поставить
+/// в начало заметок баннер, и пользователю вывалилась вся HTML-строка
+/// `<img ...>` с длинным URL вместо описания. Разметка в заметках будет
+/// всегда, поэтому чистим её здесь, а не подгоняем текст релиза под диалог.
+String? releaseNotesToPlainText(String? raw) {
+  if (raw == null) return null;
+  var s = raw;
+  s = s.replaceAll(RegExp(r'<[^>]+>'), ''); // HTML-теги целиком
+  s = s.replaceAll(RegExp(r'!\[[^\]]*\]\([^)]*\)'), ''); // картинки markdown
+  // ссылки → их текст
+  s = s.replaceAllMapped(
+    RegExp(r'\[([^\]]*)\]\([^)]*\)'),
+    (m) => m[1] ?? '',
+  );
+  // Везде [ \t], а не \s: \s включает перевод строки, и жадная группа
+  // съедала пустые строки вокруг разделителя, склеивая абзацы в один.
+  s = s.replaceAll(
+    RegExp(r'^[ \t]*[-*_]{3,}[ \t]*$', multiLine: true),
+    '',
+  ); // разделители ---
+  s = s.replaceAll(
+    RegExp(r'^[ \t]{0,3}#{1,6}[ \t]*', multiLine: true),
+    '',
+  ); // заголовки ## …
+  s = s.replaceAll(
+    RegExp(r'^[ \t]{0,3}>[ \t]?', multiLine: true),
+    '',
+  ); // цитаты
+  s = s.replaceAll(RegExp(r'\*\*|__|`'), ''); // жирный, курсив, код
+  // Схлопываем пустоту, оставшуюся от вырезанного, чтобы текст не начинался
+  // с десятка переводов строки.
+  s = s.replaceAll(RegExp(r'[ \t]+\n'), '\n');
+  s = s.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+  s = s.trim();
+  return s.isEmpty ? null : s;
+}
+
 class UpdateService {
   UpdateService(this._storage);
 
@@ -123,7 +163,7 @@ class UpdateService {
       version: version,
       tagName: tag,
       htmlUrl: json['html_url'] as String? ?? '',
-      notes: (json['body'] as String?)?.trim(),
+      notes: releaseNotesToPlainText(json['body'] as String?),
       assets: assets,
     );
   }
