@@ -505,8 +505,28 @@ nav a:hover { color: var(--ink); }
    один раз. Счётчик подтягивается скриптом; пока его нет, точка-разделитель
    не появляется, поэтому кнопка не выглядит недогруженной. */
 .ask { color: var(--ink-soft); max-width: 62ch; margin: 40px 0 16px; }
-.star svg { color: var(--warning); }
-.star .stars { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+
+/* Кнопка залита янтарём — тем самым `warning` из палитры приложения, которым
+   там горит иконка серии. Единственный ярко-жёлтый элемент на странице, и
+   стоит он на ней один, поэтому не спорит со скупым чернильным акцентом.
+   Цвет текста задан числом, а не переменной, намеренно: в тёмной теме --ink
+   становится кремовым, и на янтаре он бы поплыл. Тёплые чернила по янтарю
+   дают 6.7:1 — выше порога AA в обеих темах. */
+.star {
+  background: var(--warning); color: #2A2722; border-color: transparent;
+  box-shadow: 0 6px 20px rgba(232, 162, 61, .42);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--warning) 42%, transparent);
+}
+.star:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px rgba(232, 162, 61, .52);
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--warning) 52%, transparent);
+}
+.star svg { color: #2A2722; }
+/* Счётчик приглушён ровно настолько, чтобы читаться вторым планом и при этом
+   оставаться читаемым: на янтаре 0.64 давало 2.5:1, ниже порога AA, а число
+   звёзд — содержимое, а не украшение. При 0.82 выходит 4.8:1. */
+.star .stars { color: rgba(42, 39, 34, .82); font-variant-numeric: tabular-nums; }
 .star .stars:not(:empty)::before { content: ' · '; }
 
 /* ── Подвал ──────────────────────────────────────────────────────────────── */
