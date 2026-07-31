@@ -4,11 +4,12 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Enitor — tasks, goals, and honest productivity stats</title>
-<meta name="description" content="Tasks, goals, and honest productivity stats — cross-platform, fully local, no account required." />
+<meta name="description" content="A cross-platform task and goal tracker for Windows and Android that shows you what your weeks actually look like. Fully local, no account, MIT-licensed." />
+<link rel="canonical" href="https://alexskvo10.github.io/Enitor/" />
 
 <!-- Карточка ссылки в мессенджерах и соцсетях. Ради неё эта страница и
-     существует: GitHub отдаёт загруженную обложку репозитория по подписанному
-     адресу (живёт 5 минут) и с заголовком binary/octet-stream вместо image/*,
+     появилась: GitHub отдаёт загруженную обложку репозитория по подписанному
+     адресу (живёт 5 минут) и с типом binary/octet-stream вместо image/*,
      поэтому парсеры превью её выбрасывают. Здесь картинка лежит на своём
      домене, отдаётся как image/jpeg и по постоянной ссылке.
      og:image обязан быть абсолютным — относительный путь не подхватится. -->
@@ -16,7 +17,7 @@
 <meta property="og:site_name" content="Enitor" />
 <meta property="og:url" content="https://alexskvo10.github.io/Enitor/" />
 <meta property="og:title" content="Enitor — tasks, goals, and honest productivity stats" />
-<meta property="og:description" content="Staying out of your way isn't the goal. Getting better is. Cross-platform, fully local, no account required." />
+<meta property="og:description" content="Staying out of your way isn't the goal. Getting better is. Windows and Android, fully local, no account required." />
 <meta property="og:image" content="https://alexskvo10.github.io/Enitor/social-preview.jpg" />
 <meta property="og:image:type" content="image/jpeg" />
 <meta property="og:image:width" content="2560" />
@@ -24,112 +25,628 @@
 <meta property="og:image:alt" content="Enitor — a task card, a day-completion ring, a streak counter and a quote card on a dark background" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="Enitor — tasks, goals, and honest productivity stats" />
-<meta name="twitter:description" content="Staying out of your way isn't the goal. Getting better is. Cross-platform, fully local, no account required." />
+<meta name="twitter:description" content="Staying out of your way isn't the goal. Getting better is. Windows and Android, fully local, no account required." />
 <meta name="twitter:image" content="https://alexskvo10.github.io/Enitor/social-preview.jpg" />
 
-<!-- Копия assets/icon/icon.png: корнем сайта будет папка docs, и путь наружу
-     (../assets/…) на Pages даст 404. -->
+<!-- Копия assets/icon/icon.png, уменьшенная до 256px: корнем сайта служит
+     папка docs, и путь наружу (../assets/…) на Pages дал бы 404. -->
 <link rel="icon" href="icon.png" />
+<meta name="theme-color" content="#F7F4EE" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#181613" media="(prefers-color-scheme: dark)" />
 
 <style>
+/* ───────────────────────────────────────────────────────────────────────────
+   Палитра, шрифты и тени — те же, что в приложении (docs/design-overview.md).
+   Страница должна читаться как продолжение Enitor, а не как отдельный лендинг:
+   тёплая бумага вместо белого, чернильно-синий акцент, «глина» для журнальных
+   деталей, тени тёплого чернильного тона вместо холодного Material-серого.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Только акцентные начертания. Основной текст идёт системным sans: Inter от
+   него почти неотличим, а 300 КБ на посетителя того не стоят. */
+@font-face {
+  font-family: 'Manrope';
+  src: url('fonts/Manrope-Bold.ttf') format('truetype');
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Source Serif 4';
+  src: url('fonts/SourceSerif4-SemiBold.ttf') format('truetype');
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Source Serif 4';
+  src: url('fonts/SourceSerif4-Italic.ttf') format('truetype');
+  font-weight: 400; font-style: italic; font-display: swap;
+}
+
+:root {
+  --paper:      #F7F4EE;  /* background — тёплая бумага */
+  --surface:    #FFFFFF;  /* карточки */
+  --muted:      #EFEAE0;  /* приглушённые заливки */
+  --ink:        #2A2722;  /* текст — тёплые чернила, не чёрный */
+  /* В приложении textSecondary = #7A7468, но на бумажном фоне это даёт
+     контраст 4.1:1 — ниже порога WCAG AA для обычного текста. На экране
+     монитора вторичного текста тут заметно больше, чем в приложении,
+     поэтому тон затемнён до 5.2:1. Оттенок сохранён, читаемость выше. */
+  --ink-soft:   #6B6559;  /* вторичный текст */
+  --primary:    #3B5BDB;  /* бренд — «чернильный синий» */
+  --clay:       #C26B45;  /* второй, скупой акцент */
+  --success:    #3FA66A;
+  --warning:    #E8A23D;
+  --danger:     #D65745;
+  --line:       rgba(42, 39, 34, 0.11);
+  --dot:        rgba(42, 39, 34, 0.055);
+  --dot-fine:   rgba(42, 39, 34, 0.035);
+
+  /* stickerShadow / raisedShadow — двухслойные, тёплого чернильного тона:
+     карточка выглядит «приклеенной» к бумаге, а не парящей над ней. */
+  --sticker: 0 1px 2px rgba(42,39,34,.05), 0 5px 14px rgba(42,39,34,.055);
+  --raised:  0 2px 6px rgba(42,39,34,.07), 0 14px 34px rgba(42,39,34,.10);
+
+  --r-card: 16px;   /* радиус карточки */
+  --r-pop:  24px;   /* радиус крупных блоков и диалогов */
+  --ease:   cubic-bezier(0.22, 1, 0.36, 1);  /* easeOut из приложения */
+}
+
+/* Тёмная тема — не инверсия, а «ночной кабинет»: тёплый уголь, осветлённый
+   акцент (обычный #3B5BDB на угле теряет контраст), тени заменены рамкой. */
+@media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0d1422;
-    --bg-soft: #141d30;
-    --line: #26314a;
-    --text: #ece5da;
-    --muted: #9aa5bb;
-    --accent: #e8a23d;
-    --accent-ink: #1a1206;
+    --paper:    #181613;
+    --surface:  #211E19;
+    --muted:    #2A261F;
+    --ink:      #ECE7DC;
+    --ink-soft: #9B948A;
+    --primary:  #93A7F5;
+    --clay:     #D6875C;
+    --line:     #2A261F;
+    --dot:      rgba(236, 231, 220, 0.045);
+    --dot-fine: rgba(236, 231, 220, 0.03);
+    --sticker:  0 1px 2px rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.30);
+    --raised:   0 2px 8px rgba(0,0,0,.40), 0 16px 40px rgba(0,0,0,.38);
   }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font: 16px/1.6 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    -webkit-font-smoothing: antialiased;
-  }
-  a { color: var(--accent); }
-  .wrap { max-width: 900px; margin: 0 auto; padding: 40px 20px 64px; }
+}
 
-  .hero img {
-    width: 100%;
-    height: auto;
-    display: block;
-    border-radius: 14px;
-    border: 1px solid var(--line);
-  }
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  color: var(--ink);
+  background-color: var(--paper);
+  /* Фон «Бумага» из приложения: двухслойная мелкая точечная рябь (шаг 7 и
+     11px) — читается как зерно бумаги, без единой картинки. */
+  background-image:
+    radial-gradient(circle at 1px 1px, var(--dot) 1px, transparent 0),
+    radial-gradient(circle at 1px 1px, var(--dot-fine) 1px, transparent 0);
+  background-size: 7px 7px, 11px 11px;
+  font: 400 17px/1.65 -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
 
-  h1 { font-size: 2rem; margin: 40px 0 8px; letter-spacing: -0.02em; }
-  .tagline { font-size: 1.15rem; color: var(--text); margin: 0 0 6px; }
-  .sub { color: var(--muted); margin: 0 0 28px; }
+h1, h2, h3 { font-family: Manrope, 'Segoe UI', system-ui, sans-serif; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; margin: 0; }
+p { margin: 0 0 1em; }
+a { color: var(--primary); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+img { max-width: 100%; height: auto; display: block; }
+code {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 0.88em; background: var(--muted);
+  padding: 1px 6px; border-radius: 6px;
+}
 
-  .buttons { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
-  .btn {
-    display: inline-block;
-    padding: 11px 20px;
-    border-radius: 10px;
-    text-decoration: none;
-    font-weight: 600;
-    border: 1px solid var(--line);
-    color: var(--text);
-    background: var(--bg-soft);
-  }
-  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
-  .note { color: var(--muted); font-size: 0.9rem; margin: 0 0 40px; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+section { padding: 88px 0; }
+section > .wrap > h2 { font-size: clamp(1.7rem, 3.2vw, 2rem); margin-bottom: 12px; }
+/* Шапка прилипшая, поэтому у всех целей якорей — отступ сверху, иначе
+   заголовок при переходе по ссылке уезжает под неё. */
+[id] { scroll-margin-top: 78px; }
+.mb-xl { margin-bottom: 64px; }
+.eyebrow {
+  font-family: Manrope, system-ui, sans-serif; font-weight: 700;
+  font-size: 0.75rem; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--clay); margin: 0 0 12px;
+}
+.lede { font-size: 1.12rem; color: var(--ink-soft); max-width: 62ch; }
 
-  h2 { font-size: 1.2rem; margin: 40px 0 14px; }
-  ul { padding-left: 20px; margin: 0; }
-  li { margin-bottom: 12px; }
-  li b { color: var(--text); }
+/* ── Шапка ───────────────────────────────────────────────────────────────── */
+header {
+  position: sticky; top: 0; z-index: 20;
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  /* Непрозрачная подложка объявлена первой: в браузерах без color-mix
+     (а это весь Safari до 16.2 и встроенные webview постарше) вторая строка
+     просто отбрасывается, и шапка остаётся читаемой вместо прозрачной. */
+  background: var(--paper);
+  background: color-mix(in srgb, var(--paper) 82%, transparent);
+  border-bottom: 1px solid var(--line);
+}
+header .wrap { display: flex; align-items: center; gap: 24px; height: 62px; }
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'Source Serif 4', Georgia, serif; font-weight: 600;
+  font-size: 1.25rem; color: var(--ink); text-decoration: none;
+}
+.brand img { width: 26px; height: 26px; border-radius: 7px; }
+nav { margin-left: auto; display: flex; gap: 22px; align-items: center; }
+nav a { color: var(--ink-soft); text-decoration: none; font-size: 0.94rem; }
+nav a:hover { color: var(--ink); }
+@media (max-width: 720px) { nav .hide-sm { display: none; } }
 
-  .shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
-  .shots img { width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); }
+/* ── Кнопки ──────────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 12px 22px; border-radius: 999px;
+  font-family: Manrope, system-ui, sans-serif; font-weight: 700; font-size: 0.97rem;
+  text-decoration: none; border: 1px solid transparent;
+  transition: transform .18s var(--ease), box-shadow .18s var(--ease), background-color .18s var(--ease);
+}
+.btn svg { width: 18px; height: 18px; flex: none; }
+.btn-primary {
+  background: var(--primary); color: #fff;
+  /* «Гало» под кнопкой — тот же приём, что у GlowFab в приложении.
+     Первая строка — запасная, для браузеров без color-mix. */
+  box-shadow: 0 6px 20px rgba(59, 91, 219, .38);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--primary) 38%, transparent);
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px rgba(59, 91, 219, .46);
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--primary) 46%, transparent);
+}
+.btn-ghost { background: var(--surface); color: var(--ink); border-color: var(--line); box-shadow: var(--sticker); }
+.btn-ghost:hover { transform: translateY(-2px); }
 
-  footer {
-    margin-top: 48px; padding-top: 20px;
-    border-top: 1px solid var(--line);
-    color: var(--muted); font-size: 0.9rem;
-  }
+/* ── Герой ───────────────────────────────────────────────────────────────── */
+.hero { padding: 76px 0 72px; position: relative; overflow: hidden; }
+/* Виньетка из приложения: едва заметное затемнение краёв, не перехватывает
+   события мыши. */
+.hero::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 40%, transparent 55%, rgba(42,39,34,.035) 100%);
+}
+@media (prefers-color-scheme: dark) {
+  .hero::after { background: radial-gradient(ellipse at 50% 40%, rgba(236,231,220,.03) 0%, transparent 60%); }
+}
+.hero .wrap { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 56px; align-items: center; }
+.hero h1 {
+  font-family: 'Source Serif 4', Georgia, serif; font-weight: 600;
+  font-size: clamp(3rem, 7vw, 4.4rem); letter-spacing: -0.03em; margin-bottom: 18px;
+}
+.hero .tagline { font-size: clamp(1.2rem, 2.4vw, 1.45rem); font-weight: 500; margin-bottom: 14px; line-height: 1.35; }
+.hero .lede { margin-bottom: 30px; }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 22px; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 14px; border-radius: 999px;
+  background: var(--muted); color: var(--ink-soft);
+  font-size: 0.83rem; font-weight: 600;
+}
+.pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); }
+
+/* Стопка скриншотов: карточка «приклеена» к бумаге, вторая выглядывает
+   из-под неё — глубина без единого лишнего изображения. */
+.stack { position: relative; padding: 8px 0; }
+.stack img { border-radius: var(--r-card); border: 1px solid var(--line); background: var(--surface); }
+.stack .front { box-shadow: var(--raised); transform: rotate(-1.2deg); position: relative; z-index: 2; }
+.stack .back {
+  position: absolute; top: 34px; right: -14px; width: 62%;
+  box-shadow: var(--sticker); transform: rotate(3.5deg); z-index: 1; opacity: .95;
+}
+@media (max-width: 900px) {
+  .hero .wrap { grid-template-columns: 1fr; gap: 40px; }
+  .stack { max-width: 420px; margin: 0 auto; }
+  .stack .back { display: none; }
+}
+
+/* ── Манифест ────────────────────────────────────────────────────────────── */
+.manifesto { padding: 0 0 88px; }
+.manifesto .card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-pop); box-shadow: var(--sticker);
+  padding: 44px 48px; max-width: 860px; margin: 0 auto;
+}
+.manifesto p { font-size: 1.1rem; }
+.manifesto p:first-of-type::first-letter {
+  font-family: 'Source Serif 4', Georgia, serif; font-weight: 600;
+  font-size: 3.1rem; line-height: 0.92; color: var(--clay);
+  float: left; margin: 4px 10px 0 0;
+}
+.manifesto .quote {
+  font-family: 'Source Serif 4', Georgia, serif; font-style: italic;
+  font-size: 1.08rem; color: var(--ink-soft);
+  border-left: 3px solid var(--clay); padding-left: 18px; margin: 26px 0 0;
+}
+@media (max-width: 640px) { .manifesto .card { padding: 30px 24px; } }
+
+/* ── Чередующиеся блоки возможностей ─────────────────────────────────────── */
+.feature { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; margin-bottom: 96px; }
+.feature:last-of-type { margin-bottom: 0; }
+/* Именно nth-of-type, а не nth-child: у .wrap перед блоками идут ещё заголовок
+   и подзаголовок, и nth-child считал бы их тоже — чередование сползло бы. */
+.feature:nth-of-type(even) .shot { order: -1; }
+.feature h3 { font-size: 1.65rem; margin-bottom: 14px; }
+.feature p { color: var(--ink-soft); }
+.feature .shot img {
+  border-radius: var(--r-card); border: 1px solid var(--line);
+  box-shadow: var(--sticker); background: var(--surface);
+  margin: 0 auto; max-width: 380px;
+}
+.facts { list-style: none; padding: 0; margin: 18px 0 0; }
+.facts li { position: relative; padding-left: 26px; margin-bottom: 9px; color: var(--ink-soft); }
+.facts li::before {
+  content: ''; position: absolute; left: 4px; top: 0.62em;
+  width: 7px; height: 7px; border-radius: 50%; background: var(--clay);
+}
+@media (max-width: 860px) {
+  .feature { grid-template-columns: 1fr; gap: 32px; margin-bottom: 68px; }
+  /* В одну колонку картинка всегда под текстом — иначе у половины блоков
+     скриншот шёл бы раньше собственного заголовка. */
+  .feature:nth-of-type(even) .shot { order: 0; }
+}
+
+/* ── Сетка «мелочей» ─────────────────────────────────────────────────────── */
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 18px; margin-top: 34px; }
+.tile {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-card); box-shadow: var(--sticker);
+  padding: 24px 24px 22px;
+  transition: transform .2s var(--ease), box-shadow .2s var(--ease);
+}
+.tile:hover { transform: translateY(-3px); box-shadow: var(--raised); }
+.tile .ico {
+  width: 40px; height: 40px; border-radius: 12px;
+  display: grid; place-items: center; margin-bottom: 14px;
+  /* Медальон как в диалогах приложения: круг «глины» на 14% прозрачности.
+     Первая строка — запасная, для браузеров без color-mix. */
+  background: rgba(194, 107, 69, .14);
+  background: color-mix(in srgb, var(--clay) 14%, transparent);
+  font-size: 20px; line-height: 1;
+}
+.tile h3 { font-size: 1.06rem; margin-bottom: 7px; }
+.tile p { font-size: 0.95rem; color: var(--ink-soft); margin: 0; }
+
+/* ── Галерея ─────────────────────────────────────────────────────────────── */
+.gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(212px, 1fr)); gap: 18px; margin-top: 34px; }
+.gallery figure { margin: 0; }
+.gallery img {
+  border-radius: var(--r-card); border: 1px solid var(--line);
+  box-shadow: var(--sticker); background: var(--surface);
+  transition: transform .2s var(--ease), box-shadow .2s var(--ease);
+}
+.gallery img:hover { transform: translateY(-4px); box-shadow: var(--raised); }
+.gallery figcaption { font-size: 0.85rem; color: var(--ink-soft); margin-top: 10px; text-align: center; }
+
+/* ── Загрузка ────────────────────────────────────────────────────────────── */
+.download { background: var(--muted); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.plats { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; margin-top: 34px; }
+.plat {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-pop); box-shadow: var(--sticker); padding: 30px;
+}
+.plat h3 { font-size: 1.2rem; margin-bottom: 6px; }
+.plat .sub { color: var(--ink-soft); font-size: 0.93rem; margin-bottom: 18px; }
+.plat ol { margin: 0 0 20px; padding-left: 20px; color: var(--ink-soft); font-size: 0.95rem; }
+.plat ol li { margin-bottom: 6px; }
+.note {
+  font-size: 0.88rem; color: var(--ink-soft);
+  border-left: 3px solid var(--warning); padding: 3px 0 3px 14px; margin: 0;
+}
+
+/* ── Подвал ──────────────────────────────────────────────────────────────── */
+footer { padding: 52px 0 64px; color: var(--ink-soft); font-size: 0.93rem; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: center; }
+footer .links { margin-left: auto; display: flex; flex-wrap: wrap; gap: 20px; }
+footer a { color: var(--ink-soft); }
+
+/* ── Появление при прокрутке ─────────────────────────────────────────────── */
+/* Тот же приём, что StaggerReveal в приложении: сдвиг на 10px и проявление
+   кривой easeOut. Без JS элементы просто видимы — правило включается только
+   после того, как скрипт объявит поддержку. */
+.js .reveal { opacity: 0; transform: translateY(10px); }
+.js .reveal.in { opacity: 1; transform: none; transition: opacity .5s var(--ease), transform .5s var(--ease); }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .js .reveal, .js .reveal.in { opacity: 1; transform: none; transition: none; }
+  .btn, .tile, .gallery img { transition: none; }
+}
 </style>
 </head>
+
 <body>
-<div class="wrap">
 
+<header>
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="icon.png" alt="" /> Enitor</a>
+    <nav>
+      <a href="#why" class="hide-sm">Why</a>
+      <a href="#features">Features</a>
+      <a href="#screens" class="hide-sm">Screenshots</a>
+      <a href="#download">Download</a>
+      <a href="https://github.com/alexskvo10/Enitor">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ── Герой ─────────────────────────────────────────────────────────── -->
   <div class="hero">
-    <img src="social-preview.jpg" alt="Enitor — a task card, a day-completion ring, a streak counter and a quote card on a dark background" />
+    <div class="wrap">
+      <div>
+        <h1>Enitor</h1>
+        <p class="tagline">Staying out of your way isn't the goal.<br />Getting better is.</p>
+        <p class="lede">Tasks, goals, and productivity stats honest enough to act on. One app for Windows and Android — fully local, no account, no cloud, no telemetry.</p>
+
+        <div class="cta">
+          <a class="btn btn-primary" href="https://github.com/alexskvo10/Enitor/releases/latest">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 19h16"/></svg>
+            Download
+          </a>
+          <a class="btn btn-ghost" href="https://github.com/alexskvo10/Enitor">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.4.5 0 5.9 0 12.5c0 5.3 3.4 9.8 8.2 11.4.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 016 0C17.2 4.7 18.2 5 18.2 5c.6 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0024 12.5C24 5.9 18.6.5 12 .5z"/></svg>
+            Source on GitHub
+          </a>
+        </div>
+
+        <div class="badges">
+          <span class="pill"><span class="dot"></span><span id="release-pill">Latest release</span></span>
+          <span class="pill">Windows + Android</span>
+          <span class="pill">MIT</span>
+          <span class="pill">RU / EN</span>
+        </div>
+      </div>
+
+      <div class="stack">
+        <img class="front" src="screenshots/windows/today.png" width="706" height="1073" alt="Enitor's Today screen: a month calendar with coloured day markers, the day's quote, and progress rings" />
+        <img class="back" src="screenshots/windows/today_dark.png" width="706" height="1073" loading="lazy" alt="The same screen in the dark theme" />
+      </div>
+    </div>
   </div>
 
-  <h1>Enitor</h1>
-  <p class="tagline">Staying out of your way isn't the goal. Getting better is.</p>
-  <p class="sub">Tasks, goals, and honest productivity stats — Windows and Android, fully local, no account required.</p>
-
-  <div class="buttons">
-    <a class="btn primary" href="https://github.com/alexskvo10/Enitor/releases/latest">Download the latest release</a>
-    <a class="btn" href="https://github.com/alexskvo10/Enitor">Source on GitHub</a>
-  </div>
-  <p class="note">Windows: unpack the zip and run <code>enitor.exe</code>. Android: install the APK. No installer, no store, no account.</p>
-
-  <h2>What makes it different</h2>
-  <ul>
-    <li><b>A weekly retrospective that comes to you.</b> Monday evening, Enitor opens the past week: productivity against the week before, your best day, the goals you'd set, and whether your estimates got closer or further off. No data for that week, no window.</li>
-    <li><b>Estimate accuracy.</b> Planned vs. actual time, by task count and by time weight, broken down by tag — so you eventually learn that you're always 20% short.</li>
-    <li><b>Streaks that are fair.</b> Days with no tasks neither break nor pad your streak, and today never breaks it while it's still open.</li>
-    <li><b>Carry-over is never silent.</b> At the 4:00 AM day boundary the app asks what to move, copies it to today, and leaves the original where it was. History is never rewritten.</li>
-    <li><b>Genuinely yours.</b> No account, no cloud, no telemetry. Everything is in local storage; export and import cover backups and moving to a new device.</li>
-  </ul>
-
-  <h2>Screenshots</h2>
-  <div class="shots">
-    <img src="screenshots/windows/today.png" alt="Today screen" />
-    <img src="screenshots/windows/goals.png" alt="Goals screen" />
-    <img src="screenshots/windows/stats.png" alt="Statistics screen" />
+  <!-- ── Манифест ──────────────────────────────────────────────────────── -->
+  <div class="manifesto" id="why">
+    <div class="wrap">
+      <div class="card reveal">
+        <p>Most productivity apps aim for one thing: stay out of your way. Log a task, check it off, forget it. That's the premise Enitor argues with. A task list is only useful if it eventually shows you something about yourself — that you're more consistent than you think, that your estimates are always 20% short, that Tuesdays are where you fall off.</p>
+        <p style="margin-bottom:0">Enitor is built to surface that instead of hiding it behind a clean checklist. Everything below follows from that one decision.</p>
+        <p class="quote">The journey of a thousand miles begins with a single step.<br /><span style="font-style:normal;font-size:0.9em">— Lao Tzu, one of 362 quotes bundled with the app</span></p>
+      </div>
+    </div>
   </div>
 
-  <footer>
-    MIT licensed · Built with Flutter · <a href="https://github.com/alexskvo10/Enitor">github.com/alexskvo10/Enitor</a>
-  </footer>
+  <!-- ── Ключевые возможности ──────────────────────────────────────────── -->
+  <section id="features">
+    <div class="wrap">
+      <p class="eyebrow">What you get</p>
+      <h2>Five things most trackers don't do</h2>
+      <p class="lede mb-xl">Not a feature checklist — the parts that change how a week actually goes.</p>
 
-</div>
+      <div class="feature reveal">
+        <div>
+          <h3>A weekly retrospective that comes to you</h3>
+          <p>Monday evening by default, Enitor opens the week that just ended — you don't have to remember to go looking for it.</p>
+          <ul class="facts">
+            <li>Productivity measured against the week before that one</li>
+            <li>Your best day, and how many days were perfect</li>
+            <li>The goals you'd actually set for that week</li>
+            <li>Whether your estimates got closer or further off</li>
+            <li>No data for that week — no window. It never nags for nothing.</li>
+          </ul>
+        </div>
+        <div class="shot"><img src="screenshots/windows/week_summary.png" width="706" height="1073" loading="lazy" alt="Weekly summary: productivity against the previous week, best day, perfect days" /></div>
+      </div>
+
+      <div class="feature reveal">
+        <div>
+          <h3>Estimate accuracy that makes you better at planning</h3>
+          <p>Planned time versus actual time, closed into a loop most trackers never close — so you eventually learn that you're not bad at working, you're bad at guessing.</p>
+          <ul class="facts">
+            <li>Measured both by task count and by time weight</li>
+            <li>Broken down by tag — the "#work is always 40% over" kind of insight</li>
+            <li>A matching card for goals: how well you hit your own deadlines</li>
+            <li>Charts at any granularity and range, productivity against on-time rate</li>
+          </ul>
+        </div>
+        <div class="shot"><img src="screenshots/windows/stats.png" width="706" height="1073" loading="lazy" alt="Statistics: productivity chart, best periods, streaks and an estimate-accuracy card" /></div>
+      </div>
+
+      <div class="feature reveal">
+        <div>
+          <h3>Goals across four horizons</h3>
+          <p>Week, month, season, year — the same structure as tasks, so a year's ambition and today's checklist live in one place instead of two apps.</p>
+          <ul class="facts">
+            <li>Counter progress ("read 12 books") and subtask checklists</li>
+            <li>A grace period after a period ends — a week's goals stay closable through Tuesday</li>
+            <li>Unachieved goals go to a backlog instead of quietly disappearing</li>
+            <li>Goals appear in the statistics and the weekly retrospective too</li>
+          </ul>
+        </div>
+        <div class="shot"><img src="screenshots/windows/goals.png" width="706" height="1073" loading="lazy" alt="Goals screen with week, month, season and year periods" /></div>
+      </div>
+
+      <div class="feature reveal">
+        <div>
+          <h3>Carry-over that's never silent</h3>
+          <p>At the 4:00 AM day boundary Enitor <em>asks</em> what to move forward, copies it onto today, and leaves the original in its own day with a small arrow badge.</p>
+          <ul class="facts">
+            <li>History is never rewritten — which is what makes the stats above trustworthy</li>
+            <li>Missed the moment? A catch-up sheet lets you pick from what was left behind</li>
+            <li>Days with no tasks are neutral, not red; empty future days are blue, not red</li>
+            <li>Streaks are fair: empty days neither break nor pad them, and today never breaks one while it's still open</li>
+          </ul>
+        </div>
+        <div class="shot"><img src="screenshots/windows/transfer.png" width="706" height="1073" loading="lazy" alt="The carry-over prompt asking which unfinished tasks to move to today" /></div>
+      </div>
+
+      <div class="feature reveal">
+        <div>
+          <h3>A year you can see at a glance</h3>
+          <p>A GitHub-style heatmap turns months of effort into one picture — the kind of feedback that makes consistency feel real instead of abstract.</p>
+          <ul class="facts">
+            <li>Daily streak, plus your productivity delta against last week</li>
+            <li>Achievements for volume, consistency, punctuality and milestones</li>
+            <li>Top-tier ones stay hidden as "???" until you earn them</li>
+            <li>Pomodoro sessions log themselves as real time spent, feeding the same stats</li>
+          </ul>
+        </div>
+        <div class="shot"><img src="screenshots/windows/profile.png" width="706" height="1073" loading="lazy" alt="Profile screen with a year heatmap, streak counter and weekly summary" /></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Мелочи, из которых складывается доверие ───────────────────────── -->
+  <section style="padding-top:0">
+    <div class="wrap">
+      <p class="eyebrow">The fundamentals</p>
+      <h2>Details you only notice when they're wrong</h2>
+
+      <div class="grid">
+        <div class="tile reveal">
+          <div class="ico">🌙</div>
+          <h3>The day starts at 4:00, not midnight</h3>
+          <p>Working late doesn't flip your "today" out from under you. Finish a task due at 2:00 AM at 1:30 and it counts as on time — not as yesterday's task, done late.</p>
+        </div>
+        <div class="tile reveal">
+          <div class="ico">🔔</div>
+          <h3>Reminders that stay quiet</h3>
+          <p>General reminders only fire when you actually have unfinished tasks. Backlog nudges twice a week, goals once a month. Nothing arrives just because a clock ticked.</p>
+        </div>
+        <div class="tile reveal">
+          <div class="ico">🔒</div>
+          <h3>Genuinely yours</h3>
+          <p>No account, no cloud, no telemetry. Everything lives in local storage; manual export and import cover backups and moving to a new device.</p>
+        </div>
+        <div class="tile reveal">
+          <div class="ico">🔄</div>
+          <h3>Updates without a store</h3>
+          <p>The app checks GitHub for new releases and installs them itself. No gatekeeping, no forced updates, and your data is untouched by the process.</p>
+        </div>
+        <div class="tile reveal">
+          <div class="ico">🌍</div>
+          <h3>Russian and English</h3>
+          <p>Fully localised both ways, with an instant language switch — no restart, and notifications follow the choice too.</p>
+        </div>
+        <div class="tile reveal">
+          <div class="ico">📄</div>
+          <h3>A design system, not a coat of paint</h3>
+          <p>Warm paper surfaces, ink-coloured shadows, one sparing accent, a checkbox stroke that draws itself. Every choice answers to a single metaphor, documented down to the hex code.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Галерея ───────────────────────────────────────────────────────── -->
+  <section id="screens" style="padding-top:0">
+    <div class="wrap">
+      <p class="eyebrow">Screenshots</p>
+      <h2>The rest of the app</h2>
+      <p class="lede">From the Windows build, on generated demo data rather than a real personal task list.</p>
+
+      <div class="gallery">
+        <figure class="reveal"><img src="screenshots/windows/today_2.png" width="706" height="1073" loading="lazy" alt="Today screen, scrolled to the task sections" /><figcaption>Needs attention, unfinished, done</figcaption></figure>
+        <figure class="reveal"><img src="screenshots/windows/pomodoro_fuul.png" width="706" height="1073" loading="lazy" alt="An active Pomodoro focus session" /><figcaption>Pomodoro, logged as real time</figcaption></figure>
+        <figure class="reveal"><img src="screenshots/windows/tag_stats.png" width="706" height="1073" loading="lazy" alt="Statistics broken down by tag" /><figcaption>Where your hours actually go</figcaption></figure>
+        <figure class="reveal"><img src="screenshots/windows/achievements.png" width="706" height="1073" loading="lazy" alt="The achievements showcase" /><figcaption>Achievements, some still hidden</figcaption></figure>
+        <figure class="reveal"><img src="screenshots/windows/settings.png" width="706" height="1073" loading="lazy" alt="Settings: theme, background, notifications, backup" /><figcaption>Theme, background, reminders, backup</figcaption></figure>
+        <figure class="reveal"><img src="screenshots/windows/today_dark.png" width="706" height="1073" loading="lazy" alt="The Today screen in the dark theme" /><figcaption>Dark theme — a separate decision, not an inversion</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Загрузка ──────────────────────────────────────────────────────── -->
+  <section class="download" id="download">
+    <div class="wrap">
+      <p class="eyebrow">Install</p>
+      <h2>Two platforms, one codebase</h2>
+      <p class="lede">No installer, no store, no account. Both builds come from the same release.</p>
+
+      <div class="plats">
+        <div class="plat reveal">
+          <h3>Windows</h3>
+          <p class="sub">Portable build — a folder you can put anywhere.</p>
+          <ol>
+            <li>Download <code>enitor-vX.Y.Z-windows.zip</code></li>
+            <li>Unpack it wherever you like</li>
+            <li>Run <code>enitor.exe</code></li>
+          </ol>
+          <p class="note">Unsigned builds sometimes worry antivirus software. If yours objects, add <code>enitor.exe</code> to its trusted list.</p>
+          <p style="margin:20px 0 0"><a class="btn btn-primary" href="https://github.com/alexskvo10/Enitor/releases/latest">Get the Windows build</a></p>
+        </div>
+
+        <div class="plat reveal">
+          <h3>Android</h3>
+          <p class="sub">A single APK covering arm64, arm32 and x86_64.</p>
+          <ol>
+            <li>Download <code>enitor-vX.Y.Z.apk</code> on the phone</li>
+            <li>Allow installing from your browser or file manager when asked</li>
+            <li>Open it — later updates install from inside the app</li>
+          </ol>
+          <p class="note">Android asks for that permission once, for any app installed outside the Play Store.</p>
+          <p style="margin:20px 0 0"><a class="btn btn-primary" href="https://github.com/alexskvo10/Enitor/releases/latest">Get the APK</a></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Под капотом ───────────────────────────────────────────────────── -->
+  <section>
+    <div class="wrap">
+      <p class="eyebrow">Under the hood</p>
+      <h2>Built to be read, not just used</h2>
+      <p class="lede">Flutter and Riverpod, a repository layer over local storage, and a covering test suite. Windows and Android get the same features and the same fixes at the same time — not a phone app in a resized desktop wrapper.</p>
+      <div class="cta" style="margin-top:26px">
+        <a class="btn btn-ghost" href="https://github.com/alexskvo10/Enitor/blob/main/docs/architecture.md">Architecture</a>
+        <a class="btn btn-ghost" href="https://github.com/alexskvo10/Enitor/blob/main/docs/design-overview.md">Design system</a>
+        <a class="btn btn-ghost" href="https://github.com/alexskvo10/Enitor#readme">README</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>MIT licensed · Built with Flutter</span>
+    <span class="links">
+      <a href="https://github.com/alexskvo10/Enitor">Repository</a>
+      <a href="https://github.com/alexskvo10/Enitor/releases">Releases</a>
+      <a href="https://github.com/alexskvo10/Enitor/issues">Report an issue</a>
+    </span>
+  </div>
+</footer>
+
+<script>
+  document.documentElement.classList.add('js');
+
+  // Каскадное появление блоков — тот же жест, что StaggerReveal в приложении.
+  // Всё под IntersectionObserver: без поддержки класс .in ставится сразу, и
+  // страница просто остаётся видимой.
+  var items = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e, i) {
+        if (!e.isIntersecting) return;
+        var el = e.target;
+        setTimeout(function () { el.classList.add('in'); }, Math.min(i * 45, 360));
+        io.unobserve(el);
+      });
+    }, { rootMargin: '0px 0px -8% 0px' });
+    items.forEach(function (el) { io.observe(el); });
+  } else {
+    items.forEach(function (el) { el.classList.add('in'); });
+  }
+
+  // Номер последней версии в «таблетке». Ничего не ломается, если GitHub не
+  // ответит: в разметке уже лежит осмысленный текст «Latest release».
+  fetch('https://api.github.com/repos/alexskvo10/Enitor/releases/latest')
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (j) {
+      if (j && j.tag_name) document.getElementById('release-pill').textContent = j.tag_name + ' — latest';
+    })
+    .catch(function () {});
+</script>
+
 </body>
 </html>
