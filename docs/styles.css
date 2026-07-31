@@ -160,12 +160,31 @@ nav { margin-left: auto; display: flex; gap: 22px; align-items: center; }
 nav a { color: var(--ink-soft); text-decoration: none; font-size: 0.94rem; }
 nav a:hover { color: var(--ink); }
 
-/* Переключатель языка: пара «RU | EN», текущий язык подсвечен и некликаем. */
+/* Переключатель языка: пара «RU | EN», текущий язык подсвечен и некликаем.
+   Скользящей таблетки тут быть не может — это не переключатель состояния, а
+   ссылка на другой адрес: подсветка «переезжает» вместе со сменой страницы.
+   Поэтому плавным делаем то, что действительно происходит на месте:
+   подсветку под курсором и сам переход между версиями (ниже). */
 .lang { display: flex; align-items: center; gap: 2px; font-size: 0.86rem; font-weight: 700; }
 .lang a, .lang span { padding: 4px 9px; border-radius: 999px; text-decoration: none; }
-.lang span { background: var(--muted); color: var(--ink); }
-.lang a { color: var(--ink-soft); }
+.lang span {
+  background: var(--muted); color: var(--ink);
+  view-transition-name: lang-pill;  /* см. @view-transition ниже */
+}
+.lang a {
+  color: var(--ink-soft); background: transparent;
+  transition: background-color .2s var(--ease), color .2s var(--ease);
+}
 .lang a:hover { color: var(--ink); background: var(--muted); }
+
+/* Переход между языковыми версиями — плавное перетекание вместо белой
+   вспышки перезагрузки. Работает там, где браузер это умеет (иначе строка
+   просто игнорируется), и только если не просили убрать анимацию.
+   Подсветка текущего языка получила имя выше, поэтому она не мигает, а
+   переезжает с одной стороны пары на другую. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation: auto; }
+}
 @media (max-width: 760px) { nav .hide-sm { display: none; } nav { gap: 16px; } }
 
 /* ── Кнопки ──────────────────────────────────────────────────────────────── */
@@ -375,20 +394,56 @@ nav a:hover { color: var(--ink); }
 /* Переключатель платформы — тот же жест, что PillToggle в приложении: не две
    отдельные кнопки, а одна светлая «таблетка» на приглушённой дорожке. */
 .switch {
+  position: relative;
   display: inline-flex; gap: 4px; padding: 4px; margin-top: 28px;
   background: var(--muted); border-radius: 999px;
 }
 .switch button {
+  position: relative; z-index: 1;
   border: 0; background: none; cursor: pointer;
   font-family: Manrope, system-ui, sans-serif; font-weight: 700; font-size: 0.92rem;
   color: var(--ink-soft); padding: 8px 20px; border-radius: 999px;
   transition: background-color .24s var(--ease), color .24s var(--ease);
 }
+/* Запасной вид — подсветка прямо на кнопке. Так выглядит переключатель, пока
+   скрипт не измерил кнопки, и так он остаётся навсегда, если скрипта нет. */
 .switch button.on { background: var(--surface); color: var(--ink); box-shadow: var(--sticker); }
 
-.gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(212px, 1fr)); gap: 18px; margin-top: 34px; }
+/* Скользящая таблетка. Её положение и ширину задаёт скрипт: подписи у кнопок
+   разной длины, и обойтись долей вроде 50% нельзя — таблетка не совпала бы с
+   кнопкой. Класс sliding вешает тот же скрипт, поэтому без него ничего не
+   меняется и подсветка выше остаётся на месте. */
+.switch.sliding::before {
+  content: ''; position: absolute; z-index: 0;
+  top: 4px; bottom: 4px; left: 0;
+  width: var(--pill-w, 0); transform: translateX(var(--pill-x, 0));
+  border-radius: 999px; background: var(--surface); box-shadow: var(--sticker);
+  transition: transform .3s var(--ease), width .3s var(--ease);
+}
+.switch.sliding button.on { background: none; box-shadow: none; }
+/* Первая расстановка не должна ехать из левого угла — переход включается
+   после того, как таблетка встала на место. */
+.switch.sliding.placing::before { transition: none; }
+
+/* Раскладка гибкая, а не сеточная, и намеренно. При автоподборе колонок шесть
+   скриншотов ложились в четыре столбца — последний ряд оставался наполовину
+   пустым. Здесь ширина карточки задана долей ряда, а неполный ряд
+   центрируется: сколько бы снимков ни добавилось потом, семь или восемь,
+   хвост будет выглядеть задуманным, а не обрубленным. */
+.gallery {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 18px; margin-top: 34px;
+}
 .gallery[hidden] { display: none; }
-.gallery figure { margin: 0; }
+.gallery figure { margin: 0; width: calc((100% - 36px) / 3); }
+@media (max-width: 900px) { .gallery figure { width: calc((100% - 18px) / 2); } }
+@media (max-width: 560px) { .gallery figure { width: 100%; } }
+
+/* Снимки с телефона вдвое выше десктопных (567×1280 против 706×1073). Без
+   ограничения по высоте они разносили бы ряд втрое выше соседнего. Предел
+   ставим по высоте, а не по ширине: тогда в обеих галереях снимки выходят
+   одного роста, а более узкие просто центрируются в своей карточке. */
+.gallery .zoom img { max-height: 540px; width: auto; margin-inline: auto; }
 .gallery figcaption { font-size: 0.85rem; color: var(--ink-soft); margin-top: 10px; text-align: center; }
 
 /* Клик по скриншоту открывает его в полный размер: на странице картинка

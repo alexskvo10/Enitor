@@ -110,7 +110,15 @@
     var panels = buttons.map(function (b) { return document.getElementById(b.dataset.shots); });
 
     if (panels.every(Boolean)) {
+      // Таблетку двигаем по замеренным кнопкам, а не по долям ширины: подписи
+      // разной длины, и «половина» с кнопкой не совпала бы.
+      var movePill = function (btn) {
+        switcher.style.setProperty('--pill-x', btn.offsetLeft + 'px');
+        switcher.style.setProperty('--pill-w', btn.offsetWidth + 'px');
+      };
+
       var show = function (active) {
+        movePill(buttons[active]);
         buttons.forEach(function (b, i) {
           var on = i === active;
           b.classList.toggle('on', on);
@@ -126,9 +134,24 @@
           }
         });
       };
+      // Ставим таблетку на место без перехода, иначе при загрузке она бы
+      // проехала из левого угла. Класс placing снимаем в следующем кадре,
+      // когда стартовое положение уже применено.
+      switcher.classList.add('sliding', 'placing');
       show(0);
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { switcher.classList.remove('placing'); });
+      });
+
       buttons.forEach(function (b, i) {
         b.addEventListener('click', function () { show(i); });
+      });
+
+      // Ширина кнопок меняется вместе со шрифтом и раскладкой — на смену
+      // размера окна пересчитываем, иначе таблетка уедет мимо.
+      window.addEventListener('resize', function () {
+        var current = buttons.filter(function (b) { return b.classList.contains('on'); })[0];
+        if (current) movePill(current);
       });
     }
   }
