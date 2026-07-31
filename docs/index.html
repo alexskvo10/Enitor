@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Enitor — tasks, goals, and honest productivity stats</title>
+<meta name="description" content="Tasks, goals, and honest productivity stats — cross-platform, fully local, no account required." />
+
+<!-- Карточка ссылки в мессенджерах и соцсетях. Ради неё эта страница и
+     существует: GitHub отдаёт загруженную обложку репозитория по подписанному
+     адресу (живёт 5 минут) и с заголовком binary/octet-stream вместо image/*,
+     поэтому парсеры превью её выбрасывают. Здесь картинка лежит на своём
+     домене, отдаётся как image/jpeg и по постоянной ссылке.
+     og:image обязан быть абсолютным — относительный путь не подхватится. -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Enitor" />
+<meta property="og:url" content="https://alexskvo10.github.io/Enitor/" />
+<meta property="og:title" content="Enitor — tasks, goals, and honest productivity stats" />
+<meta property="og:description" content="Staying out of your way isn't the goal. Getting better is. Cross-platform, fully local, no account required." />
+<meta property="og:image" content="https://alexskvo10.github.io/Enitor/social-preview.jpg" />
+<meta property="og:image:type" content="image/jpeg" />
+<meta property="og:image:width" content="2560" />
+<meta property="og:image:height" content="1280" />
+<meta property="og:image:alt" content="Enitor — a task card, a day-completion ring, a streak counter and a quote card on a dark background" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Enitor — tasks, goals, and honest productivity stats" />
+<meta name="twitter:description" content="Staying out of your way isn't the goal. Getting better is. Cross-platform, fully local, no account required." />
+<meta name="twitter:image" content="https://alexskvo10.github.io/Enitor/social-preview.jpg" />
+
+<!-- Копия assets/icon/icon.png: корнем сайта будет папка docs, и путь наружу
+     (../assets/…) на Pages даст 404. -->
+<link rel="icon" href="icon.png" />
+
+<style>
+  :root {
+    --bg: #0d1422;
+    --bg-soft: #141d30;
+    --line: #26314a;
+    --text: #ece5da;
+    --muted: #9aa5bb;
+    --accent: #e8a23d;
+    --accent-ink: #1a1206;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.6 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 40px 20px 64px; }
+
+  .hero img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+  }
+
+  h1 { font-size: 2rem; margin: 40px 0 8px; letter-spacing: -0.02em; }
+  .tagline { font-size: 1.15rem; color: var(--text); margin: 0 0 6px; }
+  .sub { color: var(--muted); margin: 0 0 28px; }
+
+  .buttons { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+  .btn {
+    display: inline-block;
+    padding: 11px 20px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+    border: 1px solid var(--line);
+    color: var(--text);
+    background: var(--bg-soft);
+  }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .note { color: var(--muted); font-size: 0.9rem; margin: 0 0 40px; }
+
+  h2 { font-size: 1.2rem; margin: 40px 0 14px; }
+  ul { padding-left: 20px; margin: 0; }
+  li { margin-bottom: 12px; }
+  li b { color: var(--text); }
+
+  .shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  .shots img { width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); }
+
+  footer {
+    margin-top: 48px; padding-top: 20px;
+    border-top: 1px solid var(--line);
+    color: var(--muted); font-size: 0.9rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <img src="social-preview.jpg" alt="Enitor — a task card, a day-completion ring, a streak counter and a quote card on a dark background" />
+  </div>
+
+  <h1>Enitor</h1>
+  <p class="tagline">Staying out of your way isn't the goal. Getting better is.</p>
+  <p class="sub">Tasks, goals, and honest productivity stats — Windows and Android, fully local, no account required.</p>
+
+  <div class="buttons">
+    <a class="btn primary" href="https://github.com/alexskvo10/Enitor/releases/latest">Download the latest release</a>
+    <a class="btn" href="https://github.com/alexskvo10/Enitor">Source on GitHub</a>
+  </div>
+  <p class="note">Windows: unpack the zip and run <code>enitor.exe</code>. Android: install the APK. No installer, no store, no account.</p>
+
+  <h2>What makes it different</h2>
+  <ul>
+    <li><b>A weekly retrospective that comes to you.</b> Monday evening, Enitor opens the past week: productivity against the week before, your best day, the goals you'd set, and whether your estimates got closer or further off. No data for that week, no window.</li>
+    <li><b>Estimate accuracy.</b> Planned vs. actual time, by task count and by time weight, broken down by tag — so you eventually learn that you're always 20% short.</li>
+    <li><b>Streaks that are fair.</b> Days with no tasks neither break nor pad your streak, and today never breaks it while it's still open.</li>
+    <li><b>Carry-over is never silent.</b> At the 4:00 AM day boundary the app asks what to move, copies it to today, and leaves the original where it was. History is never rewritten.</li>
+    <li><b>Genuinely yours.</b> No account, no cloud, no telemetry. Everything is in local storage; export and import cover backups and moving to a new device.</li>
+  </ul>
+
+  <h2>Screenshots</h2>
+  <div class="shots">
+    <img src="screenshots/windows/today.png" alt="Today screen" />
+    <img src="screenshots/windows/goals.png" alt="Goals screen" />
+    <img src="screenshots/windows/stats.png" alt="Statistics screen" />
+  </div>
+
+  <footer>
+    MIT licensed · Built with Flutter · <a href="https://github.com/alexskvo10/Enitor">github.com/alexskvo10/Enitor</a>
+  </footer>
+
+</div>
+</body>
+</html>
