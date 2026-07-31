@@ -1,0 +1,71 @@
+# Проверка кода: анализатор и весь набор тестов.
+#
+# Тесты в этом проекте ловят настоящие ошибки — шов в градиенте кольца нашёлся
+# именно тестом, а не глазами, — но до сих пор запускались только вручную.
+# Здесь они идут на каждый push в main и на каждый pull request.
+name: CI
+
+on:
+  push:
+    branches: [main]
+    # Правки сайта и документации кода не касаются: гонять на них полный
+    # прогон незачем. Если коммит трогает и docs, и lib — проверка запустится,
+    # paths-ignore пропускает только те коммиты, где ВСЕ файлы попали под маску.
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Токену нужен только доступ на чтение исходников.
+permissions:
+  contents: read
+
+# Новый push в ту же ветку отменяет предыдущий прогон — незачем занимать
+# очередь проверкой кода, который уже устарел.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Analyze and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          # Версия закреплена и совпадает с той, на которой ведётся разработка.
+          # Иначе очередное обновление канала stable однажды уронит проверку,
+          # хотя в коде ничего не менялось.
+          flutter-version: 3.44.0
+          channel: stable
+          cache: true
+
+      - name: Print versions
+        run: flutter --version
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      # Файлы локализации в репозитории не хранятся: lib/l10n/app_localizations*.dart
+      # перечислены в .gitignore. На чистой машине их нет, и без этого шага
+      # анализ падает на неразрешённых импортах AppLocalizations.
+      - name: Generate localizations
+        run: flutter gen-l10n
+
+      # --no-fatal-infos осознанно: в базовой линии 345 замечаний уровня info
+      # и при этом ноль ошибок и ноль предупреждений. Без флага проверка была
+      # бы красной с первого дня, а красный CI, который «всегда такой»,
+      # перестают читать. Настоящая ошибка или предупреждение уронят сборку.
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+
+      - name: Test
+        run: flutter test
