@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Enitor — задачи, цели и честная статистика продуктивности</title>
+<meta name="description" content="Кроссплатформенный трекер задач и целей для Windows и Android, который показывает, как недели выглядят на самом деле. Полностью локально, без аккаунта, лицензия MIT." />
+<link rel="canonical" href="https://alexskvo10.github.io/Enitor/ru/" />
+<link rel="alternate" hreflang="en" href="https://alexskvo10.github.io/Enitor/" />
+<link rel="alternate" hreflang="ru" href="https://alexskvo10.github.io/Enitor/ru/" />
+<link rel="alternate" hreflang="x-default" href="https://alexskvo10.github.io/Enitor/" />
+
+<!-- Карточка ссылки в мессенджерах: именно эту версию логично кидать в
+     русскоязычные каналы — в превью попадут русские заголовок и описание. -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Enitor" />
+<meta property="og:locale" content="ru_RU" />
+<meta property="og:locale:alternate" content="en_US" />
+<meta property="og:url" content="https://alexskvo10.github.io/Enitor/ru/" />
+<meta property="og:title" content="Enitor — задачи, цели и честная статистика продуктивности" />
+<meta property="og:description" content="Не мешать — не цель. Цель — становиться лучше. Windows и Android, полностью локально, без аккаунта." />
+<meta property="og:image" content="https://alexskvo10.github.io/Enitor/social-preview.jpg" />
+<meta property="og:image:type" content="image/jpeg" />
+<meta property="og:image:width" content="2560" />
+<meta property="og:image:height" content="1280" />
+<meta property="og:image:alt" content="Enitor — карточка задачи, кольцо выполнения дня, счётчик серии и карточка с цитатой на тёмном фоне" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Enitor — задачи, цели и честная статистика продуктивности" />
+<meta name="twitter:description" content="Не мешать — не цель. Цель — становиться лучше. Windows и Android, полностью локально, без аккаунта." />
+<meta name="twitter:image" content="https://alexskvo10.github.io/Enitor/social-preview.jpg" />
+
+<link rel="icon" href="../icon.png" />
+<link rel="apple-touch-icon" href="../icon.png" />
+<meta name="theme-color" content="#F7F4EE" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#181613" media="(prefers-color-scheme: dark)" />
+
+<!-- Оба начертания нужны на первом экране. Пути с ../ — страница лежит на
+     уровень глубже; внутри styles.css адреса шрифтов относительны самому
+     файлу стилей, поэтому там ничего менять не пришлось. -->
+<link rel="preload" href="../fonts/SourceSerif4-SemiBold.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="preload" href="../fonts/Manrope-Bold.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="stylesheet" href="../styles.css" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Enitor",
+  "applicationCategory": "ProductivityApplication",
+  "operatingSystem": "Windows, Android",
+  "url": "https://alexskvo10.github.io/Enitor/ru/",
+  "image": "https://alexskvo10.github.io/Enitor/social-preview.jpg",
+  "description": "Задачи, цели и статистика продуктивности, которой можно доверять. Полностью локально, без аккаунта.",
+  "downloadUrl": "https://github.com/alexskvo10/Enitor/releases/latest",
+  "author": { "@type": "Person", "name": "alexskvo10" },
+  "license": "https://github.com/alexskvo10/Enitor/blob/main/LICENSE",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "inLanguage": ["ru", "en"]
+}
+</script>
+</head>
+
+<body>
+
+<a class="skip" href="#top">К содержимому</a>
+
+<header>
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="../icon.png" alt="" width="26" height="26" /> Enitor</a>
+    <nav>
+      <a href="#why" class="hide-sm">Зачем</a>
+      <a href="#features">Возможности</a>
+      <a href="#screens" class="hide-sm">Скриншоты</a>
+      <a href="#download">Скачать</a>
+      <a href="https://github.com/alexskvo10/Enitor">GitHub</a>
+      <span class="lang"><a href="../" hreflang="en" lang="en">EN</a><span aria-current="true">RU</span></span>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ── Герой ─────────────────────────────────────────────────────────── -->
+  <div class="hero">
+    <div class="wrap">
+      <div>
+        <h1>Enitor</h1>
+        <p class="tagline">Не мешать — не цель.<br />Цель — становиться лучше.</p>
+        <p class="lede">Задачи, цели и статистика продуктивности, которой можно доверять. Одно приложение для Windows и Android — полностью локально, без аккаунта, без облака, без телеметрии.</p>
+
+        <div class="cta">
+          <a class="btn btn-primary" href="https://github.com/alexskvo10/Enitor/releases/latest">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 19h16"/></svg>
+            Скачать
+          </a>
+          <a class="btn btn-ghost" href="https://github.com/alexskvo10/Enitor">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.4.5 0 5.9 0 12.5c0 5.3 3.4 9.8 8.2 11.4.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 016 0C17.2 4.7 18.2 5 18.2 5c.6 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0024 12.5C24 5.9 18.6.5 12 .5z"/></svg>
+            Исходники на GitHub
+          </a>
+        </div>
+
+        <div class="badges">
+          <span class="pill"><span class="dot"></span><span id="release-pill" data-latest="последняя">Последний релиз</span></span>
+          <span class="pill">Windows + Android</span>
+          <span class="pill">MIT</span>
+          <span class="pill">RU / EN</span>
+        </div>
+      </div>
+
+      <div class="stack">
+        <picture>
+          <source srcset="../screenshots/windows/today.webp" type="image/webp" />
+          <img class="front" src="../screenshots/windows/today.png" width="706" height="1073" alt="Экран «Сегодня»: календарь месяца с цветными метками дней, цитата дня и кольца прогресса" />
+        </picture>
+        <picture>
+          <source srcset="../screenshots/windows/today_dark.webp" type="image/webp" />
+          <img class="back" src="../screenshots/windows/today_dark.png" width="706" height="1073" loading="lazy" alt="Тот же экран в тёмной теме" />
+        </picture>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Манифест ──────────────────────────────────────────────────────── -->
+  <div class="manifesto" id="why">
+    <div class="wrap">
+      <div class="card reveal">
+        <p>Большинство приложений для продуктивности стремятся к одному: не мешать. Записал задачу, отметил, забыл. Именно с этой посылкой Enitor спорит. Список дел полезен только тогда, когда однажды показывает что-то о своём владельце — что регулярности больше, чем казалось; что оценки времени стабильно занижены на четверть; что всё рассыпается по вторникам.</p>
+        <p style="margin-bottom:0">Enitor сделан, чтобы это показывать, а не прятать за аккуратными галочками. Всё, что ниже, следует из одного этого решения.</p>
+        <p class="quote">Путь в тысячу ли начинается с первого шага.<br /><span class="who">— Лао-цзы, одна из цитат, встроенных в приложение</span></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Ключевые возможности ──────────────────────────────────────────── -->
+  <section id="features">
+    <div class="wrap">
+      <p class="eyebrow">Что внутри</p>
+      <h2>Пять вещей, которых не делают другие трекеры</h2>
+      <p class="lede mb-xl">Не перечень функций, а то, что меняет ход недели.</p>
+
+      <div class="feature reveal">
+        <div>
+          <h3>Итоги недели приходят сами</h3>
+          <p>По умолчанию в понедельник вечером Enitor открывает только что закончившуюся неделю — не нужно вспоминать, что пора подвести итоги.</p>
+          <ul class="facts">
+            <li>Продуктивность в сравнении с неделей, которая была до неё</li>
+            <li>Лучший день и сколько дней получились идеальными</li>
+            <li>Цели, которые на ту неделю действительно ставились</li>
+            <li>Стали оценки времени точнее или наоборот</li>
+            <li>Нет данных за неделю — нет и окна. Впустую не дёргает.</li>
+          </ul>
+        </div>
+        <div class="shot">
+          <button class="zoom" type="button" data-caption="Итоги недели — сравнение с предыдущей">
+            <picture>
+              <source srcset="../screenshots/windows/week_summary.webp" type="image/webp" />
+              <img src="../screenshots/windows/week_summary.png" width="706" height="1073" loading="lazy" alt="Итоги недели: продуктивность против прошлой недели, лучший день, идеальные дни" />
+            </picture>
+          </button>
+        </div>
+      </div>
+
+      <div class="feature reveal">
+        <div>
+          <h3>Точность оценок, которая учит планировать</h3>
+          <p>Запланированное время против фактического — петля, которую большинство трекеров не замыкают. Отсюда и выясняется, что дело не в умении работать, а в умении угадывать.</p>
+          <ul class="facts">
+            <li>Считается и по числу задач, и по весу времени</li>
+            <li>Разбивка по тегам — то самое «#работа всегда на 40% дольше»</li>
+            <li>Такая же карточка для целей: насколько соблюдаются собственные сроки</li>
+            <li>Графики с любой детализацией и за любой период</li>
+          </ul>
+        </div>
+        <div class="shot">
+          <button class="zoom" type="button" data-caption="Статистика — продуктивность, серии и точность оценок">
+            <picture>
+              <source srcset="../screenshots/windows/stats.webp" type="image/webp" />
+              <img src="../screenshots/windows/stats.png" width="706" height="1073" loading="lazy" alt="Статистика: график продуктивности, лучшие периоды, серии и карточка точности оценок" />
+            </picture>
+          </button>
+        </div>
+      </div>
+
+      <div class="feature reveal">
+        <div>
+          <h3>Цели на четырёх горизонтах</h3>
+          <p>Неделя, месяц, сезон, год — та же структура, что у задач: годовая амбиция и сегодняшний список живут в одном месте, а не в двух приложениях.</p>
+          <ul class="facts">
+            <li>Счётчики («прочитать 12 книг») и чек-листы подзадач</li>
+            <li>Льготный срок после конца периода — недельные цели можно закрыть до вторника включительно</li>
+            <li>Недостигнутые уходят в бэклог, а не исчезают молча</li>
+            <li>Цели попадают и в статистику, и в итоги недели</li>
+          </ul>
+        </div>
+        <div class="shot">
+          <button class="zoom" type="button" data-caption="Цели — неделя, месяц, сезон и год">
+            <picture>
+              <source srcset="../screenshots/windows/goals.webp" type="image/webp" />
+              <img src="../screenshots/windows/goals.png" width="706" height="1073" loading="lazy" alt="Экран целей с периодами: неделя, месяц, сезон, год" />
+            </picture>
+          </button>
+        </div>
+      </div>
+
+      <div class="feature reveal">
+        <div>
+          <h3>Перенос никогда не молчит</h3>
+          <p>На границе суток в 4 утра Enitor <em>спрашивает</em>, что перенести, создаёт копию на сегодня и оставляет оригинал в своём дне со стрелкой.</p>
+          <ul class="facts">
+            <li>История не переписывается — на этом и держится доверие к статистике выше</li>
+            <li>Момент пропущен — догоняющее окно даст выбрать из оставшегося</li>
+            <li>Дни без задач нейтральны, а пустой будущий день синий, а не красный</li>
+            <li>Серии честные: пустые дни их не рвут и не надувают, а сегодняшний не рвёт, пока не закончился</li>
+          </ul>
+        </div>
+        <div class="shot">
+          <button class="zoom" type="button" data-caption="Перенос — приложение спрашивает, а не двигает молча">
+            <picture>
+              <source srcset="../screenshots/windows/transfer.webp" type="image/webp" />
+              <img src="../screenshots/windows/transfer.png" width="706" height="1073" loading="lazy" alt="Окно переноса: какие незавершённые задачи перенести на сегодня" />
+            </picture>
+          </button>
+        </div>
+      </div>
+
+      <div class="feature reveal">
+        <div>
+          <h3>Год одним взглядом</h3>
+          <p>Тепловая карта в духе GitHub превращает месяцы усилий в одну картинку — такая обратная связь делает регулярность ощутимой, а не абстрактной.</p>
+          <ul class="facts">
+            <li>Серия дней и разница в продуктивности с прошлой неделей</li>
+            <li>Достижения за объём, регулярность, пунктуальность и вехи</li>
+            <li>Верхние спрятаны под «???», пока не заработаны</li>
+            <li>Сессии Pomodoro сами записываются как потраченное время и питают ту же статистику</li>
+          </ul>
+        </div>
+        <div class="shot">
+          <button class="zoom" type="button" data-caption="Профиль — тепловая карта года, серия и итоги недели">
+            <picture>
+              <source srcset="../screenshots/windows/profile.webp" type="image/webp" />
+              <img src="../screenshots/windows/profile.png" width="706" height="1073" loading="lazy" alt="Экран профиля с тепловой картой года, счётчиком серии и итогами недели" />
+            </picture>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Мелочи, из которых складывается доверие ───────────────────────── -->
+  <section style="padding-top:0">
+    <div class="wrap">
+      <p class="eyebrow">Основа</p>
+      <h2>Мелочи, которые заметны, только когда сделаны плохо</h2>
+
+      <div class="grid">
+        <div class="tile reveal">
+          <div class="ico" aria-hidden="true">🌙</div>
+          <h3>Сутки начинаются в 4:00, а не в полночь</h3>
+          <p>Ночная работа не переворачивает «сегодня» на ходу. Задача до 2:00, законченная в 1:30, считается выполненной вовремя, а не вчерашней и просроченной.</p>
+        </div>
+        <div class="tile reveal">
+          <div class="ico" aria-hidden="true">🔔</div>
+          <h3>Напоминания, которые умеют молчать</h3>
+          <p>Общие напоминания приходят, только когда есть незавершённые задачи. О бэклоге — дважды в неделю, о целях — раз в месяц. Ничего не приходит просто потому, что тикнули часы.</p>
+        </div>
+        <div class="tile reveal">
+          <div class="ico" aria-hidden="true">🔒</div>
+          <h3>По-настоящему своё</h3>
+          <p>Ни аккаунта, ни облака, ни телеметрии. Всё лежит в локальном хранилище; ручные экспорт и импорт закрывают резервные копии и переезд на другое устройство.</p>
+        </div>
+        <div class="tile reveal">
+          <div class="ico" aria-hidden="true">🔄</div>
+          <h3>Обновления без магазина</h3>
+          <p>Приложение само проверяет релизы на GitHub и ставит их. Без посредников и принудительных обновлений, данные при этом не трогаются.</p>
+        </div>
+        <div class="tile reveal">
+          <div class="ico" aria-hidden="true">🌍</div>
+          <h3>Русский и английский</h3>
+          <p>Полная локализация в обе стороны и мгновенное переключение — без перезапуска. Уведомления тоже следуют за выбором.</p>
+        </div>
+        <div class="tile reveal">
+          <div class="ico" aria-hidden="true">📄</div>
+          <h3>Дизайн-система, а не покраска</h3>
+          <p>Тёплая бумага, чернильные тени, один скупой акцент, галочка, которая рисует себя штрихом. Каждое решение отвечает одной метафоре и описано вплоть до hex-кода.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Галерея ───────────────────────────────────────────────────────── -->
+  <section id="screens" style="padding-top:0">
+    <div class="wrap">
+      <p class="eyebrow">Скриншоты</p>
+      <h2>Остальное приложение</h2>
+      <p class="lede">Из сборки под Windows, на сгенерированных демо-данных, а не на реальном личном списке. Клик открывает полный размер.</p>
+
+      <div class="gallery">
+        <figure class="reveal">
+          <button class="zoom" type="button" data-caption="Сегодня — требует внимания, незавершённые, выполненные">
+            <picture><source srcset="../screenshots/windows/today_2.webp" type="image/webp" /><img src="../screenshots/windows/today_2.png" width="706" height="1073" loading="lazy" alt="Экран «Сегодня», прокрученный до разделов с задачами" /></picture>
+          </button>
+          <figcaption>Требует внимания, незавершённые, выполненные</figcaption>
+        </figure>
+        <figure class="reveal">
+          <button class="zoom" type="button" data-caption="Pomodoro — завершённая сессия записывается как реальное время">
+            <picture><source srcset="../screenshots/windows/pomodoro_fuul.webp" type="image/webp" /><img src="../screenshots/windows/pomodoro_fuul.png" width="706" height="1073" loading="lazy" alt="Активная сессия Pomodoro" /></picture>
+          </button>
+          <figcaption>Pomodoro как реальное время</figcaption>
+        </figure>
+        <figure class="reveal">
+          <button class="zoom" type="button" data-caption="Статистика по тегам — куда на самом деле уходят часы">
+            <picture><source srcset="../screenshots/windows/tag_stats.webp" type="image/webp" /><img src="../screenshots/windows/tag_stats.png" width="706" height="1073" loading="lazy" alt="Статистика в разбивке по тегам" /></picture>
+          </button>
+          <figcaption>Куда на самом деле уходят часы</figcaption>
+        </figure>
+        <figure class="reveal">
+          <button class="zoom" type="button" data-caption="Достижения — верхние скрыты, пока не заработаны">
+            <picture><source srcset="../screenshots/windows/achievements.webp" type="image/webp" /><img src="../screenshots/windows/achievements.png" width="706" height="1073" loading="lazy" alt="Витрина достижений" /></picture>
+          </button>
+          <figcaption>Достижения, часть ещё скрыта</figcaption>
+        </figure>
+        <figure class="reveal">
+          <button class="zoom" type="button" data-caption="Настройки — тема, фон, напоминания, резервные копии">
+            <picture><source srcset="../screenshots/windows/settings.webp" type="image/webp" /><img src="../screenshots/windows/settings.png" width="706" height="1073" loading="lazy" alt="Настройки: тема, фон, уведомления, резервные копии" /></picture>
+          </button>
+          <figcaption>Тема, фон, напоминания, копии</figcaption>
+        </figure>
+        <figure class="reveal">
+          <button class="zoom" type="button" data-caption="Тёмная тема — отдельное решение, а не инверсия">
+            <picture><source srcset="../screenshots/windows/today_dark.webp" type="image/webp" /><img src="../screenshots/windows/today_dark.png" width="706" height="1073" loading="lazy" alt="Экран «Сегодня» в тёмной теме" /></picture>
+          </button>
+          <figcaption>Тёмная тема — отдельное решение</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Загрузка ──────────────────────────────────────────────────────── -->
+  <section class="download" id="download">
+    <div class="wrap">
+      <p class="eyebrow">Установка</p>
+      <h2>Две платформы, одна кодовая база</h2>
+      <p class="lede">Ни установщика, ни магазина, ни аккаунта. Обе сборки собраны из одного релиза.</p>
+
+      <div class="plats">
+        <div class="plat reveal">
+          <h3>Windows</h3>
+          <p class="sub">Портативная сборка — папка, которую можно положить куда угодно.</p>
+          <ol>
+            <li>Скачать <code>enitor-vX.Y.Z-windows.zip</code></li>
+            <li>Распаковать в любое место</li>
+            <li>Запустить <code>enitor.exe</code></li>
+          </ol>
+          <p class="note">Неподписанные сборки иногда настораживают антивирусы. Если ругается — добавить <code>enitor.exe</code> в список доверенных.</p>
+          <p style="margin:20px 0 0"><a class="btn btn-primary" href="https://github.com/alexskvo10/Enitor/releases/latest">Скачать сборку для Windows</a></p>
+        </div>
+
+        <div class="plat reveal">
+          <h3>Android</h3>
+          <p class="sub">Один APK на arm64, arm32 и x86_64.</p>
+          <ol>
+            <li>Скачать <code>enitor-vX.Y.Z.apk</code> на телефон</li>
+            <li>Разрешить установку из браузера или файлового менеджера, когда спросит</li>
+            <li>Открыть — дальнейшие обновления ставятся из самого приложения</li>
+          </ol>
+          <p class="note">Android спрашивает это разрешение один раз — для любого приложения не из Play Store.</p>
+          <p style="margin:20px 0 0"><a class="btn btn-primary" href="https://github.com/alexskvo10/Enitor/releases/latest">Скачать APK</a></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Под капотом ───────────────────────────────────────────────────── -->
+  <section>
+    <div class="wrap">
+      <p class="eyebrow">Под капотом</p>
+      <h2>Собрано, чтобы читать, а не только пользоваться</h2>
+      <p class="lede">Flutter и Riverpod, слой репозиториев над локальным хранилищем и покрывающий набор тестов. Windows и Android получают одни и те же возможности и одни и те же исправления одновременно — это не телефонное приложение в растянутой десктопной оболочке.</p>
+      <div class="cta" style="margin-top:26px">
+        <a class="btn btn-ghost" href="https://github.com/alexskvo10/Enitor/blob/main/docs/architecture.md">Архитектура</a>
+        <a class="btn btn-ghost" href="https://github.com/alexskvo10/Enitor/blob/main/docs/design-overview.md">Дизайн-система</a>
+        <a class="btn btn-ghost" href="https://github.com/alexskvo10/Enitor#readme">README</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Лицензия MIT · Сделано на Flutter · На этой странице тоже нет аналитики</span>
+    <span class="links">
+      <a href="https://github.com/alexskvo10/Enitor">Репозиторий</a>
+      <a href="https://github.com/alexskvo10/Enitor/releases">Релизы</a>
+      <a href="https://github.com/alexskvo10/Enitor/issues">Сообщить о проблеме</a>
+    </span>
+  </div>
+</footer>
+
+<dialog id="lightbox" aria-label="Скриншот в полный размер">
+  <figure>
+    <button class="close" type="button" aria-label="Закрыть">×</button>
+    <img src="" alt="" />
+    <figcaption></figcaption>
+  </figure>
+</dialog>
+
+<script src="../app.js" defer></script>
+</body>
+</html>

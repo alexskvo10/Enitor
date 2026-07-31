@@ -14,6 +14,8 @@ Tasks, goals, and honest productivity stats — cross-platform, fully local, no 
 [![Languages](https://img.shields.io/badge/language-RU%20%7C%20EN-3FA66A?style=flat-square)](#)
 [![Latest release](https://img.shields.io/github/v/release/alexskvo10/Enitor?style=flat-square&color=E8A23D)](https://github.com/alexskvo10/Enitor/releases/latest)
 
+**[alexskvo10.github.io/Enitor](https://alexskvo10.github.io/Enitor/)** — screenshots, features and install instructions ([по-русски](https://alexskvo10.github.io/Enitor/ru/))
+
 </div>
 
 ---
