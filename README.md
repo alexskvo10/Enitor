@@ -101,7 +101,7 @@ From the Windows build, on the generated demo data (`scripts/generate_demo_backu
 
 Grab the latest build from [Releases](https://github.com/alexskvo10/Enitor/releases/latest) — no build tools required.
 
-- **Android**: download the `.apk`, open it, and allow installation from this source when prompted (the app isn't distributed through Google Play, so Android will ask once). Requires Android 5.0+.
+- **Android**: download the `.apk`, open it, and allow installation from this source when prompted (the app isn't distributed through Google Play, so Android will ask once). Requires Android 7.0+.
 - **Windows**: download the `.zip`, extract it anywhere, and run `enitor.exe`. No installer, no admin rights needed.
 
 After the first install, Enitor checks GitHub for new releases on its own (about once a day) and offers to update itself — you won't need to come back here for routine updates.
