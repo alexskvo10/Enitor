@@ -636,30 +636,37 @@ class SettingsScreen extends ConsumerWidget {
     final l10n = context.l10n;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          _pill(
-            context,
-            icon: Icons.event_outlined,
-            label: _capitalize(weekdayNames(l10n)[weekday - 1]),
-            showChevron: true,
-            onTap: () async {
-              final picked = await _pickWeekday(context, weekday);
-              if (picked != null) onWeekdayPicked(picked);
-            },
-          ),
-          _pill(
-            context,
-            icon: Icons.schedule,
-            label: _fmt(minutes),
-            onTap: () async {
-              final picked = await _pickTime(context, minutes);
-              if (picked != null) onTimePicked(picked);
-            },
-          ),
-        ],
+      // Align обязателен: карточка секции складывает строки обычной Column,
+      // а та центрирует детей по горизонтали. ListTile и Align растягиваются
+      // на всю ширину сами, а вот Wrap ужимается по содержимому — и пилюли
+      // уезжали в центр, не совпадая с заголовком строки над ними.
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _pill(
+              context,
+              icon: Icons.event_outlined,
+              label: _capitalize(weekdayNames(l10n)[weekday - 1]),
+              showChevron: true,
+              onTap: () async {
+                final picked = await _pickWeekday(context, weekday);
+                if (picked != null) onWeekdayPicked(picked);
+              },
+            ),
+            _pill(
+              context,
+              icon: Icons.schedule,
+              label: _fmt(minutes),
+              onTap: () async {
+                final picked = await _pickTime(context, minutes);
+                if (picked != null) onTimePicked(picked);
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
