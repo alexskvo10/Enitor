@@ -292,9 +292,14 @@
     <div class="wrap">
       <p class="eyebrow">Скриншоты</p>
       <h2>Остальное приложение</h2>
-      <p class="lede">Из сборки под Windows, на сгенерированных демо-данных, а не на реальном личном списке. Клик открывает полный размер.</p>
+      <p class="lede">На сгенерированных демо-данных, а не на реальном личном списке. Клик открывает полный размер.</p>
 
-      <div class="gallery">
+      <div class="switch" role="group" aria-label="Платформа">
+        <button type="button" class="on" data-shots="shots-windows" aria-pressed="true">Windows</button>
+        <button type="button" data-shots="shots-android" aria-pressed="false">Android</button>
+      </div>
+
+      <div class="gallery" id="shots-windows">
         <figure class="reveal">
           <button class="zoom" type="button" data-caption="Сегодня — требует внимания, незавершённые, выполненные">
             <picture><source srcset="../screenshots/windows/today_2.webp" type="image/webp" /><img src="../screenshots/windows/today_2.png" width="706" height="1073" loading="lazy" alt="Экран «Сегодня», прокрученный до разделов с задачами" /></picture>
@@ -330,6 +335,45 @@
             <picture><source srcset="../screenshots/windows/today_dark.webp" type="image/webp" /><img src="../screenshots/windows/today_dark.png" width="706" height="1073" loading="lazy" alt="Экран «Сегодня» в тёмной теме" /></picture>
           </button>
           <figcaption>Тёмная тема — отдельное решение</figcaption>
+        </figure>
+      </div>
+
+      <div class="gallery" id="shots-android">
+        <figure class="reveal">
+          <button class="zoom" type="button" data-caption="«Сегодня» на Android — месяц одним взглядом">
+            <picture><source srcset="../screenshots/android/today.webp" type="image/webp" /><img src="../screenshots/android/today.jpg" width="567" height="1280" loading="lazy" alt="Экран «Сегодня» на Android: календарь месяца с цветными метками дней и кольца дня" /></picture>
+          </button>
+          <figcaption>Сегодня — месяц одним взглядом</figcaption>
+        </figure>
+        <figure class="reveal">
+          <button class="zoom" type="button" data-caption="Выполненные задачи — с оценками, тегами и счётчиком">
+            <picture><source srcset="../screenshots/android/today_done.webp" type="image/webp" /><img src="../screenshots/android/today_done.jpg" width="567" height="1280" loading="lazy" alt="Выполненные задачи на Android: оценки звёздами, теги и задача-счётчик 100 из 100" /></picture>
+          </button>
+          <figcaption>Выполненные, с оценками и счётчиками</figcaption>
+        </figure>
+        <figure class="reveal">
+          <button class="zoom" type="button" data-caption="Статистика — график и карточка точности оценок">
+            <picture><source srcset="../screenshots/android/stats.webp" type="image/webp" /><img src="../screenshots/android/stats.jpg" width="567" height="1280" loading="lazy" alt="Статистика на Android: продуктивность против «вовремя», статистика по тегам и точность оценок" /></picture>
+          </button>
+          <figcaption>Графики и точность оценок</figcaption>
+        </figure>
+        <figure class="reveal">
+          <button class="zoom" type="button" data-caption="Цели на месяц с разделом «Требует внимания»">
+            <picture><source srcset="../screenshots/android/goals.webp" type="image/webp" /><img src="../screenshots/android/goals.jpg" width="567" height="1280" loading="lazy" alt="Цели месяца на Android: кольца и раздел «Требует внимания»" /></picture>
+          </button>
+          <figcaption>Цели на месяц</figcaption>
+        </figure>
+        <figure class="reveal">
+          <button class="zoom" type="button" data-caption="Профиль — тепловая карта года, достижения и лучшие периоды">
+            <picture><source srcset="../screenshots/android/profile.webp" type="image/webp" /><img src="../screenshots/android/profile.jpg" width="567" height="1280" loading="lazy" alt="Профиль на Android: тепловая карта года, достижения и лучшие периоды" /></picture>
+          </button>
+          <figcaption>Тепловая карта, достижения, периоды</figcaption>
+        </figure>
+        <figure class="reveal">
+          <button class="zoom" type="button" data-caption="Тёмная тема на телефоне">
+            <picture><source srcset="../screenshots/android/today_dark.webp" type="image/webp" /><img src="../screenshots/android/today_dark.jpg" width="567" height="1280" loading="lazy" alt="Экран «Сегодня» на Android в тёмной теме" /></picture>
+          </button>
+          <figcaption>Тёмная тема на телефоне</figcaption>
         </figure>
       </div>
     </div>

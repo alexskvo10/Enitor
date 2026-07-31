@@ -63,6 +63,38 @@
     if (lb) lb.remove();
   }
 
+  /* ── Переключатель Windows / Android у галереи ───────────────────────────
+     В разметке обе галереи видимы: без скрипта посетитель просто увидит
+     подряд оба набора скриншотов, а не пустое место. Прячет лишнее уже JS. */
+  var switcher = document.querySelector('.switch');
+  if (switcher) {
+    var buttons = Array.prototype.slice.call(switcher.querySelectorAll('button'));
+    var panels = buttons.map(function (b) { return document.getElementById(b.dataset.shots); });
+
+    if (panels.every(Boolean)) {
+      var show = function (active) {
+        buttons.forEach(function (b, i) {
+          var on = i === active;
+          b.classList.toggle('on', on);
+          b.setAttribute('aria-pressed', on ? 'true' : 'false');
+          panels[i].hidden = !on;
+          // Скрытый блок не попадает в IntersectionObserver, поэтому его
+          // карточки так и остались бы прозрачными после появления. Показывая
+          // панель, доводим их до конечного состояния руками.
+          if (on) {
+            panels[i].querySelectorAll('.reveal').forEach(function (el) {
+              el.classList.add('in');
+            });
+          }
+        });
+      };
+      show(0);
+      buttons.forEach(function (b, i) {
+        b.addEventListener('click', function () { show(i); });
+      });
+    }
+  }
+
   /* ── Номер последней версии в «таблетке» ─────────────────────────────────
      Ничего не ломается, если GitHub не ответит или упрётся в лимит запросов:
      в разметке уже лежит осмысленный текст, и он просто останется на месте. */

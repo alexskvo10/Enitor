@@ -299,9 +299,14 @@
     <div class="wrap">
       <p class="eyebrow">Screenshots</p>
       <h2>The rest of the app</h2>
-      <p class="lede">From the Windows build, on generated demo data rather than a real personal task list. Click any of them to read the fine print.</p>
+      <p class="lede">On generated demo data rather than a real personal task list. Click any of them to read the fine print.</p>
 
-      <div class="gallery">
+      <div class="switch" role="group" aria-label="Platform">
+        <button type="button" class="on" data-shots="shots-windows" aria-pressed="true">Windows</button>
+        <button type="button" data-shots="shots-android" aria-pressed="false">Android</button>
+      </div>
+
+      <div class="gallery" id="shots-windows">
         <figure class="reveal">
           <button class="zoom" type="button" data-caption="Today — needs attention, unfinished, done">
             <picture><source srcset="screenshots/windows/today_2.webp" type="image/webp" /><img src="screenshots/windows/today_2.png" width="706" height="1073" loading="lazy" alt="Today screen, scrolled to the task sections" /></picture>
@@ -337,6 +342,45 @@
             <picture><source srcset="screenshots/windows/today_dark.webp" type="image/webp" /><img src="screenshots/windows/today_dark.png" width="706" height="1073" loading="lazy" alt="The Today screen in the dark theme" /></picture>
           </button>
           <figcaption>Dark theme — a separate decision</figcaption>
+        </figure>
+      </div>
+
+      <div class="gallery" id="shots-android">
+        <figure class="reveal">
+          <button class="zoom" type="button" data-caption="Today on Android — the month at a glance">
+            <picture><source srcset="screenshots/android/today.webp" type="image/webp" /><img src="screenshots/android/today.jpg" width="567" height="1280" loading="lazy" alt="The Today screen on Android: month calendar with coloured day markers and the day's rings" /></picture>
+          </button>
+          <figcaption>Today — the month at a glance</figcaption>
+        </figure>
+        <figure class="reveal">
+          <button class="zoom" type="button" data-caption="Completed tasks — with ratings, tags and a counter task">
+            <picture><source srcset="screenshots/android/today_done.webp" type="image/webp" /><img src="screenshots/android/today_done.jpg" width="567" height="1280" loading="lazy" alt="Completed tasks on Android, with star ratings, tags and a counter task at 100 of 100" /></picture>
+          </button>
+          <figcaption>Completed, with ratings and counters</figcaption>
+        </figure>
+        <figure class="reveal">
+          <button class="zoom" type="button" data-caption="Statistics — the chart and the estimate-accuracy card">
+            <picture><source srcset="screenshots/android/stats.webp" type="image/webp" /><img src="screenshots/android/stats.jpg" width="567" height="1280" loading="lazy" alt="Statistics on Android: productivity against on-time, tag stats and estimate accuracy" /></picture>
+          </button>
+          <figcaption>Charts and estimate accuracy</figcaption>
+        </figure>
+        <figure class="reveal">
+          <button class="zoom" type="button" data-caption="Goals for the month, with a needs-attention section">
+            <picture><source srcset="screenshots/android/goals.webp" type="image/webp" /><img src="screenshots/android/goals.jpg" width="567" height="1280" loading="lazy" alt="Monthly goals on Android with rings and a needs-attention section" /></picture>
+          </button>
+          <figcaption>Goals for the month</figcaption>
+        </figure>
+        <figure class="reveal">
+          <button class="zoom" type="button" data-caption="Profile — year heatmap, achievements and best periods">
+            <picture><source srcset="screenshots/android/profile.webp" type="image/webp" /><img src="screenshots/android/profile.jpg" width="567" height="1280" loading="lazy" alt="Profile on Android: the year heatmap, achievements and best periods" /></picture>
+          </button>
+          <figcaption>Heatmap, achievements, best periods</figcaption>
+        </figure>
+        <figure class="reveal">
+          <button class="zoom" type="button" data-caption="The dark theme on the phone">
+            <picture><source srcset="screenshots/android/today_dark.webp" type="image/webp" /><img src="screenshots/android/today_dark.jpg" width="567" height="1280" loading="lazy" alt="The Today screen on Android in the dark theme" /></picture>
+          </button>
+          <figcaption>Dark theme on the phone</figcaption>
         </figure>
       </div>
     </div>
