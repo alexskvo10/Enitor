@@ -46,9 +46,6 @@
   --dot:        rgba(42, 39, 34, 0.055);
   --dot-fine:   rgba(42, 39, 34, 0.035);
 
-  /* Ступени тепловой карты года — от «ничего не отмечено» к насыщенному. */
-  --hm0: #E8E2D6; --hm1: #BFE3CD; --hm2: #86C9A3; --hm3: #4FAE78; --hm4: #2F7F55;
-
   /* stickerShadow / raisedShadow — двухслойные, тёплого чернильного тона:
      карточка выглядит «приклеенной» к бумаге, а не парящей над ней. */
   --sticker: 0 1px 2px rgba(42,39,34,.05), 0 5px 14px rgba(42,39,34,.055);
@@ -74,9 +71,6 @@
     --line:     #2A261F;
     --dot:      rgba(236, 231, 220, 0.045);
     --dot-fine: rgba(236, 231, 220, 0.03);
-    /* На угле зелёный приходится осветлять, иначе нижние ступени сливаются
-       с фоном — та же логика, что с акцентом в тёмной теме приложения. */
-    --hm0: #2A261F; --hm1: #1F5B39; --hm2: #2E8B54; --hm3: #40BC72; --hm4: #61E495;
     --sticker:  0 1px 2px rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.30);
     --raised:   0 2px 8px rgba(0,0,0,.40), 0 16px 40px rgba(0,0,0,.38);
   }
@@ -131,7 +125,7 @@ code {
 
 .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
 section { padding: 88px 0; }
-section h2 { font-size: clamp(1.7rem, 3.2vw, 2rem); margin-bottom: 12px; }
+section > .wrap > h2 { font-size: clamp(1.7rem, 3.2vw, 2rem); margin-bottom: 12px; }
 /* Шапка прилипшая, поэтому у всех целей якорей — отступ сверху, иначе
    заголовок при переходе по ссылке уезжает под неё. */
 [id] { scroll-margin-top: 78px; }
@@ -330,63 +324,33 @@ nav a:hover { color: var(--ink); }
   .feature:nth-of-type(even) .shot { order: 0; }
 }
 
-/* ── Год, который собирается при прокрутке ───────────────────────────────── */
-/* Единственное место на сайте, где прокрутка не запускает анимацию, а служит
-   ей шкалой времени: отмотал назад — карта разбирается обратно. Высокая
-   дорожка задаёт длину «рассказа», карточка внутри липнет к экрану. */
-.scrolly { padding: 0; }
-.scrolly-track { height: 260vh; }
-.scrolly-stage {
-  position: sticky; top: 0; min-height: 100vh;
-  display: grid; align-content: center;
-}
-@media (max-width: 720px) { .scrolly-track { height: 200vh; } }
-
-.hm-months, .hm, .hm-legend { width: 100%; max-width: 780px; }
-.hm-months {
-  display: grid; grid-template-columns: repeat(12, 1fr);
-  font-size: 0.74rem; color: var(--ink-soft); margin: 26px 0 7px;
-}
-/* На узком экране год ужимается до ~4px на день, и двенадцать подписей
-   превращаются в кашу. Сама карта при этом читается — она про плотность,
-   а не про отдельные дни. */
-@media (max-width: 620px) { .hm-months { display: none; } }
-.hm {
-  display: grid; grid-template-rows: repeat(7, 1fr); grid-auto-flow: column;
-  /* Ширину колонок обязательно задать явно. У ячеек нет содержимого, размер
-     им даёт aspect-ratio — а он считается от ширины. При grid-auto-columns:
-     auto ширина считалась бы от содержимого, то есть от нуля, и сетка
-     схлопнулась бы. 1fr делит известную ширину контейнера поровну. */
-  grid-auto-columns: 1fr;
-  gap: clamp(1px, 0.35vw, 3px);
-}
-.hm b {
-  aspect-ratio: 1; border-radius: 2px;
-  /* Прогресс прокрутки приходит переменной --p (0..1) на .scrolly-stage.
-     Ячейка проявляется, когда фронт заполнения --p × --n доходит до её
-     номера --i; --n (сколько всего дней) задано на контейнере в разметке,
-     чтобы число не было зашито в двух местах сразу. Запасное значение 1
-     важнее, чем кажется: без скрипта карта сразу показывается целиком, а не
-     остаётся пустой. */
-  --f: clamp(0, calc(var(--p, 1) * var(--n) - var(--i)), 1);
-  background: var(--c, var(--hm0));
-  opacity: calc(0.22 + 0.78 * var(--f));
-  transform: scale(calc(0.72 + 0.28 * var(--f)));
-}
-.hm-legend {
-  display: flex; align-items: center; gap: 6px; justify-content: flex-end;
-  margin-top: 10px; font-size: 0.78rem; color: var(--ink-soft);
-}
-.hm-legend i { width: 11px; height: 11px; border-radius: 3px; background: var(--c); }
-.hm-status { margin: 22px 0 0; color: var(--ink-soft); }
-.hm-status .count {
-  font-family: Manrope, system-ui, sans-serif; font-weight: 700;
-  font-size: 2.1rem; color: var(--clay); line-height: 1;
-  margin-right: 8px; font-variant-numeric: tabular-nums;
-}
-
 /* ── Сетка «мелочей» ─────────────────────────────────────────────────────── */
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 18px; margin-top: 34px; }
+/* Плиток семь. При автоподборе колонок последняя оставалась бы одна в ряду,
+   и справа зияла бы дыра в две трети ширины. Поэтому число колонок задано
+   явно, а две плитки растянуты на две — так, чтобы сумма занятых мест
+   делилась нацело при любой ширине:
+     три колонки — 5 обычных + 2 широких = 9 мест = ровно три ряда;
+     две колонки — 6 обычных + 1 широкая = 8 мест = ровно четыре ряда;
+     одна колонка — растягивать нечего, правила просто не применяются.
+   Порядок в разметке подобран под это: широкая плитка идёт первой, иначе
+   ей не хватило бы места в начатом ряду и она уехала бы вниз, оставив
+   пустое место позади себя. */
+.grid { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 34px; }
+@media (min-width: 680px) {
+  .grid { grid-template-columns: repeat(2, 1fr); }
+  .tile.wide { grid-column: span 2; }
+  /* Ширину надо чем-то оправдать: у растянутых плиток медальон уходит влево,
+     а текст занимает всю оставшуюся строку — получается не раздутая карточка,
+     а другой по ритму блок. */
+  .tile.wide { display: grid; grid-template-columns: auto 1fr; gap: 0 20px; }
+  .tile.wide .ico { grid-row: span 2; margin-bottom: 0; }
+}
+@media (min-width: 1000px) {
+  .grid { grid-template-columns: repeat(3, 1fr); }
+  .tile.wide-3 { grid-column: span 2; }
+  .tile.wide-3 { display: grid; grid-template-columns: auto 1fr; gap: 0 20px; }
+  .tile.wide-3 .ico { grid-row: span 2; margin-bottom: 0; }
+}
 .tile {
   background: var(--surface); border: 1px solid var(--line);
   border-radius: var(--r-card); box-shadow: var(--sticker);
@@ -501,11 +465,4 @@ footer a { color: var(--ink-soft); }
   /* Наклон иконки — чистая декорация, при запрете анимации отключаем целиком
      (скрипт тоже не станет вешать обработчики, это второй рубеж). */
   .hero .mark, .hero .mark.settle { transform: none; transition: none; }
-
-  /* Тепловая карта показывается сразу и целиком, а дорожка схлопывается до
-     обычной секции: тянуть человека через 260vh пустоты ради анимации,
-     которую он просил не показывать, — издевательство. */
-  .scrolly-track { height: auto; }
-  .scrolly-stage { position: static; min-height: 0; padding: 88px 0; }
-  .hm b { opacity: 1; transform: none; }
 }
