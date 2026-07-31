@@ -170,4 +170,21 @@
       })
       .catch(function () {});
   }
+
+  /* ── Число звёзд на кнопке ───────────────────────────────────────────────
+     Отдельный запрос: номер релиза и счётчик звёзд лежат в разных ответах
+     API. Если он не придёт — на кнопке просто не появится счётчик, а сама
+     кнопка работает как обычная ссылка. Точка-разделитель нарисована в CSS
+     по :not(:empty), поэтому пустой счётчик не оставляет висячий разделитель. */
+  var stars = document.getElementById('star-count');
+  if (stars && window.fetch) {
+    fetch('https://api.github.com/repos/alexskvo10/Enitor')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        if (j && typeof j.stargazers_count === 'number') {
+          stars.textContent = j.stargazers_count;
+        }
+      })
+      .catch(function () {});
+  }
 })();

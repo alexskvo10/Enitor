@@ -500,6 +500,15 @@ nav a:hover { color: var(--ink); }
   border-left: 3px solid var(--warning); padding: 3px 0 3px 14px; margin: 0;
 }
 
+/* ── Просьба о звезде ────────────────────────────────────────────────────── */
+/* Стоит в самом конце, после того как человек уже всё посмотрел, и звучит
+   один раз. Счётчик подтягивается скриптом; пока его нет, точка-разделитель
+   не появляется, поэтому кнопка не выглядит недогруженной. */
+.ask { color: var(--ink-soft); max-width: 62ch; margin: 40px 0 16px; }
+.star svg { color: var(--warning); }
+.star .stars { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.star .stars:not(:empty)::before { content: ' · '; }
+
 /* ── Подвал ──────────────────────────────────────────────────────────────── */
 footer { padding: 52px 0 64px; color: var(--ink-soft); font-size: 0.93rem; }
 footer .wrap { display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: center; }
