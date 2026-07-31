@@ -63,6 +63,44 @@
     if (lb) lb.remove();
   }
 
+  /* ── Иконка в шапке поворачивается вслед за курсором ─────────────────────
+     Наклон в трёх измерениях: грань «смотрит» туда, где указатель. Скрипт
+     только считает углы и кладёт их в переменные — вся отрисовка в CSS.
+
+     Включается лишь там, где есть настоящее наведение: на тач-экранах
+     hover срабатывает по касанию и застревает, а смысла в наклоне нет.
+     Просьбу системы убрать анимацию тоже уважаем. */
+  var wrap = document.querySelector('.hero .mark-wrap');
+  var mark = wrap && wrap.querySelector('.mark');
+  var canHover = window.matchMedia
+    && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  var calmDown = window.matchMedia
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (mark && canHover && !calmDown) {
+    var MAX_TILT = 15; // градусов от центра к краю
+
+    // Слушаем обёртку, а не саму картинку: её геометрия не меняется при
+    // наклоне, поэтому курсор не выпадает из неё у края.
+    wrap.addEventListener('pointermove', function (e) {
+      var r = wrap.getBoundingClientRect();
+      // -0.5 у левого/верхнего края, +0.5 у правого/нижнего.
+      var dx = (e.clientX - r.left) / r.width - 0.5;
+      var dy = (e.clientY - r.top) / r.height - 0.5;
+      // Знак у rotateX обратный: ось X горизонтальная, и чтобы верх уходил
+      // от зрителя при курсоре внизу, угол нужен отрицательный.
+      mark.classList.remove('settle');
+      mark.style.setProperty('--ry', (dx * 2 * MAX_TILT).toFixed(2) + 'deg');
+      mark.style.setProperty('--rx', (-dy * 2 * MAX_TILT).toFixed(2) + 'deg');
+    });
+
+    wrap.addEventListener('pointerleave', function () {
+      mark.classList.add('settle');
+      mark.style.setProperty('--rx', '0deg');
+      mark.style.setProperty('--ry', '0deg');
+    });
+  }
+
   /* ── Переключатель Windows / Android у галереи ───────────────────────────
      В разметке обе галереи видимы: без скрипта посетитель просто увидит
      подряд оба набора скриншотов, а не пустое место. Прячет лишнее уже JS. */
