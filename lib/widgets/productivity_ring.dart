@@ -172,10 +172,16 @@ class _RingPainter extends CustomPainter {
     final colors = gradient.length >= 2
         ? [gradient.first, gradient.last, gradient.first]
         : gradient;
+    // Начало градиента совмещаем с началом дуги поворотом, а не параметрами
+    // startAngle/endAngle. Skia трактует их не так, как ожидаешь: угол точки
+    // она считает в диапазоне [0°, 360°) и лишь потом переводит в позицию
+    // градиента как (angle - start) / (end - start). При start = -90° верхняя
+    // четверть круга (270°..360°) даёт долю больше единицы, TileMode.clamp её
+    // срезает — первые 25% дуги заливались одним плоским цветом, а на трёх
+    // часах цвет догонял градиент скачком. Это и был видимый шов.
     final shader = SweepGradient(
-      startAngle: start,
-      endAngle: start + 2 * math.pi,
       colors: colors,
+      transform: const GradientRotation(start),
     ).createShader(rect);
 
     // Мягкое свечение ПОД заполненной дугой (тем же градиентом, размытое) —
