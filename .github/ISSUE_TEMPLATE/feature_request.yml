@@ -1,0 +1,42 @@
+name: Idea or improvement
+description: Something the app should do, or should do differently
+labels: [enhancement]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Feel free to write in Russian — пишите по-русски, если так удобнее.
+
+  - type: checkboxes
+    attributes:
+      label: Before suggesting
+      options:
+        - label: I looked through open issues and didn't find this one
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve
+      description: >
+        Describe the situation you run into, not the feature you have in mind.
+        A problem stated plainly often has a simpler solution than the one that
+        first comes to mind.
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you'd like to happen
+    validations:
+      required: true
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: How you cope with it now
+      description: >
+        Optional, but genuinely useful: it shows how much the problem gets in
+        the way, and sometimes the workaround turns out to be the better design.

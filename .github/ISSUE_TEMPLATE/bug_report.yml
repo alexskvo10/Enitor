@@ -1,0 +1,86 @@
+name: Bug report
+description: Something behaves differently than it should
+labels: [bug]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. Feel free to write in Russian — пишите по-русски, если так удобнее.
+
+  - type: checkboxes
+    attributes:
+      label: Before reporting
+      options:
+        - label: I'm on the latest release
+          required: true
+        - label: I looked through open issues and didn't find this one
+          required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Windows
+        - Android
+        - Both
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Settings → About shows it. For example, 0.2.0.
+      placeholder: "0.2.0"
+    validations:
+      required: true
+
+  - type: input
+    id: system
+    attributes:
+      label: System, and phone model on Android
+      description: >
+        Windows 11, or Android 14 on Infinix X6850. The model matters more than
+        it looks: some firmwares treat background work far more aggressively
+        than others.
+      placeholder: "Android 14, Infinix X6850"
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to reproduce it
+      description: >
+        Step by step, from opening the app. If it only happens sometimes, say
+        so — that's useful in itself.
+      placeholder: |
+        1. Open the Today screen
+        2. …
+        3. …
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: >
+        Screenshots help a lot — drag them straight into this field. If this is
+        about notifications, please say whether battery optimisation is turned
+        off for Enitor, and whether the app has permission to post
+        notifications: that's the cause more often than not.

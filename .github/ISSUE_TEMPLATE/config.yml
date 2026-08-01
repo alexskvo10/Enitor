@@ -1,0 +1,19 @@
+# Пустой issue оставлен доступным намеренно: не всё, о чём хочется написать,
+# укладывается в форму, и упереться в «выберите шаблон» — верный способ
+# заставить человека промолчать.
+blank_issues_enabled: true
+
+contact_links:
+  # Про уязвимости — не публичным issue. Личный канал включён в настройках
+  # репозитория (Private vulnerability reporting), эта ссылка ведёт прямо в него.
+  - name: Report a security problem privately
+    url: https://github.com/alexskvo10/Enitor/security/advisories/new
+    about: Please don't open a public issue for this — use the private channel.
+
+  - name: Screenshots, features and install instructions
+    url: https://alexskvo10.github.io/Enitor/
+    about: The site answers most questions before they become issues.
+
+  - name: Latest release
+    url: https://github.com/alexskvo10/Enitor/releases/latest
+    about: Check here first — the thing you ran into may already be fixed.
