@@ -10,6 +10,13 @@ contact_links:
     url: https://github.com/alexskvo10/Enitor/security/advisories/new
     about: Please don't open a public issue for this — use the private channel.
 
+  # Вопросы уводим в обсуждения: issue — это про то, что надо починить, и
+  # вопрос там висит открытым, изображая нерешённую проблему. В обсуждениях
+  # ответ помечается как решение и находится следующим спрашивающим.
+  - name: Ask a question
+    url: https://github.com/alexskvo10/Enitor/discussions
+    about: For questions and anything that isn't a bug — answers stay findable there.
+
   - name: Screenshots, features and install instructions
     url: https://alexskvo10.github.io/Enitor/
     about: The site answers most questions before they become issues.
