@@ -31,6 +31,15 @@
   "sectionLanguage": "Language",
   "localeSystem": "System",
 
+  "sectionFocusTimer": "Focus timer",
+  "pomodoroFocusLengthTitle": "Focus length",
+  "pomodoroFocusLengthSubtitle": "How long one focus stretch runs",
+  "pomodoroBreakLengthTitle": "Break length",
+  "pomodoroBreakLengthSubtitle": "The break that follows a focus stretch",
+  "pomodoroGuideRowTitle": "How to choose a length",
+  "pomodoroGuideRowSubtitle": "A short guide: where to start and how to tell the number isn't yours",
+  "pomodoroLengthsNote": "Classic Pomodoro is 25/5, and it doesn't fit everyone — a shorter stretch is easier to start, a longer one gets you deeper. A change applies to the next stretch; a running timer keeps the length it started with.",
+
   "sectionNotifications": "Notifications",
   "notificationsTitle": "Notifications",
   "notificationsSubtitle": "Main switch",

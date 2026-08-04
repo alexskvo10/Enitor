@@ -31,6 +31,15 @@
   "sectionLanguage": "Язык",
   "localeSystem": "Системный",
 
+  "sectionFocusTimer": "Таймер фокуса",
+  "pomodoroFocusLengthTitle": "Длина фокуса",
+  "pomodoroFocusLengthSubtitle": "Сколько длится один отрезок работы",
+  "pomodoroBreakLengthTitle": "Длина перерыва",
+  "pomodoroBreakLengthSubtitle": "Перерыв после отрезка работы",
+  "pomodoroGuideRowTitle": "Как выбрать длину",
+  "pomodoroGuideRowSubtitle": "Короткий гайд: с чего начать и как понять, что цифра не твоя",
+  "pomodoroLengthsNote": "Классические 25/5 подходят не всем: в короткий отрезок легче войти, в длинном глубже погружаешься. Новая длина берётся со следующего отрезка — идущий таймер остаётся с той, с которой начался.",
+
   "sectionNotifications": "Уведомления",
   "notificationsTitle": "Уведомления",
   "notificationsSubtitle": "Главный переключатель",

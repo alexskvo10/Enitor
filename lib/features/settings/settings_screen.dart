@@ -3,16 +3,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/l10n/locale_controller.dart';
+import '../help/pomodoro_guide_sheet.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/appearance.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../../services/backup_service.dart';
 import '../../services/notification_controller.dart';
+import '../../services/pomodoro_prefs.dart';
 import '../../widgets/fancy_dialog.dart';
 import '../../widgets/fancy_toast.dart';
 import '../../widgets/pill_toggle.dart';
 
-/// Настройки: оформление, уведомления, тихие часы, данные.
+/// За сколько минут до начала/конца задачи напоминать. 0 — «в момент».
+const _kLeadOptions = <int>[0, 5, 10, 15, 30, 60];
+
+/// Настройки: оформление, таймер фокуса, уведомления, тихие часы, данные.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -24,6 +29,7 @@ class SettingsScreen extends ConsumerWidget {
     final notif = ref.watch(notificationControllerProvider);
     final prefs = notif.prefs;
     final on = prefs.enabled;
+    final pomodoro = ref.watch(pomodoroPrefsProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsTitle)),
@@ -74,6 +80,51 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ]),
 
+          // ── Таймер фокуса ───────────────────────────────────────────────
+          // Стоит до уведомлений намеренно: секция уведомлений длинная, и за
+          // ней короткую настройку из двух строк просто не пролистали бы.
+          _sectionTitle(context, l10n.sectionFocusTimer),
+          _card([
+            ListTile(
+              leading: const Icon(Icons.timer_outlined),
+              title: _tileTitle(context, l10n.pomodoroFocusLengthTitle),
+              subtitle: Text(l10n.pomodoroFocusLengthSubtitle),
+              trailing: _minutesDropdown(
+                context,
+                values: kPomodoroFocusOptions,
+                value: pomodoro.focusMinutes,
+                onChanged: (m) =>
+                    ref.read(pomodoroPrefsProvider).setFocusMinutes(m),
+              ),
+            ),
+            const Divider(height: 1, indent: 16, endIndent: 16),
+            ListTile(
+              leading: const Icon(Icons.coffee_outlined),
+              title: _tileTitle(context, l10n.pomodoroBreakLengthTitle),
+              subtitle: Text(l10n.pomodoroBreakLengthSubtitle),
+              trailing: _minutesDropdown(
+                context,
+                values: kPomodoroBreakOptions,
+                value: pomodoro.breakMinutes,
+                onChanged: (m) =>
+                    ref.read(pomodoroPrefsProvider).setBreakMinutes(m),
+              ),
+            ),
+            const Divider(height: 1, indent: 16, endIndent: 16),
+            // Гайд прямо здесь, а не только в FAQ: вопрос «а сколько ставить?»
+            // возникает ровно в этот момент, у выпадашки, и отправлять за
+            // ответом на другой экран — потерять человека по дороге. Внутри
+            // гайда пресеты нажимаются и ставят обе длины сразу.
+            ListTile(
+              leading: const Icon(Icons.lightbulb_outline),
+              title: _tileTitle(context, l10n.pomodoroGuideRowTitle),
+              subtitle: Text(l10n.pomodoroGuideRowSubtitle),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => showPomodoroGuideSheet(context),
+            ),
+          ]),
+          _note(context, l10n.pomodoroLengthsNote),
+
           // ── Уведомления ─────────────────────────────────────────────────
           _sectionTitle(context, l10n.sectionNotifications),
           _card([
@@ -108,8 +159,9 @@ class SettingsScreen extends ConsumerWidget {
                       child: _miniLabel(context, l10n.leadBeforeStart),
                     ),
                     const SizedBox(width: 12),
-                    _leadDropdown(
+                    _minutesDropdown(
                       context,
+                      values: _kLeadOptions,
                       value: prefs.taskLeadMinutes,
                       onChanged: (m) => ref
                           .read(notificationControllerProvider)
@@ -142,8 +194,9 @@ class SettingsScreen extends ConsumerWidget {
                       child: _miniLabel(context, l10n.leadBeforeEnd),
                     ),
                     const SizedBox(width: 12),
-                    _leadDropdown(
+                    _minutesDropdown(
                       context,
+                      values: _kLeadOptions,
                       value: prefs.taskEndLeadMinutes,
                       onChanged: (m) => ref
                           .read(notificationControllerProvider)
@@ -538,11 +591,16 @@ class SettingsScreen extends ConsumerWidget {
             ),
       );
 
-  /// Компактная пилюля-список «за сколько минут» — общий стиль для
-  /// напоминаний и к началу, и к концу задачи (скругление и паддинг чуть
-  /// меньше, чем у «Язык», но стрелка — та же иконка-шеврон).
-  Widget _leadDropdown(
+  /// Компактная пилюля-список с длительностью в минутах: и «за сколько до
+  /// начала/конца» у напоминаний, и длины отрезков таймера фокуса (скругление
+  /// и паддинг чуть меньше, чем у «Язык», но стрелка — та же иконка-шеврон).
+  ///
+  /// [values] обязан содержать [value] — иначе DropdownButton падает на
+  /// ассерте. Для настроек таймера это гарантирует
+  /// `PomodoroPrefsController._sanitize`.
+  Widget _minutesDropdown(
     BuildContext context, {
+    required List<int> values,
     required int value,
     required ValueChanged<int> onChanged,
   }) {
@@ -572,7 +630,7 @@ class SettingsScreen extends ConsumerWidget {
                 color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w600,
               ),
-          items: const [0, 5, 10, 15, 30, 60]
+          items: values
               .map((m) => DropdownMenuItem(
                     value: m,
                     child: Text(
@@ -890,6 +948,7 @@ class SettingsScreen extends ConsumerWidget {
     await ref.read(appearanceProvider).resetToDefaults();
     await ref.read(localeControllerProvider).setOption(AppLocaleOption.system);
     await ref.read(notificationControllerProvider).resetToDefaults();
+    await ref.read(pomodoroPrefsProvider).resetToDefaults();
     if (!context.mounted) return;
     showFancyToast(
       context,

@@ -2,14 +2,20 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/appearance.dart';
 import '../../l10n/l10n_extensions.dart';
+import 'pomodoro_guide_sheet.dart';
 
 /// Один вопрос-ответ.
 class _Qa {
-  const _Qa(this.q, this.a, this.qEn, this.aEn);
+  const _Qa(this.q, this.a, this.qEn, this.aEn, {this.opensPomodoroGuide = false});
   final String q;
   final String a;
   final String qEn;
   final String aEn;
+
+  /// Под ответом рисуется кнопка, открывающая полный гайд по длинам
+  /// (см. [showPomodoroGuideSheet]). Ответ в FAQ даёт суть, но гайд длинный
+  /// и с нажимаемыми пресетами — пересказывать его тут целиком незачем.
+  final bool opensPomodoroGuide;
 
   String question(bool ru) => ru ? q : qEn;
   String answer(bool ru) => ru ? a : aEn;
@@ -54,19 +60,76 @@ const List<_Section> _kFaq = [
     ),
     _Qa(
       'Как работает Помодоро?',
-      'Таймер 25 минут фокуса / 5 минут перерыва. Всё время фокуса копится в '
-          'фактическое время задачи. Если отметишь задачу выполненной, пока '
-          'таймер идёт, — он остановится и запишет накопленное. Если '
-          'название задачи не помещается на баннере таймера, оно обрезается '
-          'многоточием — полный текст можно посмотреть, наведя курсор '
-          '(на компьютере) или зажав палец (на телефоне).',
+      'Таймер фокуса, а за ним перерыв. По умолчанию 25 и 5 минут — '
+          'классические цифры, но подходят они не всем, поэтому обе длины '
+          'настраиваются: Настройки → Таймер фокуса. Новая длина берётся со '
+          'следующего отрезка, идущий таймер остаётся с той, с которой '
+          'начался.\n\n'
+          'Всё время фокуса копится в фактическое время задачи. Если отметишь '
+          'задачу выполненной, пока таймер идёт, — он остановится и запишет '
+          'накопленное. Если название задачи не помещается на баннере '
+          'таймера, оно обрезается многоточием — полный текст можно '
+          'посмотреть, наведя курсор (на компьютере) или зажав палец '
+          '(на телефоне).',
       'How does Pomodoro work?',
-      'A timer of 25 minutes of focus / 5 minutes of break. All focus time '
-          "accumulates into the task's actual time. If you mark the task "
-          "done while the timer is running, it stops and records what's "
-          "been accumulated. If the task title doesn't fit on the timer "
-          'banner, it gets cut off with an ellipsis — see the full text by '
-          'hovering (desktop) or long-pressing (phone).',
+      'A focus timer, followed by a break. The defaults are 25 and 5 minutes '
+          "— the classic numbers, but they don't suit everyone, so both "
+          'lengths are configurable: Settings → Focus timer. A new length '
+          'takes effect from the next stretch; a running timer keeps the one '
+          'it started with.\n\n'
+          "All focus time accumulates into the task's actual time. If you "
+          'mark the task done while the timer is running, it stops and '
+          "records what's been accumulated. If the task title doesn't fit on "
+          'the timer banner, it gets cut off with an ellipsis — see the full '
+          'text by hovering (desktop) or long-pressing (phone).',
+    ),
+    _Qa(
+      'Какую длину фокуса и перерыва выбрать?',
+      'Единственно правильной цифры нет: 25 минут — число из книги Чирилло, а '
+          'не из исследования. Твоя длина лежит между двумя моментами — '
+          'сколько ты входишь в задачу и через сколько начинаешь выпадать.\n\n'
+          'Отталкивайся от типа работы. Код, текст, дизайн, сложная учёба — '
+          '45/10: первые 10–15 минут там уходят на разгон, и 25-минутный '
+          'отрезок обрывается ровно тогда, когда ты наконец вошёл. Почта и '
+          'рутина — 20/5, там разгона нет вообще. Всего понемногу — 25/5. '
+          'Тяжело начать — 15/5: короткий отрезок тем и хорош, что начать его '
+          'не страшно.\n\n'
+          'Дальше подстраивай по одному сигналу: что ты чувствуешь в момент '
+          'звонка. Облегчение («ну наконец-то») — отрезок длинный, убавь 10 '
+          'минут. Досада («я только въехал») — короткий, прибавь 10. '
+          'Спокойное «о, уже? ладно» — это твоя длина.\n\n'
+          'Перерыв берут примерно в пятую часть от фокуса и не больше 15 '
+          'минут: за этой границей ты не возвращаешься к работе, а начинаешь '
+          'её заново. И он должен быть отдыхом другого типа — встать, вода, '
+          'окно; лента голове не отдых, из неё ещё и не выйти по звонку.\n\n'
+          'Полный гайд — с тем, сколько отрезков делать подряд, что делать, '
+          'когда звонок застал на середине мысли, и что означает «не помогает '
+          'вообще», — по кнопке ниже. Он же лежит в Настройки → Таймер '
+          'фокуса.',
+      'What focus and break lengths should I pick?',
+      "There is no single right number: 25 minutes comes from Cirillo's book, "
+          'not from a study. Your length sits between two moments — how long '
+          'you take to get into a task, and how long before you drift out.\n\n'
+          'Start from the kind of work. Code, writing, design, hard study — '
+          '45/10: the first 10–15 minutes there go into the warm-up, and a '
+          '25-minute stretch cuts out exactly when you finally got in. Email '
+          'and routine — 20/5, no warm-up at all. A bit of everything — 25/5. '
+          'Hard to start — 15/5: a short stretch is good precisely because '
+          'starting it is not scary.\n\n'
+          'After that, tune by one signal: how you feel at the bell. Relief '
+          '("finally") means the stretch is long — take 10 minutes off. '
+          'Annoyance ("I\'d just got going") means it is short — add 10. A '
+          'calm "already? fine" means you found your length.\n\n'
+          'A break is usually a fifth of the focus and never over 15 minutes: '
+          'past that line you do not return to the work, you start it again. '
+          'And it has to be a different kind of rest — stand up, water, a '
+          'window; a feed is no rest for your head, and you cannot leave it at '
+          'the bell.\n\n'
+          'The full guide — how many stretches to do in a row, what to do when '
+          'the bell catches you mid-thought, and what it means when nothing '
+          'helps at all — is behind the button below. It also lives in '
+          'Settings → Focus timer.',
+      opensPomodoroGuide: true,
     ),
     _Qa(
       'Что такое счётчик и чек-лист?',
@@ -624,17 +687,17 @@ const List<_Section> _kFaq = [
     ),
     _Qa(
       'Что делает «Сбросить настройки»?',
-      'Возвращает к значениям по умолчанию тему, фон, виньетку, язык и все '
-          'настройки уведомлений — то есть приложение выглядит и напоминает '
-          'так же, как при первом запуске. Задачи, цели, статистика и '
-          'достижения не трогаются. Перезапуск не нужен, всё применяется '
-          'сразу.',
+      'Возвращает к значениям по умолчанию тему, фон, виньетку, язык, длины '
+          'таймера фокуса и все настройки уведомлений — то есть приложение '
+          'выглядит и напоминает так же, как при первом запуске. Задачи, цели, '
+          'статистика и достижения не трогаются. Перезапуск не нужен, всё '
+          'применяется сразу.',
       'What does "Reset settings" do?',
-      'It returns the theme, background, vignette, language and every '
-          'notification setting to their defaults — the app looks and reminds '
-          'you exactly as it did on first launch. Tasks, goals, stats and '
-          'achievements are left untouched. No restart needed, it applies '
-          'immediately.',
+      'It returns the theme, background, vignette, language, the focus timer '
+          'lengths and every notification setting to their defaults — the app '
+          'looks and reminds you exactly as it did on first launch. Tasks, '
+          'goals, stats and achievements are left untouched. No restart '
+          'needed, it applies immediately.',
     ),
     _Qa(
       'Что делает «Удалить все данные»?',
@@ -859,6 +922,18 @@ class _QaTile extends StatelessWidget {
             height: 1.35,
           ),
         ),
+        if (qa.opensPomodoroGuide)
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: TextButton.icon(
+                onPressed: () => showPomodoroGuideSheet(context),
+                icon: const Icon(Icons.lightbulb_outline, size: 18),
+                label: Text(pomodoroGuideOpenLabel(ru)),
+              ),
+            ),
+          ),
       ],
     );
   }

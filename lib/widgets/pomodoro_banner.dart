@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_colors.dart';
 import '../l10n/l10n_extensions.dart';
 import '../services/pomodoro_controller.dart';
+import '../services/pomodoro_prefs.dart';
 
 /// Баннер активного Помодоро-таймера. Скрыт, когда таймер не запущен.
 /// Живёт на экране Задач над кольцами; состояние — в [pomodoroProvider],
@@ -20,6 +21,9 @@ class PomodoroBanner extends ConsumerWidget {
     if (!p.isActive) return const SizedBox.shrink();
     final theme = Theme.of(context);
     final l10n = context.l10n;
+    // Длина СЛЕДУЮЩЕГО отрезка (кнопка «Ещё фокус») — из настроек, а не из
+    // идущего таймера: настройку могли поменять, пока шёл предыдущий.
+    final nextFocusMinutes = ref.watch(pomodoroPrefsProvider).focusMinutes;
 
     final isBreak = p.phase == PomodoroPhase.breakTime;
     final isFinished = p.phase == PomodoroPhase.finished;
@@ -211,8 +215,7 @@ class PomodoroBanner extends ConsumerWidget {
                                   ),
                                 ),
                                 Text(
-                                  l10n.anotherFocusBtnLine2(
-                                      kPomodoroFocusMinutes),
+                                  l10n.anotherFocusBtnLine2(nextFocusMinutes),
                                   style: theme.textTheme.labelSmall
                                       ?.copyWith(color: accent),
                                 ),

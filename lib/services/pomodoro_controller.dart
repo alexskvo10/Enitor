@@ -5,12 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/models/task.dart';
 import '../data/repositories/task_repository.dart';
+import 'pomodoro_prefs.dart';
 import 'sound_service.dart';
-
-/// Длительности цикла. Вынесены в константы — при желании легко сделать
-/// настраиваемыми (экран настроек, этап 7).
-const kPomodoroFocusMinutes = 25;
-const kPomodoroBreakMinutes = 5;
 
 enum PomodoroPhase { idle, focus, paused, breakTime, finished }
 
@@ -20,14 +16,20 @@ enum PomodoroPhase { idle, focus, paused, breakTime, finished }
 /// [Task.actualMinutes] (накопительно) — аналитика точности оценок получает
 /// «факт» без ручного ввода. При ручной остановке фиксируются прошедшие
 /// ПОЛНЫЕ минуты (≥1), чтобы не терять честно отработанное время.
+///
+/// Длины фокуса и перерыва берутся из [PomodoroPrefsController] в момент
+/// СТАРТА отрезка. Смена настройки посреди отсчёта идущий таймер не трогает:
+/// иначе он либо прыгнул бы, либо мгновенно «досрочно закончился», а в
+/// [Task.actualMinutes] уехало бы не то время, которое человек отработал.
 class PomodoroController extends ChangeNotifier {
-  PomodoroController(this._taskRepo) {
+  PomodoroController(this._taskRepo, this._prefs) {
     // Следим за задачами: если отслеживаемая выполнена/удалена — выключаемся
     // (с фиксацией наработанного). Покрывает ВСЕ пути завершения.
     _sub = _taskRepo.watchAllTasks().listen(_onTasks);
   }
 
   final TaskRepository _taskRepo;
+  final PomodoroPrefsController _prefs;
   final SoundService _sound = SoundService();
   StreamSubscription<List<Task>>? _sub;
 
@@ -59,14 +61,14 @@ class PomodoroController extends ChangeNotifier {
     taskTitle = task.title;
     sessionMinutes = 0;
     sessionNumber = 1;
-    _begin(PomodoroPhase.focus, kPomodoroFocusMinutes * 60);
+    _begin(PomodoroPhase.focus, _prefs.focusMinutes * 60);
   }
 
   /// Ещё один цикл фокуса по той же задаче (из состояния finished).
   void anotherFocus() {
     if (taskId == null) return;
     sessionNumber++;
-    _begin(PomodoroPhase.focus, kPomodoroFocusMinutes * 60);
+    _begin(PomodoroPhase.focus, _prefs.focusMinutes * 60);
   }
 
   void pause() {
@@ -145,9 +147,11 @@ class PomodoroController extends ChangeNotifier {
     _ticker?.cancel();
     _sound.playPomodoroDone();
     if (phase == PomodoroPhase.focus) {
-      // Фокус завершён: пишем факт, авто-стартуем перерыв.
-      _commit(kPomodoroFocusMinutes);
-      _begin(PomodoroPhase.breakTime, kPomodoroBreakMinutes * 60);
+      // Фокус завершён: пишем факт, авто-стартуем перерыв. Длина берётся из
+      // totalSeconds, а не из настройки: настройку могли поменять посреди
+      // отсчёта, и тогда в факт уехало бы не отработанное время.
+      _commit(totalSeconds ~/ 60);
+      _begin(PomodoroPhase.breakTime, _prefs.breakMinutes * 60);
     } else if (phase == PomodoroPhase.breakTime) {
       phase = PomodoroPhase.finished;
       notifyListeners();
@@ -182,5 +186,8 @@ class PomodoroController extends ChangeNotifier {
 }
 
 final pomodoroProvider = ChangeNotifierProvider<PomodoroController>((ref) {
-  return PomodoroController(ref.read(taskRepositoryProvider));
+  return PomodoroController(
+    ref.read(taskRepositoryProvider),
+    ref.read(pomodoroPrefsProvider),
+  );
 });

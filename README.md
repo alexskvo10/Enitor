@@ -135,7 +135,8 @@ After the first install, Enitor checks GitHub for new releases on its own (about
 - **Goal deadline compliance** and tag-level breakdowns for both tasks and goals.
 
 ### Pomodoro
-- 25 minutes of focus / 5 minutes of break, tied to a specific task. Switching tabs doesn't reset the countdown, and a completed session is logged straight into the task's actual time.
+- Focus then break, tied to a specific task. Switching tabs doesn't reset the countdown, and a completed session is logged straight into the task's actual time.
+- Both lengths are configurable (25/5 by default, because the classic numbers fit plenty of people but not everyone). A change takes effect from the next stretch — a running timer keeps the length it started with, so the time logged is always the time actually worked.
 
 ### Profile & achievements
 - Daily streak (fair — empty days don't touch it), a GitHub-style year heatmap, a weekly retrospective with a productivity delta vs. last week, the goals set for that week, and estimate accuracy against the week before.

@@ -25,6 +25,7 @@ import '../search/global_search.dart';
 import '../templates/templates_sheet.dart';
 import '../../services/notification_controller.dart';
 import '../../services/pomodoro_controller.dart';
+import '../../services/pomodoro_prefs.dart';
 import '../../services/quote_service.dart';
 import '../../widgets/backlog_nudge_card.dart';
 import '../../widgets/battery_hint_card.dart';
@@ -866,8 +867,12 @@ class _TaskTile extends ConsumerWidget {
                         value: _TaskAction.pomodoro,
                         child: ListTile(
                           leading: const Icon(Icons.timer_outlined),
-                          title: Text(
-                              l10n.focusMinutesMenuItem(kPomodoroFocusMinutes)),
+                          // read, а не watch: меню строится в момент
+                          // открытия, так что цифра и так всегда свежая, а
+                          // подписывать на настройки каждую карточку списка
+                          // ради этого незачем.
+                          title: Text(l10n.focusMinutesMenuItem(
+                              ref.read(pomodoroPrefsProvider).focusMinutes)),
                           contentPadding: EdgeInsets.zero,
                         ),
                       ),
