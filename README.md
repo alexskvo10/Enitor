@@ -89,7 +89,7 @@ From the Windows build, on the generated demo data (`scripts/generate_demo_backu
 <tr>
   <td width="33%"><img src="docs/screenshots/windows/achievements.png" alt="Achievements" /><br/><sub>Achievements — 25 in all, some staying hidden until you unlock them</sub></td>
   <td width="33%"><img src="docs/screenshots/windows/tag_stats.png" alt="Tag statistics" /><br/><sub>Tag stats — completion and punctuality per tag, so you can see which areas you actually keep up with</sub></td>
-  <td width="33%"><img src="docs/screenshots/windows/settings.png" alt="Settings" /><br/><sub>Settings — theme, paper texture, and every kind of notification toggled on its own</sub></td>
+  <td width="33%"><img src="docs/screenshots/windows/settings.png" alt="Settings" /><br/><sub>Settings — theme, paper texture, focus timer lengths, and every kind of notification toggled on its own</sub></td>
 </tr>
 </table>
 
@@ -137,6 +137,7 @@ After the first install, Enitor checks GitHub for new releases on its own (about
 ### Pomodoro
 - Focus then break, tied to a specific task. Switching tabs doesn't reset the countdown, and a completed session is logged straight into the task's actual time.
 - Both lengths are configurable (25/5 by default, because the classic numbers fit plenty of people but not everyone). A change takes effect from the next stretch — a running timer keeps the length it started with, so the time logged is always the time actually worked.
+- Next to the setting sits a short guide on picking those numbers: where to start by the kind of work you do, how to read your own reaction at the bell, and what a break is actually for. Its starting points are tappable, so reading "45/10 for work with a warm-up" and setting it are the same gesture. Also reachable from Help / FAQ.
 
 ### Profile & achievements
 - Daily streak (fair — empty days don't touch it), a GitHub-style year heatmap, a weekly retrospective with a productivity delta vs. last week, the goals set for that week, and estimate accuracy against the week before.
@@ -235,7 +236,7 @@ Enitor/
 │   │   ├── templates/             # day task-set templates
 │   │   ├── search/                # search
 │   │   ├── settings/              # settings, notifications
-│   │   ├── help/                  # FAQ
+│   │   ├── help/                  # FAQ + the focus-length guide
 │   │   └── about/                 # about screen
 │   ├── widgets/                  # shared widgets (productivity ring, etc.)
 │   └── services/                 # notifications, updates
