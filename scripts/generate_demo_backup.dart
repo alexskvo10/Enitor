@@ -66,6 +66,15 @@ class _DayPlan {
   final DayStats stats;
 }
 
+/// Same rule the app uses: a task with a time is on time if it was closed
+/// before its end, an untimed one counts as on time whenever it's done.
+bool _isOnTime(Task t) {
+  if (!t.isCompleted) return false;
+  if (t.endMinutes == null) return true;
+  final m = t.completedAt!.hour * 60 + t.completedAt!.minute;
+  return m <= t.endMinutes!;
+}
+
 /// Builds one day's tasks + the matching DayStats, using the exact same
 /// formula as StatsRepository.recompute so the numbers are always consistent
 /// with the task list.
@@ -123,15 +132,8 @@ _DayPlan _buildDay(DateTime day, {required double targetProductivity}) {
     ));
   }
 
-  bool onTime(Task t) {
-    if (!t.isCompleted) return false;
-    if (t.endMinutes == null) return true;
-    final m = t.completedAt!.hour * 60 + t.completedAt!.minute;
-    return m <= t.endMinutes!;
-  }
-
   final completed = tasks.where((t) => t.isCompleted).toList();
-  final onTimeCount = completed.where(onTime).length;
+  final onTimeCount = completed.where(_isOnTime).length;
   final fraction = tasks.fold<double>(0, (s, t) => s + t.completionFraction);
 
   return _DayPlan(
@@ -249,15 +251,88 @@ void main() {
       priority: TaskPriority.high,
       tags: const ['work'],
     ),
+    // Closed after its own end time — the one late task of the day, so the
+    // "on time" ring isn't a flat 100% either.
+    Task(
+      id: _id('task'),
+      title: 'Physio stretches',
+      date: today,
+      createdAt: today,
+      updatedAt: today,
+      order: 4,
+      startMinutes: 12 * 60 + 30,
+      endMinutes: 13 * 60,
+      completedAt: DateTime(today.year, today.month, today.day, 13, 20),
+      estimatedMinutes: 30,
+      actualMinutes: 35,
+      tags: const ['health'],
+    ),
+    Task(
+      id: _id('task'),
+      title: 'Send the studio invoice',
+      date: today,
+      createdAt: today,
+      updatedAt: today,
+      order: 5,
+      startMinutes: 14 * 60,
+      endMinutes: 14 * 60 + 30,
+      completedAt: DateTime(today.year, today.month, today.day, 14, 12),
+      estimatedMinutes: 30,
+      actualMinutes: 15,
+      tags: const ['work'],
+    ),
+    // A counter and a checklist, both mid-progress: they contribute fractions
+    // rather than 0 or 1, which is exactly what the ring's "7.3 / 12" label
+    // and its partially filled arc are there to show.
+    Task(
+      id: _id('task'),
+      title: 'Drink 8 glasses of water',
+      date: today,
+      createdAt: today,
+      updatedAt: today,
+      order: 6,
+      targetCount: 8,
+      progressCount: 5,
+      tags: const ['health'],
+    ),
+    Task(
+      id: _id('task'),
+      title: 'Prep the Thursday demo',
+      date: today,
+      createdAt: today,
+      updatedAt: today,
+      order: 7,
+      startMinutes: 15 * 60,
+      endMinutes: 16 * 60 + 30,
+      estimatedMinutes: 90,
+      priority: TaskPriority.medium,
+      subtasks: [
+        SubTask(id: _id('sub'), title: 'Pull the numbers', done: true),
+        SubTask(id: _id('sub'), title: 'Draft the slides', done: true),
+        SubTask(id: _id('sub'), title: 'Run through it once', done: false),
+      ],
+      tags: const ['work'],
+    ),
+    Task(
+      id: _id('task'),
+      title: 'Water the plants',
+      date: today,
+      createdAt: today,
+      updatedAt: today,
+      order: 8,
+      completedAt: DateTime(today.year, today.month, today.day, 8, 40),
+      tags: const ['personal'],
+    ),
     Task(
       id: _id('task'),
       title: 'Grocery run',
       date: today,
       createdAt: today,
       updatedAt: today,
-      order: 4,
+      order: 9,
       startMinutes: 17 * 60 + 30,
       endMinutes: 18 * 60 + 15,
+      estimatedMinutes: 45,
       tags: const ['personal'],
     ),
     Task(
@@ -266,7 +341,7 @@ void main() {
       date: today,
       createdAt: today,
       updatedAt: today,
-      order: 5,
+      order: 10,
       priority: TaskPriority.medium,
       tags: const ['personal'],
     ),
@@ -276,19 +351,25 @@ void main() {
       date: today,
       createdAt: today,
       updatedAt: today,
-      order: 6,
+      order: 11,
       tags: const ['learning'],
     ),
   ];
   allTasks.addAll(todayTasks);
-  final todayCompleted = todayTasks.where((t) => t.isCompleted).length;
+  // Counted the same way the app does — through completionFraction and the
+  // on-time rule — instead of "completed == fraction, everything on time".
+  // With a counter and a checklist in the list those two would now disagree
+  // with what the screen itself shows.
+  final todayCompleted = todayTasks.where((t) => t.isCompleted).toList();
+  final todayOnTime = todayCompleted.where(_isOnTime).length;
   allStats.add(DayStats(
     date: today,
     totalTasks: todayTasks.length,
-    completedTasks: todayCompleted,
-    completedFraction: todayCompleted.toDouble(),
-    onTimeCount: todayCompleted,
-    lateCount: 0,
+    completedTasks: todayCompleted.length,
+    completedFraction:
+        todayTasks.fold<double>(0, (s, t) => s + t.completionFraction),
+    onTimeCount: todayOnTime,
+    lateCount: todayCompleted.length - todayOnTime,
     updatedAt: today,
   ));
 
@@ -345,6 +426,60 @@ void main() {
       createdAt: today,
       updatedAt: today,
       tags: const ['learning'],
+    ),
+    // Three more for the current month, so the Goals screen isn't two lines
+    // and its ring lands mid-arc instead of at a quarter — that's where the
+    // gradient actually has something to show.
+    Goal(
+      id: _id('goal'),
+      period: GoalPeriod.month,
+      year: today.year,
+      month: today.month,
+      title: 'Publish 4 blog posts',
+      targetCount: 4,
+      manualProgress: 3,
+      createdAt: DateTime(today.year, today.month, 1),
+      updatedAt: today,
+      tags: const ['work'],
+    ),
+    Goal(
+      id: _id('goal'),
+      period: GoalPeriod.month,
+      year: today.year,
+      month: today.month,
+      title: 'Refresh the portfolio site',
+      completed: true,
+      completedAt: today.subtract(const Duration(days: 3)),
+      createdAt: DateTime(today.year, today.month, 1),
+      updatedAt: today.subtract(const Duration(days: 3)),
+      tags: const ['work'],
+    ),
+    Goal(
+      id: _id('goal'),
+      period: GoalPeriod.month,
+      year: today.year,
+      month: today.month,
+      title: 'Set up the summer training plan',
+      completed: true,
+      completedAt: today.subtract(const Duration(days: 9)),
+      createdAt: DateTime(today.year, today.month, 1),
+      updatedAt: today.subtract(const Duration(days: 9)),
+      tags: const ['health'],
+    ),
+    // Closed after its own deadline — keeps the goals' "on time" ring off a
+    // flat 100%, the same way one late task does on the Today screen.
+    Goal(
+      id: _id('goal'),
+      period: GoalPeriod.month,
+      year: today.year,
+      month: today.month,
+      title: 'Renew the passport',
+      deadline: today.subtract(const Duration(days: 5)),
+      completed: true,
+      completedAt: today.subtract(const Duration(days: 2)),
+      createdAt: DateTime(today.year, today.month, 1),
+      updatedAt: today.subtract(const Duration(days: 2)),
+      tags: const ['personal'],
     ),
     Goal(
       id: _id('goal'),
@@ -425,6 +560,16 @@ void main() {
     'day_stats': jsonEncode(allStats.map((s) => s.toJson()).toList()),
     'day_ratings': jsonEncode(dayRatings),
     'user_profile': jsonEncode(profile.toJson()),
+    // Import restores every key it's given, so the seed pins the interface
+    // language too: the screenshots in the README and on the site are English,
+    // and remembering to switch it by hand before each session is how a
+    // Russian screenshot ends up in an English gallery.
+    //
+    // 2 is AppLocaleOption.en — the index, because this script runs under
+    // plain `dart run` and importing the controller would drag Flutter (and
+    // its FFI) in, which the standalone compiler chokes on. If that enum ever
+    // gains a member before `en`, this number moves with it.
+    'app_locale': jsonEncode({'option': 2}),
   };
 
   final payload = {
