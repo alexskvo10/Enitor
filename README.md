@@ -67,7 +67,7 @@ From the Windows build, on the generated demo data (`scripts/generate_demo_backu
 <table>
 <tr>
   <td width="33%"><img src="docs/screenshots/windows/today.png" alt="Today screen" /><br/><sub>Today — a month at a glance with one colour dot per day, completion rings, and the day's remaining time budget</sub></td>
-  <td width="33%"><img src="docs/screenshots/windows/goals.png" alt="Goals screen" /><br/><sub>Goals — week / month / season / year, with counter progress and subtasks</sub></td>
+  <td width="33%"><img src="docs/screenshots/windows/goals.png" alt="Goals screen" /><br/><sub>Goals — week / month / season / year, with counter progress and a month's worth already closed out</sub></td>
   <td width="33%"><img src="docs/screenshots/windows/stats.png" alt="Statistics screen" /><br/><sub>Statistics — productivity against on-time, any granularity and range, plus estimate accuracy</sub></td>
 </tr>
 <tr>
