@@ -91,6 +91,9 @@ From the Windows build, on the generated demo data (`scripts/generate_demo_backu
   <td width="33%"><img src="docs/screenshots/windows/tag_stats.png" alt="Tag statistics" /><br/><sub>Tag stats — completion and punctuality per tag, so you can see which areas you actually keep up with</sub></td>
   <td width="33%"><img src="docs/screenshots/windows/settings.png" alt="Settings" /><br/><sub>Settings — theme, paper texture, focus timer lengths, and every kind of notification toggled on its own</sub></td>
 </tr>
+<tr>
+  <td colspan="3" align="center"><img src="docs/screenshots/windows/transfer_banner.png" width="33%" alt="Carry-over prompt at the day boundary" /><br/><sub>The other side of carry-over — caught right at the day boundary, the app asks about one task at a time. Note the unfinished task below it: the minutes the Pomodoro timer had already logged stay on it, done or not</sub></td>
+</tr>
 </table>
 
 </details>
