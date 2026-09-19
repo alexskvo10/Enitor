@@ -6,7 +6,7 @@ publish_to: 'none'
 # кодом поверх большего (INSTALL_FAILED_VERSION_DOWNGRADE), даже если сама
 # версия новее. Опубликованные: v0.1.0 → 1, v0.1.1 → 2, v0.2.0 → 3.
 # Windows это не касается — обновление сравнивает semver из тега.
-version: 0.2.1+4
+version: 0.2.2+5
 
 environment:
   sdk: ^3.5.0
