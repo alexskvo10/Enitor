@@ -154,6 +154,14 @@ class NotificationService {
   // вида — блок из 200 id, целей обычно меньше, чем задач, но с запасом).
   static const _goalUrgentIdBase = 2500;
   static const _goalOverdueIdBase = 2700;
+  // Конец фокуса и перерыва Помодоро — за пределами всех блоков выше.
+  static const _idPomodoroFocus = 3000;
+  static const _idPomodoroBreak = 3001;
+
+  /// Текущие будильники Помодоро: id → (когда, заголовок, текст). Хранятся,
+  /// потому что [applySchedule] снимает ВСЁ, а таймер от расписания не
+  /// зависит — после пересборки их нужно вернуть.
+  final _pomodoroAlarms = <int, (DateTime, String, String)>{};
 
   /// Инициализация плагина + базы таймзон. Безопасно вызывать повторно.
   Future<void> init() async {
@@ -358,6 +366,9 @@ class NotificationService {
     // убеждаемся, что к моменту их срабатывания приложение ещё «прописано».
     await _ensureWindowsRegistration();
     await _plugin.cancelAll();
+    // Помодоро — не расписание, а будильник, который человек завёл сам
+    // только что: главный выключатель напоминаний его не касается.
+    await _schedulePomodoroAlarms();
     if (!prefs.enabled) return;
     final l10n = _l10n;
 
@@ -684,6 +695,70 @@ class NotificationService {
   Future<void> cancelAll() async {
     if (!_isSupportedPlatform) return;
     await _plugin.cancelAll();
+  }
+
+  /// Ставит (или снимает, если null) уведомления на конец фокуса и перерыва.
+  ///
+  /// Только Android: там свёрнутое приложение замораживается и само сказать
+  /// ничего не может. На Windows окно живёт и в фоне, сигнал звучит сам —
+  /// тост продублировал бы его.
+  Future<void> setPomodoroAlarms({
+    DateTime? focusEnd,
+    DateTime? breakEnd,
+    String taskTitle = '',
+  }) async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+    final l10n = _l10n;
+    // Снимаем только ещё не сработавшие: cancel убирает и уже показанное
+    // уведомление, а фокус, кончившийся секунду назад, как раз переставляет
+    // будильники — «Фокус завершён» исчезало бы, не успев появиться.
+    final now = DateTime.now();
+    final stale = [
+      for (final MapEntry(key: id, value: (at, _, _))
+          in _pomodoroAlarms.entries)
+        if (at.isAfter(now)) id,
+    ];
+    _pomodoroAlarms
+      ..clear()
+      ..addAll({
+        if (focusEnd != null)
+          _idPomodoroFocus: (
+            focusEnd,
+            l10n.notifPomodoroFocusDoneTitle,
+            l10n.notifPomodoroFocusDoneBody(taskTitle),
+          ),
+        if (breakEnd != null)
+          _idPomodoroBreak: (
+            breakEnd,
+            l10n.notifPomodoroBreakDoneTitle,
+            l10n.notifPomodoroBreakDoneBody,
+          ),
+      });
+    try {
+      for (final id in stale) {
+        await _plugin.cancel(id);
+      }
+      await _schedulePomodoroAlarms();
+    } catch (e) {
+      // Уведомление — подстраховка, таймер работает и без него.
+      debugPrint('setPomodoroAlarms failed: $e');
+    }
+  }
+
+  Future<void> _schedulePomodoroAlarms() async {
+    if (!_tzReady) return;
+    final now = DateTime.now();
+    for (final MapEntry(key: id, value: (at, title, body))
+        in _pomodoroAlarms.entries) {
+      if (!at.isAfter(now)) continue;
+      await _scheduleAt(
+        id: id,
+        when: tz.TZDateTime.from(at, tz.local),
+        title: title,
+        body: body,
+        channel: _Channel.task,
+      );
+    }
   }
 
   // ── Примитивы ──────────────────────────────────────────────────────────

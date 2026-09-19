@@ -13,6 +13,7 @@ import 'data/repositories/task_repository.dart';
 import 'data/sources/local/local_storage.dart';
 import 'services/backup_service.dart';
 import 'services/notification_service.dart';
+import 'services/pomodoro_controller.dart';
 
 /// Вычисляет следующий момент 4:00 утра (сегодня или завтра).
 DateTime _nextFourAm() {
@@ -93,6 +94,7 @@ Future<void> main() async {
     overrides: [
       localStorageProvider.overrideWithValue(storage),
       notificationServiceProvider.overrideWithValue(notifications),
+      pomodoroAlarmsProvider.overrideWithValue(notifications),
     ],
   );
 

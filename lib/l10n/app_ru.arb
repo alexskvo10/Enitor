@@ -596,6 +596,11 @@
   "@notifGoalBacklogBody": { "placeholders": { "count": { "type": "int" } } },
   "notifGoalGeneral1": "Новая неделя — посмотри на свои цели",
   "notifGoalGeneral2": "Перед выходными — как продвигаются цели?",
+  "notifPomodoroFocusDoneTitle": "Фокус завершён",
+  "notifPomodoroFocusDoneBody": "«{title}» — время перерыва",
+  "@notifPomodoroFocusDoneBody": { "placeholders": { "title": { "type": "String" } } },
+  "notifPomodoroBreakDoneTitle": "Перерыв окончен",
+  "notifPomodoroBreakDoneBody": "Можно возвращаться к работе",
 
   "pomodoroFocusPhase": "Фокус",
   "pomodoroPausedPhase": "Пауза",
