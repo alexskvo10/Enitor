@@ -2945,6 +2945,27 @@ class _DualRingRow extends StatelessWidget {
 
 // ─── Бюджет дня по времени ───────────────────────────────────────────────────
 
+/// Закрыт ли день с опозданием — то есть последняя задача отмечена выполненной
+/// позже 23:05 этого дня.
+///
+/// Решает ПОСЛЕДНЯЯ отметка о выполнении ([Task.completedAt]), а не текущее
+/// время. Через часы это считать нельзя: день, закрытый в 17:00, сам собой
+/// желтел в 23:05, хотя закрыт был вовремя, — и любой прошедший день навсегда
+/// оставался «закрытым поздно». Пять минут запаса — те же, что у остальных
+/// проверок конца дня.
+///
+/// [tasks] — задачи дня, из которых уже убраны перенесённые: их отметки
+/// относятся к другому дню.
+bool dayClosedLate(DateTime date, Iterable<Task> tasks) {
+  final deadline = DateTime(date.year, date.month, date.day, 23, 5);
+  DateTime? closedAt;
+  for (final t in tasks) {
+    final c = t.completedAt;
+    if (c != null && (closedAt == null || c.isAfter(closedAt))) closedAt = c;
+  }
+  return closedAt != null && closedAt.isAfter(deadline);
+}
+
 /// Сумма оценок времени невыполненных задач дня. Оценка — необязательная
 /// метрика, поэтому: задачи без неё в сумму не входят, но честно показываются
 /// как «+N без оценки»; нет ни одной оценки → строки нет вовсе.
@@ -3016,10 +3037,14 @@ class _DayBudgetRow extends StatelessWidget {
     final afterEnd = now.isAfter(endOfDay.add(const Duration(minutes: 5)));
     final isToday = dateOnly(date) == _effectiveToday(now);
 
+    // Опоздание считается по отметкам о выполнении, а не по часам, — почему
+    // именно так, см. doc-комментарий у dayClosedLate.
+    final closedLate = dayClosedLate(date, relevant);
+
     // Состояние:
     //  • не всё сделано + перегруз → красный (в любое время, даже после 23:05);
-    //  • всё сделано до 23:05      → зелёный;
-    //  • всё сделано после 23:05   → жёлтый (закрыто поздно);
+    //  • закрыт до 23:05           → зелёный;
+    //  • закрыт после 23:05        → жёлтый (закрыто поздно);
     //  • иначе (в процессе, влезает) → без цвета.
     final Color? spine;
     final Color accent;
@@ -3029,12 +3054,12 @@ class _DayBudgetRow extends StatelessWidget {
 
     final l10n = context.l10n;
     if (allDone) {
-      // Выполнено: вовремя → зелёный, после 23:05 → жёлтый.
-      final c = afterEnd ? AppColors.warning : AppColors.success;
+      // Выполнено: вовремя → зелёный, закрыто после 23:05 → жёлтый.
+      final c = closedLate ? AppColors.warning : AppColors.success;
       spine = c;
       accent = c;
       label = l10n.allDoneLabel;
-      notes = afterEnd ? [l10n.dayClosedLateNote] : const [];
+      notes = closedLate ? [l10n.dayClosedLateNote] : const [];
       trailing = Icon(Icons.check_circle, color: c, size: 20);
     } else if (overloaded) {
       // Незакрытый перегруженный день — красный в любое время.

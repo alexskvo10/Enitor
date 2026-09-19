@@ -188,43 +188,49 @@ class PomodoroBanner extends ConsumerWidget {
                       tooltip: l10n.skipBreakTooltip,
                       onPressed: p.skipBreak,
                     ),
-                  if (isFinished)
-                    Flexible(
-                      // Текст в две строки, а не в одну широкую: иначе пилюля
-                      // растягивается вбок и отжимает заголовок/фазу слева
-                      // (там и без того «Cycle done · Session N · +N min»).
-                      child: Material(
-                        color: accent.withValues(alpha: 0.14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: InkWell(
-                          onTap: p.anotherFocus,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  l10n.anotherFocusBtnLine1,
-                                  style: theme.textTheme.labelMedium?.copyWith(
-                                    color: accent,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                  if (isFinished) ...[
+                    const SizedBox(width: 8),
+                    // Пилюля НЕ во Flexible: гибкий ребёнок с loose-подгонкой
+                    // забирал половину свободной ширины, отдавал обратно только
+                    // фактическую — остаток повисал справа, а кнопки липли к
+                    // тексту. Обычный ребёнок меряется по содержимому первым,
+                    // и всю слабину забирает Expanded с заголовком, прижимая
+                    // кнопки к правому краю карточки.
+                    // Текст в две строки, а не в одну широкую: иначе пилюля
+                    // растягивается вбок и отжимает заголовок/фазу слева
+                    // (там и без того «Cycle done · Session N · +N min»).
+                    Material(
+                      color: accent.withValues(alpha: 0.14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: p.anotherFocus,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                l10n.anotherFocusBtnLine1,
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: accent,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                                Text(
-                                  l10n.anotherFocusBtnLine2(nextFocusMinutes),
-                                  style: theme.textTheme.labelSmall
-                                      ?.copyWith(color: accent),
-                                ),
-                              ],
-                            ),
+                              ),
+                              Text(
+                                l10n.anotherFocusBtnLine2(nextFocusMinutes),
+                                style: theme.textTheme.labelSmall
+                                    ?.copyWith(color: accent),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
+                  ],
                   const SizedBox(width: 6),
                   // Стоп — акцентно красная (деструктивное действие: сбрасывает
                   // текущий цикл), «Готово → Закрыть» остаётся нейтральной.
