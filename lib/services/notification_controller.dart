@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/models/schedule_item.dart';
 import '../data/repositories/backlog_repository.dart';
 import '../data/repositories/goal_repository.dart';
+import '../data/repositories/schedule_repository.dart';
 import '../data/repositories/task_repository.dart';
 import '../data/sources/local/local_storage.dart';
 import 'notification_prefs.dart';
@@ -23,6 +25,7 @@ class NotificationController extends ChangeNotifier {
     this._goals,
     this._backlog,
     this._goalBacklog,
+    this._schedule,
   ) {
     final raw = _storage.readMap(_kNotifPrefsKey);
     if (raw != null) _prefs = NotificationPrefs.fromJson(raw);
@@ -34,6 +37,7 @@ class NotificationController extends ChangeNotifier {
   final GoalRepository _goals;
   final BacklogRepository _backlog;
   final GoalBacklogRepository _goalBacklog;
+  final ScheduleRepository _schedule;
 
   NotificationPrefs _prefs = const NotificationPrefs();
   NotificationPrefs get prefs => _prefs;
@@ -57,6 +61,7 @@ class NotificationController extends ChangeNotifier {
           unfinishedByDay: _tasks.unfinishedCountsByDay(),
           taskBacklogCount: _backlog.all.length,
           goalBacklogCount: _goalBacklog.all.length,
+          scheduleReminders: scheduleReminders(_schedule.all, now),
         );
       } catch (e, st) {
         // Планирование не критично — не роняем приложение. Но раньше ошибка
@@ -125,6 +130,10 @@ class NotificationController extends ChangeNotifier {
       _update(_prefs.copyWith(goalGeneralReminders: v));
   Future<void> setQuietHoursEnabled(bool v) =>
       _update(_prefs.copyWith(quietHoursEnabled: v));
+  Future<void> setScheduleReminders(bool v) =>
+      _update(_prefs.copyWith(scheduleReminders: v));
+  Future<void> setScheduleLead(int minutes) =>
+      _update(_prefs.copyWith(scheduleLeadMinutes: minutes));
   Future<void> setQuietHours(int start, int end) =>
       _update(_prefs.copyWith(quietStart: start, quietEnd: end));
 
@@ -144,5 +153,6 @@ final notificationControllerProvider =
     ref.read(goalRepositoryProvider),
     ref.read(backlogRepositoryProvider),
     ref.read(goalBacklogRepositoryProvider),
+    ref.read(scheduleRepositoryProvider),
   );
 });

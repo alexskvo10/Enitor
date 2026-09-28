@@ -428,6 +428,8 @@ class Goal {
 
   Goal copyWith({
     String? title,
+    String? description,
+    bool clearDescription = false,
     bool? completed,
     DateTime? completedAt,
     bool clearCompletedAt = false,
@@ -456,7 +458,8 @@ class Goal {
         season: season,
         weekStart: weekStart,
         title: title ?? this.title,
-        description: description,
+        description:
+            clearDescription ? null : (description ?? this.description),
         completed: completed ?? this.completed,
         completedAt:
             clearCompletedAt ? null : (completedAt ?? this.completedAt),

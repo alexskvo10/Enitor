@@ -12,6 +12,7 @@ import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../data/models/goal.dart';
+import '../data/models/schedule_item.dart';
 import '../data/models/task.dart';
 import '../l10n/app_localizations.dart';
 import 'notification_prefs.dart';
@@ -155,6 +156,9 @@ class NotificationService {
   static const _goalUrgentIdBase = 2500;
   static const _goalOverdueIdBase = 2700;
   // Конец фокуса и перерыва Помодоро — за пределами всех блоков выше.
+  // Расписание: до 100 напоминаний на скользящую неделю (см. scheduleReminders).
+  static const _scheduleIdBase = 3100;
+
   static const _idPomodoroFocus = 3000;
   static const _idPomodoroBreak = 3001;
 
@@ -359,6 +363,7 @@ class NotificationService {
     required Map<int, int> unfinishedByDay,
     required int taskBacklogCount,
     required int goalBacklogCount,
+    List<(DateTime, ScheduleItem)> scheduleReminders = const [],
   }) async {
     if (!_isSupportedPlatform) return;
     // Ключ AUMID на Windows может быть вычищен уже ПОСЛЕ старта приложения —
@@ -596,6 +601,34 @@ class NotificationService {
           channel: _Channel.task,
         );
         if (id - _taskOverdueIdBase >= 48) break;
+      }
+    }
+
+    // 7½. Расписание — у каждого пункта своё «за сколько». Тихие часы не
+    // проверяем: время напоминания человек выбрал сам (см. NotificationPrefs).
+    if (prefs.scheduleReminders) {
+      var id = _scheduleIdBase;
+      for (final (at, item) in scheduleReminders) {
+        final lead = item.reminderMinutes ?? 0;
+        final time = item.location == null
+            ? _fmt(item.startMinutes)
+            : '${_fmt(item.startMinutes)}, ${item.location}';
+        await _scheduleAt(
+          id: id++,
+          when: tz.TZDateTime(
+            tz.local,
+            at.year,
+            at.month,
+            at.day,
+            at.hour,
+            at.minute,
+          ),
+          title: l10n.notifScheduleSoonTitle,
+          body: lead > 0
+              ? l10n.notifScheduleLeadBody(lead, item.title, time)
+              : l10n.notifScheduleNowBody(item.title, time),
+          channel: _Channel.task,
+        );
       }
     }
 

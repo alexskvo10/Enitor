@@ -11,6 +11,7 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/appearance.dart';
 import 'l10n/app_localizations.dart';
+import 'data/repositories/schedule_repository.dart';
 import 'data/repositories/task_repository.dart';
 import 'services/backup_service.dart';
 import 'services/notification_controller.dart';
@@ -74,6 +75,10 @@ class _EnitorAppState extends ConsumerState<EnitorApp> with WidgetsBindingObserv
       _backupDebounce = Timer(const Duration(seconds: 3), () {
         ref.read(backupServiceProvider).writeAutoBackup();
       });
+    });
+    // Расписание поменялось — переставляем его напоминания.
+    ref.listen(scheduleItemsProvider, (_, __) {
+      ref.read(notificationControllerProvider).reschedule();
     });
     // Смена языка — переставляем уже запланированные уведомления новым текстом.
     ref.listen(localeControllerProvider.select((c) => c.option), (_, __) {

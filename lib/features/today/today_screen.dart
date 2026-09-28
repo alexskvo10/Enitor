@@ -13,10 +13,12 @@ import '../../core/theme/appearance.dart';
 import '../../core/utils/date_utils.dart';
 import '../../core/utils/format_utils.dart';
 import '../../data/models/recurrence_rule.dart';
+import '../../data/models/schedule_item.dart';
 import '../../data/models/task.dart';
 import '../../data/repositories/backlog_repository.dart';
 import '../../data/repositories/goal_repository.dart';
 import '../../data/repositories/rating_repository.dart';
+import '../../data/repositories/schedule_repository.dart';
 import '../../data/repositories/stats_repository.dart';
 import '../../data/repositories/task_repository.dart';
 import '../../l10n/l10n_extensions.dart';
@@ -35,6 +37,7 @@ import '../../widgets/esc_dismissible.dart';
 import '../../widgets/fancy_dialog.dart';
 import '../../widgets/fancy_toast.dart';
 import '../../widgets/glow_fab.dart';
+import '../../widgets/pill_toggle.dart';
 import '../../widgets/pomodoro_banner.dart';
 import '../../widgets/productivity_ring.dart';
 import '../../widgets/seg_chip.dart';
@@ -42,6 +45,8 @@ import '../../widgets/stagger_reveal.dart';
 import '../../widgets/star_rating.dart';
 import '../../widgets/subtask_checklist.dart';
 import '../../widgets/tag_mini.dart';
+
+part 'schedule_tab.dart';
 
 // ─── Вспомогательные функции ─────────────────────────────────────────────────
 
@@ -173,6 +178,9 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
   late DateTime _focused;
   CalendarFormat _format = CalendarFormat.month;
 
+  /// 0 — задачи, 1 — расписание.
+  int _tab = 0;
+
   @override
   void initState() {
     super.initState();
@@ -184,7 +192,12 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(createActionProvider.notifier).state = () {
-        if (mounted) _showAddTaskSheet(context, _selected);
+        if (!mounted) return;
+        if (_tab == 0) {
+          _showAddTaskSheet(context, _selected);
+        } else {
+          _showScheduleForm(context, date: _selected);
+        }
       };
     });
     // Ленивая материализация повторений для дня, открытого первым при
@@ -223,6 +236,10 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     ref.watch(allTasksProvider);
     final taskRepo = ref.read(taskRepositoryProvider);
     final tasksAsync = AsyncValue.data(taskRepo.tasksForDay(_selected));
+    final daySchedule = scheduleForDay(
+      ref.watch(scheduleItemsProvider).value ?? const [],
+      _selected,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -249,14 +266,34 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
             },
           ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(52),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: PillToggle<int>(
+              selected: _tab,
+              segments: [
+                (0, l10n.navToday),
+                (1, l10n.scheduleTab),
+              ],
+              onChanged: (i) => setState(() => _tab = i),
+            ),
+          ),
+        ),
       ),
       floatingActionButton: isPast
           ? null
-          : GlowFab(
-              onPressed: () => _showAddTaskSheet(context, _selected),
-              icon: Icons.add,
-              label: l10n.addTaskFabLabel,
-            ),
+          : _tab == 0
+              ? GlowFab(
+                  onPressed: () => _showAddTaskSheet(context, _selected),
+                  icon: Icons.add,
+                  label: l10n.addTaskFabLabel,
+                )
+              : GlowFab(
+                  onPressed: () => _showScheduleForm(context, date: _selected),
+                  icon: Icons.add,
+                  label: l10n.addScheduleFabLabel,
+                ),
       body: Column(
         children: [
           TableCalendar<Task>(
@@ -343,181 +380,214 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
           const SizedBox(height: 6),
           const Divider(height: 1),
           Expanded(
-            child: tasksAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, st) => ErrorView(
-                onRetry: () {
-                  ref.invalidate(tasksForDayProvider(_selected));
-                  ref.invalidate(statsForDayProvider(_selected));
-                },
-              ),
-              data: (tasks) {
-                final stats = statsAsync.value;
-                return ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-                  children: [
-                    // Журнальная шапка дня: день недели «глиной» + линейка +
-                    // карточка «Шаблоны дня» справа.
-                    _DayMasthead(
-                      date: _selected,
-                      onTemplates: () => showTemplatesSheet(
-                        context,
-                        date: _selected,
-                        isPast: isPast,
-                        dayTasks: tasks,
-                      ),
-                    ),
-                    // Активный Помодоро (скрыт, когда таймер не запущен).
-                    const PomodoroBanner(),
-                    // Подсказка про работу в фоне (скрыта, когда не нужна).
-                    const BatteryHintCard(),
-                    const SizedBox(height: 8),
-                    _DualRingRow(
-                      productivity: stats?.productivity,
-                      completedTasks: stats?.completedTasks ?? 0,
-                      completedFraction: stats?.completedFraction ?? 0,
-                      totalTasks: stats?.totalTasks ?? tasks.length,
-                      timeliness: stats?.timeliness,
-                      onTimeCount: stats?.onTimeCount ?? 0,
-                      lateCount: stats?.lateCount ?? 0,
-                    ),
-                    // ── Бюджет дня по времени ───────────────────────────────
-                    // Сумма оценок невыполненных задач. Виден только когда
-                    // есть хотя бы одна оценка (метрика необязательная).
-                    if (!isPast)
-                      _DayBudgetRow(tasks: tasks, date: _selected, now: now),
-                    // ── Оценка прошедшего дня (рефлексия) ───────────────────
-                    // Прошлые дни — всегда. Сегодня — начиная с порога
-                    // «за полчаса до тихих часов», чтобы не ждать полуночи.
-                    if (dateOnly(_selected).isBefore(dateOnly(now)) ||
-                        (isSameDay(_selected, now) &&
-                            now.hour * 60 + now.minute >=
-                                _dayRatingTriggerMinutes(quietStart)))
-                      _DayRatingRow(date: _selected),
-                    // ── Кнопки действий ─────────────────────────────────────
-                    // «Скопировать» — на всех днях (когда есть задачи).
-                    // «Удалить все» — только на сегодня / будущих днях.
-                    // ── Карточка «Невыполненные задачи (N)» ─────────────
-                    Consumer(
-                      builder: (ctx, ref, _) {
-                        final items =
-                            ref.watch(backlogItemsProvider).value ?? const [];
-                        if (items.isEmpty) return const SizedBox.shrink();
-                        final oldest = items.reduce(
-                            (a, b) => a.addedAt.isBefore(b.addedAt) ? a : b);
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 6, bottom: 2),
-                          child: BacklogNudgeCard(
-                            icon: Icons.inbox_outlined,
-                            title: l10n.backlogChip(items.length),
-                            subtitle: l10n.backlogOldestLabel(oldest.title),
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => const TaskBacklogScreen(),
-                              ),
-                            ),
-                          ),
-                        );
+            child: _tab == 1
+                ? _ScheduleDayView(
+                    date: _selected,
+                    now: now,
+                    onPickDay: (d) {
+                      setState(() {
+                        _selected = d;
+                        _focused = d;
+                      });
+                      unawaited(taskRepo.ensureRecurrencesForDay(d));
+                    },
+                  )
+                : tasksAsync.when(
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (e, st) => ErrorView(
+                      onRetry: () {
+                        ref.invalidate(tasksForDayProvider(_selected));
+                        ref.invalidate(statsForDayProvider(_selected));
                       },
                     ),
-                    if (tasks.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      // Wrap, а не Row: на узком экране три кнопки («Перенести
-                      // всё» + «Скопировать» + «Удалить все») не влезают в одну
-                      // строку → Row давал overflow и обрезал «Удалить все».
-                      // Wrap переносит лишнюю кнопку на след. строку (вправо).
-                      Wrap(
-                        alignment: WrapAlignment.end,
-                        runSpacing: 4,
-                        crossAxisAlignment: WrapCrossAlignment.center,
+                    data: (tasks) {
+                      final stats = statsAsync.value;
+                      return ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
                         children: [
-                          // «Перенести всё» — в ночном окне (0:00–3:59 и 23:xx)
-                          // показывается независимо от isPast
-                          Builder(builder: (ctx) {
-                            final hasTransferable =
-                                tasks.any((t) => _isTransferable(t, now));
-                            if (!hasTransferable)
-                              return const SizedBox.shrink();
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 4),
-                              child: TextButton.icon(
-                                onPressed: () => _transferAll(context, tasks),
-                                icon: const Icon(Icons.east, size: 17),
-                                label: Text(l10n.transferAllBtn),
-                                style: TextButton.styleFrom(
-                                  visualDensity: VisualDensity.compact,
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 6),
-                                ),
-                              ),
-                            );
-                          }),
-                          TextButton.icon(
-                            onPressed: () => _copyTasks(context, tasks),
-                            icon: const Icon(
-                              Icons.copy_all_outlined,
-                              size: 17,
-                            ),
-                            label: Text(l10n.copyBtn),
-                            style: TextButton.styleFrom(
-                              visualDensity: VisualDensity.compact,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
+                          // Журнальная шапка дня: день недели «глиной» + линейка +
+                          // карточка «Шаблоны дня» справа.
+                          _DayMasthead(
+                            date: _selected,
+                            onTemplates: () => showTemplatesSheet(
+                              context,
+                              date: _selected,
+                              isPast: isPast,
+                              dayTasks: tasks,
                             ),
                           ),
-                          if (!isPast) ...[
-                            const SizedBox(width: 4),
-                            TextButton.icon(
-                              onPressed: () => _confirmDeleteAll(context),
-                              icon: const Icon(
-                                Icons.delete_sweep_outlined,
-                                size: 17,
-                              ),
-                              label: Text(l10n.deleteAllBtn),
-                              style: TextButton.styleFrom(
-                                foregroundColor: AppColors.danger,
-                                visualDensity: VisualDensity.compact,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
+                          // Активный Помодоро (скрыт, когда таймер не запущен).
+                          const PomodoroBanner(),
+                          // Подсказка про работу в фоне (скрыта, когда не нужна).
+                          const BatteryHintCard(),
+                          const SizedBox(height: 8),
+                          _DualRingRow(
+                            productivity: stats?.productivity,
+                            completedTasks: stats?.completedTasks ?? 0,
+                            completedFraction: stats?.completedFraction ?? 0,
+                            totalTasks: stats?.totalTasks ?? tasks.length,
+                            timeliness: stats?.timeliness,
+                            onTimeCount: stats?.onTimeCount ?? 0,
+                            lateCount: stats?.lateCount ?? 0,
+                          ),
+                          // ── Бюджет дня по времени ───────────────────────────────
+                          // Сумма оценок невыполненных задач. Виден только когда
+                          // есть хотя бы одна оценка (метрика необязательная).
+                          if (!isPast)
+                            _DayBudgetRow(
+                              tasks: tasks,
+                              date: _selected,
+                              now: now,
+                              busy: scheduleBusyAhead(
+                                daySchedule,
+                                _selected,
+                                now,
                               ),
                             ),
+                          // ── Оценка прошедшего дня (рефлексия) ───────────────────
+                          // Прошлые дни — всегда. Сегодня — начиная с порога
+                          // «за полчаса до тихих часов», чтобы не ждать полуночи.
+                          if (dateOnly(_selected).isBefore(dateOnly(now)) ||
+                              (isSameDay(_selected, now) &&
+                                  now.hour * 60 + now.minute >=
+                                      _dayRatingTriggerMinutes(quietStart)))
+                            _DayRatingRow(date: _selected),
+                          // ── Кнопки действий ─────────────────────────────────────
+                          // «Скопировать» — на всех днях (когда есть задачи).
+                          // «Удалить все» — только на сегодня / будущих днях.
+                          // ── Карточка «Невыполненные задачи (N)» ─────────────
+                          Consumer(
+                            builder: (ctx, ref, _) {
+                              final items =
+                                  ref.watch(backlogItemsProvider).value ??
+                                      const [];
+                              if (items.isEmpty) return const SizedBox.shrink();
+                              final oldest = items.reduce((a, b) =>
+                                  a.addedAt.isBefore(b.addedAt) ? a : b);
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.only(top: 6, bottom: 2),
+                                child: BacklogNudgeCard(
+                                  icon: Icons.inbox_outlined,
+                                  title: l10n.backlogChip(items.length),
+                                  subtitle:
+                                      l10n.backlogOldestLabel(oldest.title),
+                                  onTap: () => Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) => const TaskBacklogScreen(),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          if (tasks.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            // Wrap, а не Row: на узком экране три кнопки («Перенести
+                            // всё» + «Скопировать» + «Удалить все») не влезают в одну
+                            // строку → Row давал overflow и обрезал «Удалить все».
+                            // Wrap переносит лишнюю кнопку на след. строку (вправо).
+                            Wrap(
+                              alignment: WrapAlignment.end,
+                              runSpacing: 4,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                // «Перенести всё» — в ночном окне (0:00–3:59 и 23:xx)
+                                // показывается независимо от isPast
+                                Builder(builder: (ctx) {
+                                  final hasTransferable =
+                                      tasks.any((t) => _isTransferable(t, now));
+                                  if (!hasTransferable)
+                                    return const SizedBox.shrink();
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 4),
+                                    child: TextButton.icon(
+                                      onPressed: () =>
+                                          _transferAll(context, tasks),
+                                      icon: const Icon(Icons.east, size: 17),
+                                      label: Text(l10n.transferAllBtn),
+                                      style: TextButton.styleFrom(
+                                        visualDensity: VisualDensity.compact,
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 10, vertical: 6),
+                                      ),
+                                    ),
+                                  );
+                                }),
+                                TextButton.icon(
+                                  onPressed: () => _copyTasks(context, tasks),
+                                  icon: const Icon(
+                                    Icons.copy_all_outlined,
+                                    size: 17,
+                                  ),
+                                  label: Text(l10n.copyBtn),
+                                  style: TextButton.styleFrom(
+                                    visualDensity: VisualDensity.compact,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
+                                  ),
+                                ),
+                                if (!isPast) ...[
+                                  const SizedBox(width: 4),
+                                  TextButton.icon(
+                                    onPressed: () => _confirmDeleteAll(context),
+                                    icon: const Icon(
+                                      Icons.delete_sweep_outlined,
+                                      size: 17,
+                                    ),
+                                    label: Text(l10n.deleteAllBtn),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: AppColors.danger,
+                                      visualDensity: VisualDensity.compact,
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 6,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
                           ],
+                          const SizedBox(height: 10),
+                          if (_isToday)
+                            quote.when(
+                              data: (q) => q == null
+                                  ? const SizedBox.shrink()
+                                  : _QuoteCard(text: q.text, author: q.author),
+                              loading: () => const SizedBox.shrink(),
+                              error: (_, __) => const SizedBox.shrink(),
+                            ),
+                          const SizedBox(height: 8),
+                          if (daySchedule.isNotEmpty)
+                            _ScheduleStrip(
+                              items: daySchedule,
+                              onOpen: () => setState(() => _tab = 1),
+                            ),
+                          if (tasks.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              child: NotebookEmptyState(
+                                text: _isToday
+                                    ? l10n.emptyTodayState
+                                    : l10n.emptyDayState,
+                              ),
+                            )
+                          else
+                            _TaskSections(tasks: tasks, readOnly: isPast),
                         ],
-                      ),
-                    ],
-                    const SizedBox(height: 10),
-                    if (_isToday)
-                      quote.when(
-                        data: (q) => q == null
-                            ? const SizedBox.shrink()
-                            : _QuoteCard(text: q.text, author: q.author),
-                        loading: () => const SizedBox.shrink(),
-                        error: (_, __) => const SizedBox.shrink(),
-                      ),
-                    const SizedBox(height: 8),
-                    if (tasks.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: NotebookEmptyState(
-                          text: _isToday
-                              ? l10n.emptyTodayState
-                              : l10n.emptyDayState,
-                        ),
-                      )
-                    else
-                      _TaskSections(tasks: tasks, readOnly: isPast),
-                  ],
-                );
-              },
-            ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -677,6 +747,43 @@ class _RecurringChoiceRow extends StatelessWidget {
 
 /// Длительность повторения («В течение»). Ограничивает endDate правила.
 enum _RecDuration { month, months3, months6, year, forever }
+
+String _recDurationLabel(BuildContext context, _RecDuration d) {
+  final l10n = context.l10n;
+  return switch (d) {
+    _RecDuration.month => l10n.recDurationMonth,
+    _RecDuration.months3 => l10n.recDurationMonths3,
+    _RecDuration.months6 => l10n.recDurationMonths6,
+    _RecDuration.year => l10n.recDurationYear,
+    _RecDuration.forever => l10n.recDurationForever,
+  };
+}
+
+/// Конец серии, начатой [start], по выбранной длительности (null = бессрочно).
+DateTime? _recEndDate(DateTime start, _RecDuration d) {
+  final s = dateOnly(start);
+  return switch (d) {
+    _RecDuration.month => DateTime(s.year, s.month + 1, s.day),
+    _RecDuration.months3 => DateTime(s.year, s.month + 3, s.day),
+    _RecDuration.months6 => DateTime(s.year, s.month + 6, s.day),
+    _RecDuration.year => DateTime(s.year + 1, s.month, s.day),
+    _RecDuration.forever => null,
+  };
+}
+
+/// Короткие названия дней недели, пн..вс.
+List<String> _weekdayLabels(BuildContext context) {
+  final l10n = context.l10n;
+  return [
+    l10n.weekdayMon,
+    l10n.weekdayTue,
+    l10n.weekdayWed,
+    l10n.weekdayThu,
+    l10n.weekdayFri,
+    l10n.weekdaySat,
+    l10n.weekdaySun,
+  ];
+}
 
 // ─── Плитка задачи ───────────────────────────────────────────────────────────
 
@@ -1581,6 +1688,7 @@ class _TaskFormSheet extends ConsumerStatefulWidget {
 
 class _TaskFormSheetState extends ConsumerState<_TaskFormSheet> {
   late final TextEditingController _titleController;
+  late final TextEditingController _descController;
   int? _startMinutes;
   int? _endMinutes;
   int? _estimatedMinutes;
@@ -1621,6 +1729,7 @@ class _TaskFormSheetState extends ConsumerState<_TaskFormSheet> {
     super.initState();
     final t = widget.existingTask;
     _titleController = TextEditingController(text: t?.title ?? '');
+    _descController = TextEditingController(text: t?.description ?? '');
     _startMinutes = t?.startMinutes;
     _endMinutes = t?.endMinutes;
     _estimatedMinutes = t?.estimatedMinutes;
@@ -1642,6 +1751,7 @@ class _TaskFormSheetState extends ConsumerState<_TaskFormSheet> {
   @override
   void dispose() {
     _titleController.dispose();
+    _descController.dispose();
     _tagCtrl.dispose();
     _tagSearchCtrl.dispose();
     for (final c in _subtaskCtrls) {
@@ -1695,6 +1805,19 @@ class _TaskFormSheetState extends ConsumerState<_TaskFormSheet> {
                 border: const OutlineInputBorder(),
               ),
               onSubmitted: (_) => _save(),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _descController,
+              minLines: 1,
+              maxLines: 5,
+              keyboardType: TextInputType.multiline,
+              decoration: InputDecoration(
+                hintText: l10n.taskDescriptionHint,
+                prefixIcon: const Icon(Icons.notes, size: 20),
+                border: const OutlineInputBorder(),
+                isDense: true,
+              ),
             ),
             const SizedBox(height: 12),
             Row(
@@ -2105,40 +2228,13 @@ class _TaskFormSheetState extends ConsumerState<_TaskFormSheet> {
     );
   }
 
-  String _durationLabel(_RecDuration d) {
-    final l10n = context.l10n;
-    return switch (d) {
-      _RecDuration.month => l10n.recDurationMonth,
-      _RecDuration.months3 => l10n.recDurationMonths3,
-      _RecDuration.months6 => l10n.recDurationMonths6,
-      _RecDuration.year => l10n.recDurationYear,
-      _RecDuration.forever => l10n.recDurationForever,
-    };
-  }
+  String _durationLabel(_RecDuration d) => _recDurationLabel(context, d);
 
   /// Дата окончания правила по выбранной длительности (null = бессрочно).
-  DateTime? _computeEndDate() {
-    final s = dateOnly(widget.date);
-    return switch (_recDuration) {
-      _RecDuration.month => DateTime(s.year, s.month + 1, s.day),
-      _RecDuration.months3 => DateTime(s.year, s.month + 3, s.day),
-      _RecDuration.months6 => DateTime(s.year, s.month + 6, s.day),
-      _RecDuration.year => DateTime(s.year + 1, s.month, s.day),
-      _RecDuration.forever => null,
-    };
-  }
+  DateTime? _computeEndDate() => _recEndDate(widget.date, _recDuration);
 
   Widget _buildWeekdaysPicker(ThemeData theme) {
-    final l10n = context.l10n;
-    final labels = [
-      l10n.weekdayMon,
-      l10n.weekdayTue,
-      l10n.weekdayWed,
-      l10n.weekdayThu,
-      l10n.weekdayFri,
-      l10n.weekdaySat,
-      l10n.weekdaySun,
-    ];
+    final labels = _weekdayLabels(context);
     return Wrap(
       spacing: 6,
       runSpacing: 4,
@@ -2246,6 +2342,8 @@ class _TaskFormSheetState extends ConsumerState<_TaskFormSheet> {
     if (_tagCtrl.text.trim().isNotEmpty) _addTag(_tagCtrl.text);
     final repo = ref.read(taskRepositoryProvider);
     final subtaskTitles = _subtaskTitles();
+    final descText = _descController.text.trim();
+    final description = descText.isEmpty ? null : descText;
 
     if (_isRecurring && _recurrenceValid() && !_isFromSeries) {
       // Создаём правило. При редактировании обычной задачи — заменяем её серией.
@@ -2254,6 +2352,7 @@ class _TaskFormSheetState extends ConsumerState<_TaskFormSheet> {
       }
       await repo.createRecurrence(
         title: text,
+        description: description,
         kind: _recurrenceKind,
         startDate: widget.date,
         weekdays: _weekdays.toList()..sort(),
@@ -2274,6 +2373,8 @@ class _TaskFormSheetState extends ConsumerState<_TaskFormSheet> {
       final subs = _subtasksForEdit();
       var updated = existing.copyWith(
         title: text,
+        description: description,
+        clearDescription: description == null,
         startMinutes: _startMinutes,
         clearStartMinutes: _startMinutes == null,
         endMinutes: _endMinutes,
@@ -2301,6 +2402,7 @@ class _TaskFormSheetState extends ConsumerState<_TaskFormSheet> {
     } else {
       await repo.createAndAdd(
         title: text,
+        description: description,
         date: widget.date,
         startMinutes: _startMinutes,
         endMinutes: _endMinutes,
@@ -2977,11 +3079,15 @@ class _DayBudgetRow extends StatelessWidget {
     required this.tasks,
     required this.date,
     required this.now,
+    this.busy = 0,
   });
 
   final List<Task> tasks;
   final DateTime date;
   final DateTime now;
+
+  /// Минуты до 23:00, занятые расписанием, — на задачи их не остаётся.
+  final int busy;
 
   @override
   Widget build(BuildContext context) {
@@ -3030,7 +3136,7 @@ class _DayBudgetRow extends StatelessWidget {
     // Сколько минут осталось до 23:00 выбранного дня. Для будущих дней —
     // много (overloaded не сработает), для прошедшего вечера — 0.
     final endOfDay = DateTime(date.year, date.month, date.day, 23);
-    final minutesLeft = endOfDay.difference(now).inMinutes;
+    final minutesLeft = endOfDay.difference(now).inMinutes - busy;
     final overloaded = sum > minutesLeft;
     final allDone = pending.isEmpty; // все задачи дня выполнены
     // После 23:05 незакрытый день требует внимания (как «срочные» задачи).
@@ -3069,6 +3175,7 @@ class _DayBudgetRow extends StatelessWidget {
       notes = [
         l10n.dayOverloadedNote,
         afterEnd ? l10n.dayNotClosedNote : l10n.doesNotFitBefore23Note,
+        if (busy > 0) l10n.scheduleBusyNote(_fmtDuration(busy, context)),
         if (noEstimate > 0) l10n.noEstimateNote(noEstimate),
       ];
     } else {
@@ -3076,6 +3183,7 @@ class _DayBudgetRow extends StatelessWidget {
       accent = theme.colorScheme.primary;
       label = isToday ? l10n.remainingForLabel : l10n.planLabel;
       notes = [
+        if (busy > 0) l10n.scheduleBusyNote(_fmtDuration(busy, context)),
         if (noEstimate > 0) l10n.noEstimateNote(noEstimate),
       ];
     }

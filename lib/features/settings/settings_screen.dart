@@ -207,6 +207,42 @@ class SettingsScreen extends ConsumerWidget {
               ),
             const Divider(height: 1, indent: 16, endIndent: 16),
 
+            // Расписание: у пункта своё «за сколько», здесь — выключатель и
+            // значение для новых пунктов.
+            SwitchListTile(
+              title: _tileTitle(context, l10n.scheduleRemindersTitle),
+              subtitle: Text(l10n.scheduleRemindersSubtitle),
+              value: prefs.scheduleReminders,
+              onChanged: on
+                  ? (v) => ref
+                      .read(notificationControllerProvider)
+                      .setScheduleReminders(v)
+                  : null,
+            ),
+            if (on && prefs.scheduleReminders)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _miniLabel(context, l10n.scheduleDefaultLeadLabel),
+                    ),
+                    const SizedBox(width: 12),
+                    _minutesDropdown(
+                      context,
+                      values: _kLeadOptions,
+                      value: _kLeadOptions.contains(prefs.scheduleLeadMinutes)
+                          ? prefs.scheduleLeadMinutes
+                          : _kLeadOptions.first,
+                      onChanged: (m) => ref
+                          .read(notificationControllerProvider)
+                          .setScheduleLead(m),
+                    ),
+                  ],
+                ),
+              ),
+            const Divider(height: 1, indent: 16, endIndent: 16),
+
             // «Требует внимания» — совпадает с бейджем в списке задач.
             SwitchListTile(
               title: _tileTitle(context, l10n.taskUrgentAlertsTitle),

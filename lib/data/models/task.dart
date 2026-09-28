@@ -162,6 +162,7 @@ class Task {
   Task copyWith({
     String? title,
     String? description,
+    bool clearDescription = false,
     DateTime? date,
     DateTime? completedAt,
     bool clearCompleted = false,
@@ -191,7 +192,8 @@ class Task {
       Task(
         id: id,
         title: title ?? this.title,
-        description: description ?? this.description,
+        description:
+            clearDescription ? null : (description ?? this.description),
         date: date ?? this.date,
         completedAt: clearCompleted ? null : (completedAt ?? this.completedAt),
         order: order ?? this.order,

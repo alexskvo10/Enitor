@@ -1638,6 +1638,7 @@ class _GoalFormSheet extends ConsumerStatefulWidget {
 
 class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
   late final TextEditingController _titleController;
+  late final TextEditingController _descController;
   DateTime? _startDate;
   DateTime? _deadline;
   bool _isCounter = false;
@@ -1690,6 +1691,8 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
     super.initState();
     _titleController =
         TextEditingController(text: widget.existingGoal?.title ?? '');
+    _descController =
+        TextEditingController(text: widget.existingGoal?.description ?? '');
     _startDate = widget.existingGoal?.startDate;
     _deadline = widget.existingGoal?.deadline;
     _isCounter = widget.existingGoal?.isCounter ?? false;
@@ -1705,6 +1708,7 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
   @override
   void dispose() {
     _titleController.dispose();
+    _descController.dispose();
     _tagCtrl.dispose();
     _tagSearchCtrl.dispose();
     for (final c in _subtaskCtrls) {
@@ -1918,6 +1922,19 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
                 border: const OutlineInputBorder(),
               ),
               onSubmitted: (_) => _save(),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _descController,
+              minLines: 1,
+              maxLines: 5,
+              keyboardType: TextInputType.multiline,
+              decoration: InputDecoration(
+                hintText: l10n.taskDescriptionHint,
+                prefixIcon: const Icon(Icons.notes, size: 20),
+                border: const OutlineInputBorder(),
+                isDense: true,
+              ),
             ),
             const SizedBox(height: 12),
             // ── Дата начала ──────────────────────────────────────────────
@@ -2138,6 +2155,8 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
     if (_tagCtrl.text.trim().isNotEmpty) _addTag(_tagCtrl.text);
 
     final repo = ref.read(goalRepositoryProvider);
+    final descText = _descController.text.trim();
+    final description = descText.isEmpty ? null : descText;
 
     if (widget.isEditing) {
       final existing = widget.existingGoal!;
@@ -2145,6 +2164,8 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
       final subs = _subtasksForEdit();
       var updated = existing.copyWith(
         title: title,
+        description: description,
+        clearDescription: description == null,
         startDate: _startDate,
         clearStartDate: _startDate == null,
         deadline: _deadline,
@@ -2170,6 +2191,7 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
       final r = widget.periodRef;
       await repo.addGoal(
         title: title,
+        description: description,
         period: r.period,
         year: r.year,
         month: r.month,

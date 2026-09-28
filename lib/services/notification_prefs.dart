@@ -29,6 +29,8 @@ class NotificationPrefs {
     this.quietHoursEnabled = true,
     this.quietStart = 23 * 60, // 23:00
     this.quietEnd = 8 * 60, // 08:00
+    this.scheduleReminders = true,
+    this.scheduleLeadMinutes = 10,
   });
 
   /// Главный рубильник — выключает все уведомления разом.
@@ -138,6 +140,14 @@ class NotificationPrefs {
   final int quietStart;
   final int quietEnd;
 
+  /// Напоминания о пунктах расписания — у каждого пункта своё «за сколько»,
+  /// это общий выключатель. Тихие часы их не глушат: напоминание в 7:50 о
+  /// паре в 8:00 человек выставил сам и ровно на это время.
+  final bool scheduleReminders;
+
+  /// Значение «напомнить за» для новых пунктов расписания.
+  final int scheduleLeadMinutes;
+
   /// true, если минута [minutes] (0..1439) попадает в тихие часы.
   bool isQuiet(int minutes) {
     if (!quietHoursEnabled) return false; // тихие часы выключены целиком
@@ -175,6 +185,8 @@ class NotificationPrefs {
     bool? quietHoursEnabled,
     int? quietStart,
     int? quietEnd,
+    bool? scheduleReminders,
+    int? scheduleLeadMinutes,
   }) =>
       NotificationPrefs(
         enabled: enabled ?? this.enabled,
@@ -204,6 +216,8 @@ class NotificationPrefs {
         quietHoursEnabled: quietHoursEnabled ?? this.quietHoursEnabled,
         quietStart: quietStart ?? this.quietStart,
         quietEnd: quietEnd ?? this.quietEnd,
+        scheduleReminders: scheduleReminders ?? this.scheduleReminders,
+        scheduleLeadMinutes: scheduleLeadMinutes ?? this.scheduleLeadMinutes,
       );
 
   Map<String, dynamic> toJson() => {
@@ -231,6 +245,8 @@ class NotificationPrefs {
         'quietHoursEnabled': quietHoursEnabled,
         'quietStart': quietStart,
         'quietEnd': quietEnd,
+        'scheduleReminders': scheduleReminders,
+        'scheduleLeadMinutes': scheduleLeadMinutes,
       };
 
   factory NotificationPrefs.fromJson(Map<String, dynamic> j) {
@@ -275,6 +291,11 @@ class NotificationPrefs {
           j['quietHoursEnabled'] as bool? ?? def.quietHoursEnabled,
       quietStart: j['quietStart'] as int? ?? def.quietStart,
       quietEnd: j['quietEnd'] as int? ?? def.quietEnd,
+      scheduleReminders:
+          j['scheduleReminders'] as bool? ?? def.scheduleReminders,
+      scheduleLeadMinutes:
+          (j['scheduleLeadMinutes'] as int? ?? def.scheduleLeadMinutes)
+              .clamp(0, 1440),
     );
   }
 }
