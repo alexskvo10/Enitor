@@ -48,6 +48,13 @@ class BackupService {
         decoded['data'] is! Map) {
       throw FormatException(_l10n.notBackupFileError);
     }
+    // Копия из более новой версии приложения может хранить данные так, как
+    // эта версия не понимает: приняв её, мы бы молча испортили данные.
+    // Старые копии без поля format — первого формата.
+    final format = decoded['format'];
+    if (format is! int? || (format ?? 1) > _formatVersion) {
+      throw FormatException(_l10n.backupTooNewError);
+    }
     final data = (decoded['data'] as Map).map(
       (k, v) => MapEntry(k.toString(), v as Object?),
     );

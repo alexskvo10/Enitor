@@ -53,4 +53,22 @@ void main() {
       throwsA(anything),
     );
   });
+
+  test('restoreFromJson: копию из более новой версии не принимает', () async {
+    SharedPreferences.setMockInitialValues({'tasks': '[]'});
+    final prefs = await SharedPreferences.getInstance();
+    final backup = BackupService(LocalStorage(prefs));
+
+    await expectLater(
+      backup.restoreFromJson(
+        '{"app":"todo","format":999,"data":{"tasks":"[1]"}}',
+      ),
+      throwsA(isA<FormatException>()),
+    );
+    // Отказ — до записи: данные не тронуты.
+    expect(prefs.getString('tasks'), '[]');
+
+    // Старая копия без поля format по-прежнему принимается.
+    await backup.restoreFromJson('{"app":"todo","data":{"tasks":"[]"}}');
+  });
 }

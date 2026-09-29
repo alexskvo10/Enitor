@@ -705,6 +705,7 @@
   "newAchievementLabel": "New achievement",
 
   "notBackupFileError": "This isn't an Enitor backup file",
+  "backupTooNewError": "This backup was made by a newer version of Enitor. Update the app and try again.",
   "saveBackupDialogTitle": "Save backup",
   "pickBackupFileDialogTitle": "Choose a backup file",
 

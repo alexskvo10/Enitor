@@ -7,6 +7,22 @@
 
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
+  // Только один экземпляр: два процесса пишут одно и то же хранилище и
+  // перезаписывают данные друг друга. Повторный запуск поднимает уже
+  // открытое окно и выходит. Мьютекс живёт до конца процесса — система
+  // освободит его сама, в том числе при аварийном завершении.
+  ::CreateMutexW(nullptr, TRUE, L"Local\\Dev.Enitor.App.Desktop.SingleInstance");
+  if (::GetLastError() == ERROR_ALREADY_EXISTS) {
+    // Класс окна общий у всех Flutter-приложений, поэтому ищем ещё и по
+    // заголовку.
+    if (HWND existing =
+            ::FindWindowW(L"FLUTTER_RUNNER_WIN32_WINDOW", L"Enitor")) {
+      if (::IsIconic(existing)) ::ShowWindow(existing, SW_RESTORE);
+      ::SetForegroundWindow(existing);
+    }
+    return EXIT_SUCCESS;
+  }
+
   // Attach to console when present (e.g., 'flutter run') or create a
   // new console when running with a debugger.
   if (!::AttachConsole(ATTACH_PARENT_PROCESS) && ::IsDebuggerPresent()) {

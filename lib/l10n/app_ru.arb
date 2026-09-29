@@ -632,6 +632,7 @@
   "newAchievementLabel": "Новое достижение",
 
   "notBackupFileError": "Это не файл бэкапа Enitor",
+  "backupTooNewError": "Бэкап сделан более новой версией Enitor. Обнови приложение и попробуй снова.",
   "saveBackupDialogTitle": "Сохранить бэкап",
   "pickBackupFileDialogTitle": "Выбрать файл бэкапа",
 
