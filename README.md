@@ -117,10 +117,16 @@ After the first install, Enitor checks GitHub for new releases on its own (about
 
 ### Tasks
 - A rotating quote from a curated collection about discipline and small daily progress opens the Today screen — not a widget nobody asked for, the same idea the rest of the app is built around.
-- Start/end time, priority, tags, sub-tasks (checklist), or a numeric counter ("drink 5 glasses of water") — partial progress counts honestly toward productivity.
+- Start/end time, a description, priority, tags, sub-tasks (checklist), or a numeric counter ("drink 5 glasses of water") — partial progress counts honestly toward productivity.
 - Recurring tasks — by weekday, by day of month, or every N days — with a choice of how far ahead to generate.
 - Copy a whole day's task set to another day, or save it as a reusable **template**.
 - Global search across task titles, descriptions, and tags.
+
+### Schedule
+- A tab next to the task list for what happens at a fixed time rather than what needs doing: classes, meetings, practice. An entry has a start and, if it has one, an end; a place, a note and a color.
+- Repeats by weekday — every week or every other week, for odd/even-week timetables — by day of month, or every N days. Moving a single class is "this day only"; the rest of the series stays put.
+- Overlapping entries are marked, and the day card on Today counts the scheduled time when it tells you how much of the day is left for tasks.
+- A week view: seven days at a glance, tap one to open it. Any entry can be duplicated or turned into a task — a one-off or a whole recurring series.
 
 ### Goals
 - Four periods — week, month, season, year — with an optional deadline.
