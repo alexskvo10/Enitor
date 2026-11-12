@@ -1,0 +1,585 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Enitor full export",
+  "description": "The file written by Settings → Integrations → Full export (formats.md, section 4). Item shapes follow the models' toJson() on the device. Every key is always written (null when empty), so every key is required. Device-only state, derived statistics and secrets are not in the file.",
+  "type": "object",
+  "required": ["format", "v", "exportedAt", "app", "data"],
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "enitor-export"
+    },
+    "v": {
+      "const": 1,
+      "description": "Version of this export format."
+    },
+    "exportedAt": {
+      "$ref": "#/$defs/dateTime",
+      "description": "When the file was written, ISO 8601 without an offset (device local time) or with Z (UTC)."
+    },
+    "app": {
+      "type": "object",
+      "required": ["version"],
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Version of the Enitor app that wrote the file."
+        }
+      }
+    },
+    "data": {
+      "type": "object",
+      "required": [
+        "tasks",
+        "goals",
+        "schedule",
+        "recurrence",
+        "templates",
+        "taskBacklog",
+        "goalBacklog",
+        "dayRatings",
+        "periodRatings"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "tasks": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Task" }
+        },
+        "goals": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Goal" }
+        },
+        "schedule": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ScheduleItem" }
+        },
+        "recurrence": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/RecurrenceRule" }
+        },
+        "templates": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/DayTemplate" }
+        },
+        "taskBacklog": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/BacklogItem" }
+        },
+        "goalBacklog": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/GoalBacklogItem" }
+        },
+        "dayRatings": {
+          "type": "object",
+          "description": "Day ratings: key is the day (stored as local midnight in ISO 8601, for example 2026-11-02T00:00:00.000), value is the rating 1 to 10.",
+          "propertyNames": { "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}" },
+          "additionalProperties": { "$ref": "#/$defs/rating" }
+        },
+        "periodRatings": {
+          "type": "object",
+          "description": "Goal period ratings: key is the period key (w-YYYY-M-D for a week from its start, m-YYYY-M for a month, s-YYYY-N for a season, y-YYYY for a year), value is the rating 1 to 10.",
+          "propertyNames": { "pattern": "^[wmsy]-[0-9]{4}" },
+          "additionalProperties": { "$ref": "#/$defs/rating" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "dateTime": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?Z?$",
+      "description": "ISO 8601 date-time as Dart writes it (toIso8601String)."
+    },
+    "nullableDateTime": {
+      "anyOf": [
+        { "$ref": "#/$defs/dateTime" },
+        { "type": "null" }
+      ]
+    },
+    "nullableString": {
+      "type": ["string", "null"]
+    },
+    "nullableInt": {
+      "type": ["integer", "null"]
+    },
+    "intList": {
+      "type": "array",
+      "items": { "type": "integer" }
+    },
+    "stringList": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "dateTimeList": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/dateTime" }
+    },
+    "priority": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3,
+      "description": "Index of the priority: 0 none, 1 low, 2 medium, 3 high."
+    },
+    "rating": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10
+    },
+    "period": {
+      "type": "string",
+      "enum": ["week", "month", "season", "year"]
+    },
+    "SubTask": {
+      "type": "object",
+      "description": "A checklist item. Model: SubTask.toJson.",
+      "required": ["id", "title", "done"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "done": { "type": "boolean" }
+      }
+    },
+    "Task": {
+      "type": "object",
+      "description": "A task on the device. Model: Task.toJson. Dates are full date-times at local midnight for days. A counter has targetCount and progressCount; a checklist has subtasks; a repeating task has recurrenceRuleId.",
+      "required": [
+        "id",
+        "title",
+        "description",
+        "date",
+        "completedAt",
+        "order",
+        "recurrenceRuleId",
+        "createdAt",
+        "updatedAt",
+        "startMinutes",
+        "endMinutes",
+        "estimatedMinutes",
+        "actualMinutes",
+        "targetCount",
+        "progressCount",
+        "goalId",
+        "isTransferred",
+        "transferredFromId",
+        "transferDeclined",
+        "quality",
+        "subtasks",
+        "priority",
+        "tags"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "$ref": "#/$defs/nullableString" },
+        "date": { "$ref": "#/$defs/dateTime" },
+        "completedAt": { "$ref": "#/$defs/nullableDateTime" },
+        "order": {
+          "type": "integer",
+          "description": "Position of the task among the others (sort order)."
+        },
+        "recurrenceRuleId": {
+          "$ref": "#/$defs/nullableString",
+          "description": "Id of the RecurrenceRule this task came from, or null."
+        },
+        "createdAt": { "$ref": "#/$defs/dateTime" },
+        "updatedAt": { "$ref": "#/$defs/dateTime" },
+        "startMinutes": {
+          "$ref": "#/$defs/nullableInt",
+          "description": "Start as minutes after midnight, or null."
+        },
+        "endMinutes": {
+          "$ref": "#/$defs/nullableInt",
+          "description": "End as minutes after midnight, or null."
+        },
+        "estimatedMinutes": { "$ref": "#/$defs/nullableInt" },
+        "actualMinutes": { "$ref": "#/$defs/nullableInt" },
+        "targetCount": {
+          "$ref": "#/$defs/nullableInt",
+          "description": "Target of a counter task, or null."
+        },
+        "progressCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Progress of a counter task."
+        },
+        "goalId": {
+          "$ref": "#/$defs/nullableString",
+          "description": "Id of the goal this task belongs to, or null."
+        },
+        "isTransferred": {
+          "type": "boolean",
+          "description": "true for a copy moved from another day."
+        },
+        "transferredFromId": { "$ref": "#/$defs/nullableString" },
+        "transferDeclined": { "type": "boolean" },
+        "quality": {
+          "$ref": "#/$defs/nullableInt",
+          "description": "Quality rating of the task, or null."
+        },
+        "subtasks": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/SubTask" }
+        },
+        "priority": { "$ref": "#/$defs/priority" },
+        "tags": { "$ref": "#/$defs/stringList" }
+      }
+    },
+    "Goal": {
+      "type": "object",
+      "description": "A goal. Model: Goal.toJson. Progress is manualProgress plus linkedProgress (progress of linked tasks).",
+      "required": [
+        "id",
+        "period",
+        "year",
+        "month",
+        "season",
+        "weekStart",
+        "title",
+        "description",
+        "completed",
+        "completedAt",
+        "createdAt",
+        "updatedAt",
+        "startDate",
+        "deadline",
+        "targetCount",
+        "manualProgress",
+        "linkedProgress",
+        "isTransferred",
+        "transferredFromId",
+        "transferDeclined",
+        "quality",
+        "subtasks",
+        "priority",
+        "tags"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "period": { "$ref": "#/$defs/period" },
+        "year": { "type": "integer" },
+        "month": {
+          "$ref": "#/$defs/nullableInt",
+          "description": "Month 1 to 12 for a month goal, otherwise null."
+        },
+        "season": {
+          "anyOf": [
+            { "type": "integer", "minimum": 0, "maximum": 3 },
+            { "type": "null" }
+          ],
+          "description": "Season index 0 to 3 for a season goal, otherwise null."
+        },
+        "weekStart": {
+          "$ref": "#/$defs/nullableDateTime",
+          "description": "First day of the week for a week goal, otherwise null."
+        },
+        "title": { "type": "string" },
+        "description": { "$ref": "#/$defs/nullableString" },
+        "completed": { "type": "boolean" },
+        "completedAt": { "$ref": "#/$defs/nullableDateTime" },
+        "createdAt": { "$ref": "#/$defs/dateTime" },
+        "updatedAt": { "$ref": "#/$defs/dateTime" },
+        "startDate": { "$ref": "#/$defs/nullableDateTime" },
+        "deadline": { "$ref": "#/$defs/nullableDateTime" },
+        "targetCount": {
+          "$ref": "#/$defs/nullableInt",
+          "description": "Target of a counter goal, or null."
+        },
+        "manualProgress": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Progress entered by hand."
+        },
+        "linkedProgress": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Progress from linked tasks."
+        },
+        "isTransferred": { "type": "boolean" },
+        "transferredFromId": { "$ref": "#/$defs/nullableString" },
+        "transferDeclined": { "type": "boolean" },
+        "quality": {
+          "anyOf": [
+            { "type": "integer", "minimum": 1, "maximum": 10 },
+            { "type": "null" }
+          ],
+          "description": "Self-assessed quality of the achievement, 1 to 10, or null."
+        },
+        "subtasks": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/SubTask" }
+        },
+        "priority": { "$ref": "#/$defs/priority" },
+        "tags": { "$ref": "#/$defs/stringList" }
+      }
+    },
+    "ScheduleItem": {
+      "type": "object",
+      "description": "A schedule item (an event with a time). Model: ScheduleItem.toJson. A repeating item keeps its rule here: repeat is null for a single item.",
+      "required": [
+        "id",
+        "title",
+        "date",
+        "startMinutes",
+        "endMinutes",
+        "note",
+        "location",
+        "colorIndex",
+        "repeat",
+        "weekdays",
+        "weekInterval",
+        "monthDays",
+        "intervalDays",
+        "endDate",
+        "exceptDates",
+        "reminderMinutes",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "date": {
+          "$ref": "#/$defs/dateTime",
+          "description": "First day of the item."
+        },
+        "startMinutes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1439,
+          "description": "Start as minutes after midnight."
+        },
+        "endMinutes": { "$ref": "#/$defs/nullableInt" },
+        "note": { "$ref": "#/$defs/nullableString" },
+        "location": { "$ref": "#/$defs/nullableString" },
+        "colorIndex": {
+          "$ref": "#/$defs/nullableInt",
+          "description": "Index of the colour in the palette, or null for the default."
+        },
+        "repeat": {
+          "type": ["string", "null"],
+          "enum": ["weekly", "monthly", "interval", null],
+          "description": "Kind of repetition, or null for a single item."
+        },
+        "weekdays": {
+          "$ref": "#/$defs/intList",
+          "description": "Days of the week for a weekly item."
+        },
+        "weekInterval": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Every N weeks."
+        },
+        "monthDays": {
+          "$ref": "#/$defs/intList",
+          "description": "Days of the month for a monthly item."
+        },
+        "intervalDays": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Every N days for an interval item."
+        },
+        "endDate": { "$ref": "#/$defs/nullableDateTime" },
+        "exceptDates": {
+          "$ref": "#/$defs/dateTimeList",
+          "description": "Days skipped by the repetition."
+        },
+        "reminderMinutes": {
+          "$ref": "#/$defs/nullableInt",
+          "description": "Minutes before the start for the reminder, or null."
+        },
+        "createdAt": { "$ref": "#/$defs/dateTime" },
+        "updatedAt": { "$ref": "#/$defs/dateTime" }
+      }
+    },
+    "RecurrenceRule": {
+      "type": "object",
+      "description": "A rule that makes tasks repeat. Model: RecurrenceRule.toJson.",
+      "required": [
+        "id",
+        "taskTitle",
+        "taskDescription",
+        "kind",
+        "weekdays",
+        "monthDays",
+        "intervalDays",
+        "startDate",
+        "endDate",
+        "exceptDates",
+        "createdAt",
+        "updatedAt",
+        "startMinutes",
+        "endMinutes",
+        "estimatedMinutes",
+        "targetCount",
+        "subtaskTitles",
+        "priority",
+        "tags"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "taskTitle": { "type": "string" },
+        "taskDescription": { "$ref": "#/$defs/nullableString" },
+        "kind": {
+          "type": "string",
+          "enum": ["weekly", "monthly", "interval"],
+          "description": "Weekly by weekdays, monthly by day of the month, or every N days."
+        },
+        "weekdays": { "$ref": "#/$defs/intList" },
+        "monthDays": { "$ref": "#/$defs/intList" },
+        "intervalDays": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "startDate": { "$ref": "#/$defs/dateTime" },
+        "endDate": { "$ref": "#/$defs/nullableDateTime" },
+        "exceptDates": { "$ref": "#/$defs/dateTimeList" },
+        "createdAt": { "$ref": "#/$defs/dateTime" },
+        "updatedAt": { "$ref": "#/$defs/dateTime" },
+        "startMinutes": { "$ref": "#/$defs/nullableInt" },
+        "endMinutes": { "$ref": "#/$defs/nullableInt" },
+        "estimatedMinutes": { "$ref": "#/$defs/nullableInt" },
+        "targetCount": { "$ref": "#/$defs/nullableInt" },
+        "subtaskTitles": { "$ref": "#/$defs/stringList" },
+        "priority": { "$ref": "#/$defs/priority" },
+        "tags": { "$ref": "#/$defs/stringList" }
+      }
+    },
+    "TemplateItem": {
+      "type": "object",
+      "description": "One task of a day template. Model: TemplateItem.toJson.",
+      "required": [
+        "title",
+        "description",
+        "startMinutes",
+        "endMinutes",
+        "estimatedMinutes",
+        "targetCount",
+        "subtaskTitles",
+        "priority",
+        "tags"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "$ref": "#/$defs/nullableString" },
+        "startMinutes": { "$ref": "#/$defs/nullableInt" },
+        "endMinutes": { "$ref": "#/$defs/nullableInt" },
+        "estimatedMinutes": { "$ref": "#/$defs/nullableInt" },
+        "targetCount": { "$ref": "#/$defs/nullableInt" },
+        "subtaskTitles": { "$ref": "#/$defs/stringList" },
+        "priority": { "$ref": "#/$defs/priority" },
+        "tags": { "$ref": "#/$defs/stringList" }
+      }
+    },
+    "DayTemplate": {
+      "type": "object",
+      "description": "A named set of tasks applied to a day in one step. Model: DayTemplate.toJson.",
+      "required": ["id", "name", "createdAt", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "createdAt": { "$ref": "#/$defs/dateTime" },
+        "items": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/TemplateItem" }
+        }
+      }
+    },
+    "BacklogItem": {
+      "type": "object",
+      "description": "A task without a day, kept after a moved copy was deleted from its target day. Model: BacklogItem.toJson.",
+      "required": [
+        "id",
+        "title",
+        "description",
+        "originalDate",
+        "addedAt",
+        "startMinutes",
+        "endMinutes",
+        "estimatedMinutes",
+        "targetCount",
+        "progressCount",
+        "subtaskTitles",
+        "priority",
+        "tags"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "$ref": "#/$defs/nullableString" },
+        "originalDate": {
+          "$ref": "#/$defs/dateTime",
+          "description": "The day the task was originally planned for."
+        },
+        "addedAt": { "$ref": "#/$defs/dateTime" },
+        "startMinutes": { "$ref": "#/$defs/nullableInt" },
+        "endMinutes": { "$ref": "#/$defs/nullableInt" },
+        "estimatedMinutes": { "$ref": "#/$defs/nullableInt" },
+        "targetCount": { "$ref": "#/$defs/nullableInt" },
+        "progressCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "subtaskTitles": { "$ref": "#/$defs/stringList" },
+        "priority": { "$ref": "#/$defs/priority" },
+        "tags": { "$ref": "#/$defs/stringList" }
+      }
+    },
+    "GoalPeriodRef": {
+      "type": "object",
+      "description": "A goal period. Written inside GoalBacklogItem as originalRef; it has no toJson of its own.",
+      "required": ["period", "year", "month", "season", "weekStart"],
+      "additionalProperties": false,
+      "properties": {
+        "period": { "$ref": "#/$defs/period" },
+        "year": { "type": "integer" },
+        "month": { "$ref": "#/$defs/nullableInt" },
+        "season": { "$ref": "#/$defs/nullableInt" },
+        "weekStart": { "$ref": "#/$defs/nullableDateTime" }
+      }
+    },
+    "GoalBacklogItem": {
+      "type": "object",
+      "description": "A goal that was not reached and kept after its moved copy was deleted from its target period. Model: GoalBacklogItem.toJson.",
+      "required": [
+        "id",
+        "title",
+        "description",
+        "period",
+        "originalRef",
+        "addedAt",
+        "targetCount",
+        "progressCount",
+        "subtaskTitles"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "$ref": "#/$defs/nullableString" },
+        "period": { "$ref": "#/$defs/period" },
+        "originalRef": {
+          "$ref": "#/$defs/GoalPeriodRef",
+          "description": "The period the goal was created in."
+        },
+        "addedAt": { "$ref": "#/$defs/dateTime" },
+        "targetCount": { "$ref": "#/$defs/nullableInt" },
+        "progressCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "subtaskTitles": { "$ref": "#/$defs/stringList" }
+      }
+    }
+  }
+}

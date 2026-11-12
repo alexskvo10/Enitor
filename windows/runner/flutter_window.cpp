@@ -4,8 +4,9 @@
 
 #include "flutter/generated_plugin_registrant.h"
 
-FlutterWindow::FlutterWindow(const flutter::DartProject& project)
-    : project_(project) {}
+FlutterWindow::FlutterWindow(const flutter::DartProject& project,
+                             bool start_minimized)
+    : project_(project), start_minimized_(start_minimized) {}
 
 FlutterWindow::~FlutterWindow() {}
 
@@ -25,10 +26,19 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
   RegisterPlugins(flutter_controller_->engine());
+  // Канал поднимается только здесь — после захвата мьютекса в main.cpp,
+  // поэтому двух серверов одного канала не бывает.
+  command_pipe_ = std::make_unique<CommandPipe>(
+      GetHandle(), flutter_controller_->engine()->messenger());
+  command_pipe_->Start();
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
-    this->Show();
+    if (start_minimized_) {
+      ::ShowWindow(GetHandle(), SW_SHOWMINNOACTIVE);
+    } else {
+      this->Show();
+    }
   });
 
   // Flutter can complete the first frame before the "show window" callback is
@@ -40,6 +50,8 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
+  // Сначала канал: его поток шлёт сообщения окну и зовёт движок.
+  command_pipe_ = nullptr;
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
   }
@@ -62,6 +74,9 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
   }
 
   switch (message) {
+    case kCommandPipeMessage:
+      if (command_pipe_) command_pipe_->HandleWindowMessage(lparam);
+      return 0;
     case WM_FONTCHANGE:
       flutter_controller_->engine()->ReloadSystemFonts();
       break;

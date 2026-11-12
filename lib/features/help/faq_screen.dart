@@ -6,7 +6,13 @@ import 'pomodoro_guide_sheet.dart';
 
 /// Один вопрос-ответ.
 class _Qa {
-  const _Qa(this.q, this.a, this.qEn, this.aEn, {this.opensPomodoroGuide = false});
+  const _Qa(
+    this.q,
+    this.a,
+    this.qEn,
+    this.aEn, {
+    this.opensPomodoroGuide = false,
+  });
   final String q;
   final String a;
   final String qEn;
@@ -194,64 +200,159 @@ const List<_Section> _kFaq = [
           'weekday, by day of the month, or every N days. Occurrences are '
           'created automatically as you open the corresponding day.',
     ),
-  ]),
-  _Section('Перенос и «день с 4:00»', 'Carryover and the "4:00 day"',
-      Icons.schedule, [
     _Qa(
-      'Почему невыполненная задача переехала на сегодня?',
-      'На границе дня (в 4:00) приложение предлагает перенести незакрытые '
-          'задачи прошлых дней на сегодня, но не молча: ты подтверждаешь '
-          'перенос — плашкой вверху экрана, если приложение открыто, или '
-          'списком-напоминанием при следующем запуске — и сам выбираешь, что '
-          'перенести. Перенос делает копию на сегодня; оригинал остаётся в '
-          'своём дне с обычным цветом статуса и маленьким значком-стрелкой. '
-          'Историю мы не переписываем.',
-      'Why did an unfinished task move to today?',
-      'At the day rollover (4:00) the app offers to carry your unfinished '
-          'tasks from past days over to today — but not silently: you confirm '
-          'the carry-over (a banner at the top of the screen if the app is '
-          'open, or a reminder list on the next launch) and choose what moves. '
-          'Carrying over creates a copy on today; the original stays on its '
-          'own day with its usual status colour and a small arrow badge. '
-          'History is never rewritten.',
-    ),
-    _Qa(
-      'Почему день «начинается» в 4:00, а не в полночь?',
-      'Чтобы ночные часы относились к уходящему дню. До 4:00 утра активным '
-          'считается вчерашний день — удобно, если ложишься поздно.',
-      'Why does the day "start" at 4:00 instead of midnight?',
-      "So that late-night hours belong to the day that's ending. Until "
-          '4:00 AM, yesterday is still considered the active day — handy '
-          'if you go to bed late.',
-    ),
-    _Qa(
-      'Почему прошлые дни нельзя редактировать?',
-      'Прошлое — только для чтения, чтобы статистика была честной. Перенос '
-          'делается копией на сегодня, а не правкой истории.',
-      "Why can't I edit past days?",
-      "The past is read-only so that stats stay honest. Carrying a task "
-          'over creates a copy on today rather than editing history.',
-    ),
-    _Qa(
-      'Что такое «Невыполненные задачи» (бэклог)?',
-      'Если перенесённая задача снова не сделана и переезжает повторно, она '
-          'уходит в бэклог «Невыполненные задачи» — чтобы сегодняшний список не '
-          'засорялся, но дело не потерялось. Оттуда её можно вернуть.',
-      'What\'s the "Unfinished tasks" backlog?',
-      'If a carried-over task is left undone again, it moves into the '
-          '"Unfinished tasks" backlog — so today\'s list doesn\'t get '
-          "cluttered, but nothing is lost. You can bring it back from "
-          'there anytime.',
-    ),
-    _Qa(
-      'Зачем шаблоны дня?',
-      'Сохрани типовой набор задач (например «рабочий день») как шаблон и '
-          'применяй в любой день одним нажатием — задачи добавятся с нуля.',
-      'What are day templates for?',
-      'Save a typical set of tasks (e.g. a "workday") as a template and '
-          'apply it to any day with one tap — the tasks get added fresh.',
+      'Можно ли свернуть календарь?',
+      'Да: переключатель на самом календаре меняет вид — месяц, две недели или '
+          'неделя. Приложение запоминает выбор. Он хранится отдельно на каждом '
+          'устройстве: на телефоне может стоять неделя, а на компьютере месяц.',
+      'Can I collapse the calendar?',
+      'Yes: the switch on the calendar itself changes the view — month, two '
+          'weeks or week. The app remembers your choice. It is kept separately '
+          'on each device, so your phone can show a week and your computer a '
+          'month.',
     ),
   ]),
+  _Section('Расписание', 'Schedule', Icons.event_note_outlined, [
+    _Qa(
+      'Чем расписание отличается от задач?',
+      'Задачу нужно сделать и отметить, она влияет на статистику. Пункт '
+          'расписания — то, что просто идёт в своё время: пара, тренировка, '
+          'смена. Отмечать его не надо. Занятое время видно и на вкладке '
+          '«Задачи»: сводка вверху списка открывает расписание.',
+      'How is the schedule different from tasks?',
+      'A task has to be done and checked off, and it counts in your stats. A '
+          'schedule item simply happens at its time: a class, a workout, a '
+          'shift. There is nothing to check off. Busy time also shows on the '
+          'Tasks tab: the summary above the list opens the schedule.',
+    ),
+    _Qa(
+      'Как добавить пункт и настроить повтор?',
+      'На вкладке «Расписание» нажми «+ Пункт». Нужны название и начало, '
+          'остальное необязательно: конец, заметка, место, цвет, напоминание '
+          'и повтор. Повтор бывает по дням недели (каждую неделю или через '
+          'неделю), по числам месяца и через интервал. «Через неделю» считается '
+          'от недели, в которой создан пункт, поэтому создавай его на неделе, '
+          'когда занятие есть.',
+      'How do I add an item and set it to repeat?',
+      'On the Schedule tab press “+ Event”. It needs a title and a start time; '
+          'the rest is optional: end time, note, place, colour, reminder and '
+          'repeat. It can repeat by weekday (every week or every other week), '
+          'by day of the month, or at an interval. “Every other week” counts '
+          'from the week the item was created in, so create it in a week when '
+          'the class takes place.',
+    ),
+    _Qa(
+      'Как поменять или удалить только один день серии?',
+      'Открой пункт в нужный день и измени его. При сохранении приложение '
+          'спросит: только этот день или вся серия. То же при удалении — через '
+          'меню пункта или свайпом влево. Другие дни серии при выборе «только '
+          'этот день» не меняются.',
+      'How do I change or delete just one day of a series?',
+      'Open the item on that day and edit it. When saving, the app asks: just '
+          'this day or the whole series. Deleting works the same way, from the '
+          'item menu or with a swipe left. Choosing “just this day” leaves the '
+          'other days of the series as they are.',
+    ),
+    _Qa(
+      'Что показывает кнопка «Неделя»?',
+      'Обзор недели выбранного дня, с понедельника по воскресенье: её даты '
+          'видны в шапке, а пункты — по дням. Нажатие на день открывает его. '
+          'Кнопка «День» возвращает к обычному виду.',
+      'What does the “Week” button show?',
+      'An overview of the selected day’s week, Monday to Sunday: its dates are '
+          'in the header and the items are grouped by day. Tapping a day opens '
+          'it. The “Day” button returns to the usual view.',
+    ),
+    _Qa(
+      'Что значит «Накладка»?',
+      'Два пункта в один день пересекаются по времени. Приложение только '
+          'предупреждает пометкой и ничего не двигает само.',
+      'What does “Overlaps” mean?',
+      'Two items on the same day overlap in time. The app only flags this and '
+          'does not move anything by itself.',
+    ),
+    _Qa(
+      'Как сделать из пункта задачу?',
+      'В меню пункта выбери «Сделать задачей»: только на этот день или, для '
+          'серии, повторяющуюся задачу по тому же правилу. Там же есть '
+          '«Дублировать», чтобы быстро создать похожий пункт.',
+      'How do I turn an item into a task?',
+      'Choose “Make a task” in the item menu: for this day only or, for a '
+          'series, as a recurring task with the same rule. The same menu has '
+          '“Duplicate” for quickly creating a similar item.',
+    ),
+    _Qa(
+      'Как загрузить расписание вуза или график смен?',
+      'Настройки → Интеграции → «Календари и переезд»: импорт .ics из файла '
+          'или по ссылке. Пункты попадут на вкладку «Расписание». Повторный '
+          'импорт того же календаря обновляет их, а не дублирует.',
+      'How do I load a university timetable or shift plan?',
+      'Settings → Integrations → “Calendars and moving in”: import an .ics '
+          'file or link. The items land on the Schedule tab. Importing the same '
+          'calendar again updates them rather than duplicating them.',
+    ),
+  ]),
+  _Section(
+    'Перенос и «день с 4:00»',
+    'Carryover and the "4:00 day"',
+    Icons.schedule,
+    [
+      _Qa(
+        'Почему невыполненная задача переехала на сегодня?',
+        'На границе дня (в 4:00) приложение предлагает перенести незакрытые '
+            'задачи прошлых дней на сегодня, но не молча: ты подтверждаешь '
+            'перенос — плашкой вверху экрана, если приложение открыто, или '
+            'списком-напоминанием при следующем запуске — и сам выбираешь, что '
+            'перенести. Перенос делает копию на сегодня; оригинал остаётся в '
+            'своём дне с обычным цветом статуса и маленьким значком-стрелкой. '
+            'Историю мы не переписываем.',
+        'Why did an unfinished task move to today?',
+        'At the day rollover (4:00) the app offers to carry your unfinished '
+            'tasks from past days over to today — but not silently: you confirm '
+            'the carry-over (a banner at the top of the screen if the app is '
+            'open, or a reminder list on the next launch) and choose what moves. '
+            'Carrying over creates a copy on today; the original stays on its '
+            'own day with its usual status colour and a small arrow badge. '
+            'History is never rewritten.',
+      ),
+      _Qa(
+        'Почему день «начинается» в 4:00, а не в полночь?',
+        'Чтобы ночные часы относились к уходящему дню. До 4:00 утра активным '
+            'считается вчерашний день — удобно, если ложишься поздно.',
+        'Why does the day "start" at 4:00 instead of midnight?',
+        "So that late-night hours belong to the day that's ending. Until "
+            '4:00 AM, yesterday is still considered the active day — handy '
+            'if you go to bed late.',
+      ),
+      _Qa(
+        'Почему прошлые дни нельзя редактировать?',
+        'Прошлое — только для чтения, чтобы статистика была честной. Перенос '
+            'делается копией на сегодня, а не правкой истории.',
+        "Why can't I edit past days?",
+        "The past is read-only so that stats stay honest. Carrying a task "
+            'over creates a copy on today rather than editing history.',
+      ),
+      _Qa(
+        'Что такое «Невыполненные задачи» (бэклог)?',
+        'Если перенесённая задача снова не сделана и переезжает повторно, она '
+            'уходит в бэклог «Невыполненные задачи» — чтобы сегодняшний список не '
+            'засорялся, но дело не потерялось. Оттуда её можно вернуть.',
+        'What\'s the "Unfinished tasks" backlog?',
+        'If a carried-over task is left undone again, it moves into the '
+            '"Unfinished tasks" backlog — so today\'s list doesn\'t get '
+            "cluttered, but nothing is lost. You can bring it back from "
+            'there anytime.',
+      ),
+      _Qa(
+        'Зачем шаблоны дня?',
+        'Сохрани типовой набор задач (например «рабочий день») как шаблон и '
+            'применяй в любой день одним нажатием — задачи добавятся с нуля.',
+        'What are day templates for?',
+        'Save a typical set of tasks (e.g. a "workday") as a template and '
+            'apply it to any day with one tap — the tasks get added fresh.',
+      ),
+    ],
+  ),
   _Section('Цели', 'Goals', Icons.flag_outlined, [
     _Qa(
       'Какие бывают цели?',
@@ -421,8 +522,7 @@ const List<_Section> _kFaq = [
           'have at least 3 such pairs.',
     ),
   ]),
-  _Section('Профиль и достижения', 'Profile and achievements',
-      Icons.emoji_events_outlined, [
+  _Section('Профиль и достижения', 'Profile and achievements', Icons.emoji_events_outlined, [
     _Qa(
       'Что такое серия (streak)?',
       'Число дней подряд, закрытых на 100% (все задачи дня выполнены). Дни без '
@@ -648,20 +748,311 @@ const List<_Section> _kFaq = [
           'shadow copy. Adding Enitor to your antivirus trusted list fixes it.',
     ),
   ]),
+  _Section('Интеграции', 'Integrations', Icons.hub_outlined, [
+    _Qa(
+      'Интеграции что-то отправляют на сервер?',
+      'Нашего сервера нет — Enitor его не запускает. Всё работает на этом '
+          'устройстве: ссылки, «Поделиться», Tasker и консоль говорят с '
+          'приложением напрямую. Наружу данные уходят, только если ты сам '
+          'добавишь адрес вебхука, загрузишь календарь по своей ссылке, '
+          'разрешишь ИИ-ассистенту читать план или подключишь свой сервер для '
+          'синхронизации. Синхронизация по сети отдаёт данные только твоим '
+          'устройствам, с которыми ты их познакомил. Свой сервер получает данные только по адресу, который '
+          'ты ввёл. На Android он ещё шлёт короткий сигнал через доставщика '
+          'push — без твоих данных.',
+      'Do integrations send anything to a server?',
+      'There is no Enitor server of ours — we do not run one. Everything works '
+          'on this device: links, “Share”, Tasker and the console talk to the '
+          'app directly. Data leaves only if you add a webhook address yourself, '
+          'load a calendar from your own link, let an AI assistant read your '
+          'plan, or connect your own server for sync. Network sync gives data '
+          'only to your own devices that you paired. Your own server receives '
+          'data only at the address you entered. On Android it also sends a '
+          'short push signal through the distributor app, with none of your '
+          'data in it.',
+    ),
+    _Qa(
+      'Как синхронизировать телефон и компьютер?',
+      'Проще всего — напрямую по Wi-Fi: Настройки → Синхронизация. На одном '
+          'устройстве нажми «Добавить устройство» — появятся QR-код и код. На '
+          'другом наведи на QR-код камеру телефона или нажми «Ввести код» и '
+          'введи его, а на первом подтверди. Знакомить нужно один раз; дальше '
+          'устройства в одной сети обмениваются сами, зашифрованно, без '
+          'интернета. На телефоне обмен идёт, пока Enitor открыт. Если '
+          'устройства далеко друг от друга — нужен свой сервер (enitor-server, '
+          'лежит рядом с enitor.exe, есть сборка для Linux): там же, в блоке '
+          '«Свой сервер», подключи к нему устройства по адресу и токену. '
+          'Инструкция — docs/integrations/server.ru.md в репозитории.',
+      'How do I sync my phone and PC?',
+      'The easiest way is directly over Wi-Fi: Settings → Sync. On one device '
+          'press “Add a device” — a QR code and a code appear. On the other, '
+          'point the phone camera at the QR code or press “Enter a code” and '
+          'type it, then confirm on the first one. You pair them once; after '
+          'that, devices on the same network sync by themselves, encrypted, '
+          'with no internet. On a phone, sync runs while Enitor is open. If the '
+          'devices are far apart, you need your own server (enitor-server, next '
+          'to enitor.exe, with a Linux build too): connect the devices to it in '
+          'the same place, under “Own server”, with the address and the token. '
+          'The guide is docs/integrations/server.md in the repository.',
+    ),
+    _Qa(
+      'Синхронизация по сети безопасна? Сосед по Wi-Fi не увидит мои задачи?',
+      'Не увидит. Устройства говорят только с теми, с кем ты их познакомил, '
+          'и только зашифрованно. Код из 12 знаков нельзя подобрать, пока он '
+          'действует (5 минут), а после пяти неверных попыток он меняется. Кто '
+          'ввёл верный код, всё равно попадёт в группу, только если ты '
+          'подтвердишь это на своём устройстве. Потерянное устройство можно '
+          'отключить — оно перестанет получать данные от всей группы.',
+      'Is network sync safe? Can someone on the same Wi-Fi see my tasks?',
+      'No. Devices talk only to the ones you paired them with, and only '
+          'encrypted. The 12-character code can’t be guessed while it is valid '
+          '(5 minutes), and it changes after five wrong tries. Even with the '
+          'right code, a device joins only after you confirm it on yours. A '
+          'lost device can be removed — it stops getting data from the whole '
+          'group.',
+    ),
+    _Qa(
+      'Что выбрать при подключении: объединить или заменить?',
+      '«Объединить» сохраняет данные и устройства, и сервера: подходит почти '
+          'всегда. «Заменить» стирает данные этого устройства и берёт серверные. '
+          'Это нужно, когда устройство новое или его данные больше не важны. '
+          'Перед заменой сохранится авто-бэкап.',
+      'Which one do I pick when connecting: merge or replace?',
+      '“Merge” keeps the data of both the device and the server, and it suits '
+          'almost every case. “Replace” wipes this device’s data and takes the '
+          'server’s. Use it when the device is new or its data no longer '
+          'matters. An auto-backup is saved before replacing.',
+    ),
+    _Qa(
+      'Как быстро приходят изменения с сервера?',
+      'Пока Enitor открыт — за пару секунд: он держит связь с сервером, и '
+          'тот сразу сообщает о новом. Своя правка уходит на сервер секунды '
+          'через три после последнего изменения. Для подстраховки приложение '
+          'ещё и само спрашивает сервер раз в 5 минут и при каждом открытии. '
+          'Закрытый Enitor на Android забирает изменения в фоне примерно раз '
+          'в 15 минут (Android может сдвигать это время), а с приложением для '
+          'push, например ntfy, — за секунды. На компьютере фонового обмена '
+          'нет: всё придёт при следующем запуске. Кнопка «Синхронизировать '
+          'сейчас» запускает обмен сразу.',
+      'How fast do changes arrive from the server?',
+      'While Enitor is open, within a couple of seconds: it keeps a connection '
+          'to the server, which reports anything new right away. Your own edit '
+          'goes to the server about three seconds after your last change. As a '
+          'safety net the app also asks the server every 5 minutes and every '
+          'time it opens. A closed Enitor on Android picks up changes in the '
+          'background about every 15 minutes (Android may shift that time), '
+          'and within seconds with a push app such as ntfy. On a computer there '
+          'is no background sync: everything arrives the next time you start '
+          'it. The “Sync now” button starts an exchange right away.',
+    ),
+    _Qa(
+      'Что будет, если изменить одно и то же на двух устройствах?',
+      'Побеждает правка, которая дошла до сервера позже, — целиком, без '
+          'смешивания полей. Если на одном устройстве запись удалили, а на '
+          'другом потом изменили, она вернётся. Если два устройства независимо '
+          'создали одну и ту же запись (например, экземпляр повтора), остаётся '
+          'та, что была на сервере первой.',
+      'What if I change the same thing on two devices?',
+      'The edit that reaches the server later wins, as a whole, without mixing '
+          'fields. If one device deleted a record and another edited it later, '
+          'the record comes back. If two devices created the same record on '
+          'their own (a repeat instance, for example), the one that reached the '
+          'server first stays.',
+    ),
+    _Qa(
+      'Где посмотреть, какие устройства подключены?',
+      'Настройки → Синхронизация. В «Устройствах в сети» — вся группа: '
+          'кто сейчас в сети и когда был обмен; крестик отключает устройство '
+          'насовсем. У своего сервера — свой список «Устройства»: крестик '
+          'убирает из него старое устройство, а если оно снова выйдет на '
+          'связь, то вернётся. Чтобы устройство перестало получать данные с '
+          'сервера, нажми на нём «Отключить» или смени токен на сервере.',
+      'Where do I see which devices are connected?',
+      'Settings → Sync. “Devices on your network” shows the whole group: who '
+          'is online now and when they last synced; the cross removes a device '
+          'for good. Your own server has its own “Devices” list: the cross '
+          'removes an old device from it, and if it syncs again, it comes back. '
+          'To stop a device from getting data from the server, press '
+          '“Disconnect” on it or change the token on the server.',
+    ),
+    _Qa(
+      'Что будет с данными, если нажать «Отключить»?',
+      'Ничего не пропадёт: данные останутся и на устройстве, и на сервере, '
+          'просто обмен прекратится, а устройство уберёт себя из списка. '
+          'Подключиться снова можно в любой момент; «Объединить» при этом не '
+          'создаст дублей.',
+      'What happens to my data if I press “Disconnect”?',
+      'Nothing is lost: the data stays both on the device and on the server; '
+          'the exchange just stops and the device removes itself from the list. '
+          'You can connect again at any time, and “Merge” will not create '
+          'duplicates.',
+    ),
+    _Qa(
+      'Может ли ссылка с сайта добавить мне задачу без спроса?',
+      'Нет. Ссылка enitor:// и «Поделиться» только открывают обычную '
+          'анкету — заполненную и с пометкой «из ссылки». Задача появится, '
+          'только когда ты нажмёшь «Добавить». Ничего не читают и не отмечают.',
+      'Can a link on a website add a task without asking?',
+      'No. An enitor:// link and “Share” only open the usual form — filled '
+          'in and marked “from a link”. The task appears only when you press '
+          'Add. They never read or mark anything.',
+    ),
+    _Qa(
+      'Как подключить ИИ-ассистента (MCP) на компьютере?',
+      'Включи «ИИ-ассистенты» в Настройки → Интеграции → Права и скопируй '
+          'блок из раздела «ИИ-ассистенты». Enitor должен быть запущен. Куда '
+          'вставить:\n'
+          '• Claude Desktop — файл %APPDATA%\\Claude\\claude_desktop_config.json '
+          '(Настройки → Developer → Edit Config). Если в файле уже есть '
+          '"mcpServers", добавь внутрь только строку "enitor": {…}, второй '
+          '"mcpServers" не создавай. Потом полностью закрой Claude (и в трее) '
+          'и запусти снова.\n'
+          '• Cursor — %USERPROFILE%\\.cursor\\mcp.json, так же внутрь '
+          '"mcpServers".\n'
+          '• VS Code — .vscode\\mcp.json в папке проекта или команда «MCP: '
+          'Open User Configuration». Тут ключ называется "servers", а не '
+          '"mcpServers"; содержимое "enitor" то же.\n'
+          '• Claude Code — без файла, одной командой: claude mcp add -s user '
+          'enitor -- "<путь к enitor-cli.exe>" mcp.\n'
+          'Путь к enitor-cli.exe — в разделе «Windows» там же.',
+      'How do I connect an AI assistant (MCP) on my computer?',
+      'Turn on “AI assistants” in Settings → Integrations → Permissions and '
+          'copy the block from the “AI assistants” section. Enitor must be '
+          'running. Where to paste it:\n'
+          '• Claude Desktop — the file %APPDATA%\\Claude\\claude_desktop_config.json '
+          '(Settings → Developer → Edit Config). If the file already has '
+          '"mcpServers", add only the "enitor": {…} entry inside it; do not '
+          'create a second "mcpServers". Then quit Claude completely (the tray '
+          'too) and start it again.\n'
+          '• Cursor — %USERPROFILE%\\.cursor\\mcp.json, also inside '
+          '"mcpServers".\n'
+          '• VS Code — .vscode\\mcp.json in the project folder, or the “MCP: '
+          'Open User Configuration” command. Here the key is "servers", not '
+          '"mcpServers"; the "enitor" part is the same.\n'
+          '• Claude Code — no file, one command: claude mcp add -s user enitor '
+          '-- "<path to enitor-cli.exe>" mcp.\n'
+          'The path to enitor-cli.exe is in the “Windows” section of the same '
+          'screen.',
+    ),
+    _Qa(
+      'Как добавлять задачи из командной строки?',
+      'На Windows рядом с Enitor лежит enitor-cli.exe. Примеры: enitor-cli '
+          'add Купить молоко --at 18:00 — задача; enitor-cli schedule Пара '
+          '--at 10:30 --until 12:00 — пункт расписания; enitor-cli today — план '
+          'дня; enitor-cli done 3f9a — отметить по началу id. Всё — enitor-cli '
+          '--help. Enitor должен быть запущен, а «Консоль» — разрешена в '
+          '«Правах». Чтобы вызывать его из любой папки, добавь папку Enitor в '
+          'PATH.',
+      'How do I add tasks from the command line?',
+      'On Windows, enitor-cli.exe sits next to Enitor. Examples: enitor-cli add '
+          'Buy milk --at 18:00 adds a task; enitor-cli schedule Lecture --at '
+          '10:30 --until 12:00 adds a schedule item; enitor-cli today prints the '
+          'day plan; enitor-cli done 3f9a marks a task by the start of its id. '
+          'Everything else: enitor-cli --help. Enitor must be running, and '
+          '“Console” must be allowed in Permissions. To call it from any '
+          'folder, add the Enitor folder to PATH.',
+    ),
+    _Qa(
+      'Как подключить Tasker или Automate?',
+      'Разреши Tasker в Настройки → Интеграции → Права, затем в разделе '
+          '«Tasker и Automate» скопируй готовый пример действия «Send Intent» — '
+          'ключ в нём уже подставлен. Команда без верного ключа ничего не '
+          'делает. Чтобы автоматизация могла читать план и получать ответы, '
+          'нужно право «Читать» и имя её пакета в списке «Кому можно '
+          'отвечать».',
+      'How do I connect Tasker or Automate?',
+      'Allow Tasker in Settings → Integrations → Permissions, then copy the '
+          'ready “Send Intent” example from the “Tasker and Automate” section; '
+          'the key is already filled in. A command without the right key does '
+          'nothing. For the automation to read the plan and get replies, it '
+          'needs the “Read” permission and its package name in the “Apps that '
+          'may get replies” list.',
+    ),
+    _Qa(
+      'Что такое вебхуки и зачем они?',
+      'Enitor сам сообщает твоей системе о событиях: задача выполнена, день '
+          'закрыт, цель достигнута. Добавь адрес (n8n, Home Assistant, свой '
+          'сервер) в разделе «Вебхуки» и выбери события. Каждый запрос '
+          'подписан секретом — так видно, что он от твоего Enitor. Если адрес '
+          'недоступен, событие подождёт в очереди и уйдёт позже.',
+      'What are webhooks for?',
+      'Enitor tells your own system about events: a task is done, a day is '
+          'closed, a goal is achieved. Add an address (n8n, Home Assistant, your '
+          'own server) in the “Webhooks” section and pick the events. Every '
+          'request is signed with a secret, so you can tell it came from your '
+          'Enitor. If the address is down, the event waits in a queue and goes '
+          'out later.',
+    ),
+    _Qa(
+      'Как увидеть расписание Enitor в Google Календаре или Outlook?',
+      'Настройки → Интеграции → «Экспорт в календарь (.ics)» сохраняет '
+          'расписание и задачи со временем в файл; импортируй его в календарь. '
+          'Это снимок, а не подписка: после изменений экспортируй снова. '
+          'Обратное направление — «Импорт календаря» из файла или по ссылке.',
+      'How do I see my Enitor schedule in Google Calendar or Outlook?',
+      'Settings → Integrations → “Export to a calendar (.ics)” saves your '
+          'schedule and timed tasks to a file; import it into your calendar. It '
+          'is a snapshot, not a subscription: export again after changes. The '
+          'other way round is “Import calendar” from a file or a link.',
+    ),
+    _Qa(
+      'Что видит ИИ-ассистент?',
+      'Только то, что разрешено в Настройки → Интеграции → Права. По '
+          'умолчанию — ничего. «Добавлять» позволяет создавать и отмечать '
+          'задачи, «Читать» — видеть план дня, и тогда названия задач уходят '
+          'в модель ассистента. Удалять он не может вовсе. Последние вызовы '
+          'видны там же, в журнале.',
+      'What does an AI assistant see?',
+      'Only what Settings → Integrations → Permissions allows. By default — '
+          'nothing. “Add” lets it create and mark tasks, “Read” lets it see '
+          "the day's plan, and then task titles go to the assistant's model. "
+          'It cannot delete anything at all. Recent calls are listed there, '
+          'in the log.',
+    ),
+    _Qa(
+      'Попадают ли ключи и настройки интеграций в резервную копию?',
+      'Нет. Ключ Tasker, токен своего сервера и секреты вебхуков лежат в '
+          'защищённом хранилище системы, а настройки, очередь и журнал вебхуков '
+          'и настройки синхронизации — состояние именно этого устройства. '
+          'Копия с телефона не включит интеграции на компьютере, а восстановление '
+          'не отправит заново ни одного вебхука.',
+      'Do integration keys and settings go into backups?',
+      "No. The Tasker key, your server's token and the webhook secrets live in "
+          "the system's protected storage, and integration settings, the webhook "
+          'queue and log, and the sync settings belong to this device only. A '
+          "phone backup won't turn integrations on on your computer, and "
+          "restoring it won't resend any webhook.",
+    ),
+    _Qa(
+      'Как перенести задачи из Todoist, Google Задач или TickTick?',
+      'Сделай экспорт в том приложении (подсказка, где он, — прямо в '
+          'Enitor), затем Настройки → Интеграции → «Переезд из другого '
+          'приложения». Перед импортом видно, что будет создано и что '
+          'пропущено и почему; повторный импорт того же файла дублей не '
+          'создаёт.',
+      'How do I move my tasks from Todoist, Google Tasks or TickTick?',
+      'Export them in that app (Enitor shows where), then Settings → '
+          'Integrations → “Move in from another app”. Before importing you '
+          'see what will be created and what is skipped and why; importing '
+          'the same file again creates no duplicates.',
+    ),
+  ]),
   _Section('Резервные копии', 'Backups', Icons.backup_outlined, [
     _Qa(
       'Данные куда-то отправляются?',
-      'Нет. Аккаунта нет, сервера нет, аналитики и телеметрии нет — всё '
-          'лежит только на этом устройстве. В сеть приложение ходит ровно за '
-          'одним: спросить у GitHub, не вышла ли новая версия (и скачать её, '
-          'если ты согласишься). Задачи, цели и статистика при этом никуда '
-          'не передаются.',
+      'Нет, если ты сам не подключил свой сервер. Аккаунта нет, сервера Enitor '
+          'нет, аналитики и телеметрии нет — всё лежит только на этом '
+          'устройстве. В сеть приложение ходит ровно за одним: спросить у GitHub, '
+          'не вышла ли новая версия (и скачать её, если ты согласишься). Эта '
+          'проверка не передаёт ни задач, ни целей, ни статистики. Если ты '
+          'подключил свой сервер для синхронизации, данные уходят только на его адрес.',
       'Is my data sent anywhere?',
-      'No. There is no account, no server, no analytics and no telemetry — '
-          'everything lives on this device only. The app reaches the network '
-          'for exactly one thing: asking GitHub whether a newer version '
-          'exists (and downloading it if you agree). Your tasks, goals and '
-          'stats are never sent anywhere.',
+      'No, unless you connected your own server. There is no account, no '
+          'Enitor server, no analytics and no telemetry — everything lives on '
+          'this device only. The app reaches the network for exactly one thing: '
+          'asking GitHub whether a newer version exists (and downloading it if '
+          'you agree). That check sends no tasks, goals or stats. If you '
+          'connected your own server for sync, data goes only to its address.',
     ),
     _Qa(
       'Где физически лежат мои данные?',
@@ -709,9 +1100,10 @@ const List<_Section> _kFaq = [
           'нечем — в диалоге есть кнопка «Экспорт и удаление»: она сохраняет '
           'файл и стирает данные одним действием, причём стирает только если '
           'файл действительно сохранён. Настройки при этом тоже сбрасываются, '
-          'а после '
-          'удаления приложение просит перезапуск, чтобы все экраны увидели '
-          'пустое хранилище.',
+          'а после удаления приложение просит перезапуск, чтобы все экраны увидели '
+          'пустое хранилище. Если ты пользуешься своим сервером, удаление '
+          'касается только этого устройства: данные на сервере остаются, а '
+          'устройство от него отключается.',
       'What does "Delete all data" do?',
       'It erases everything: tasks, goals, stats, achievements, templates and '
           'repeats — and the automatic backup along with them. That last part '
@@ -721,7 +1113,9 @@ const List<_Section> _kFaq = [
           'delete" button that saves a file and wipes in one go, and it only '
           'wipes if the file really was saved. Settings are reset too, and '
           'afterwards the app asks for a restart so every screen sees the '
-          'empty storage.',
+          'empty storage. If you use your own server, the wipe affects only '
+          'this device: the server keeps its data, and the device disconnects '
+          'from it.',
     ),
     _Qa(
       'Зачем тогда экспорт/импорт?',
@@ -733,6 +1127,22 @@ const List<_Section> _kFaq = [
           'Android, uninstalling the app also erases the auto-backup, so '
           "it's best to keep the exported file somewhere external "
           '(Downloads or the cloud). Settings → Data.',
+    ),
+    _Qa(
+      'Как перенести всё на новый телефон или компьютер?',
+      'Два способа. Через файл: на старом устройстве Настройки → Данные → '
+          '«Экспорт в файл», на новом — «Импорт из файла». Через свой сервер: '
+          'подключи новое '
+          'устройство с «Заменить данные этого устройства данными сервера». '
+          'Ключи и настройки интеграций не переносятся ни так, ни так — их '
+          'включают заново на новом устройстве.',
+      'How do I move everything to a new phone or computer?',
+      'Two ways. With a file: on the old device go to Settings → Data → '
+          '“Export to file”, and on the new one, “Import from file”. With your '
+          'own server: connect the new '
+          "device with “Replace this device's data with the server's data”. "
+          'Integration keys and settings move in neither case: you turn them '
+          'on again on the new device.',
     ),
   ]),
   _Section('Обновления', 'Updates', Icons.cloud_download_outlined, [
@@ -762,19 +1172,23 @@ const List<_Section> _kFaq = [
           'program files.',
     ),
   ]),
-  _Section('Горячие клавиши (компьютер)', 'Keyboard shortcuts (desktop)',
-      Icons.keyboard_outlined, [
-    _Qa(
-      'Какие есть сочетания?',
-      'Ctrl+N — создать (задачу на «Сегодня», цель на «Цели»). В формах и '
-          'диалогах: Enter — сохранить/подтвердить, Esc — закрыть, Tab — '
-          'переход между полями.',
-      'What shortcuts are available?',
-      'Ctrl+N — create (a task on Today, a goal on Goals). In forms and '
-          'dialogs: Enter — save/confirm, Esc — close, Tab — move between '
-          'fields.',
-    ),
-  ]),
+  _Section(
+    'Горячие клавиши (компьютер)',
+    'Keyboard shortcuts (desktop)',
+    Icons.keyboard_outlined,
+    [
+      _Qa(
+        'Какие есть сочетания?',
+        'Ctrl+N — создать (задачу на «Сегодня», цель на «Цели»). В формах и '
+            'диалогах: Enter — сохранить/подтвердить, Esc — закрыть, Tab — '
+            'переход между полями.',
+        'What shortcuts are available?',
+        'Ctrl+N — create (a task on Today, a goal on Goals). In forms and '
+            'dialogs: Enter — save/confirm, Esc — close, Tab — move between '
+            'fields.',
+      ),
+    ],
+  ),
   _Section('Оформление', 'Appearance', Icons.palette_outlined, [
     _Qa(
       'Как сменить тему и фон?',
@@ -834,8 +1248,9 @@ class _FaqScreenState extends State<FaqScreen> {
             ),
           ),
           Expanded(
-            child:
-                q.isEmpty ? _buildSections(context) : _buildResults(context, q),
+            child: q.isEmpty
+                ? _buildSections(context)
+                : _buildResults(context, q),
           ),
         ],
       ),

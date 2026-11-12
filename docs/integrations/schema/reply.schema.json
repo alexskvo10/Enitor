@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Enitor command reply",
+  "description": "The reply to a command request (formats.md, section 2, Replies). Exactly one of result (ok true) or error (ok false). The shape of result depends on the command: add_task and complete_task return {task}, add_schedule_item returns {item}, list_today returns {date, tasks, schedule}; see task.schema.json and schedule-item.schema.json. Ping returns an empty result.",
+  "type": "object",
+  "required": ["v", "ok", "warnings"],
+  "additionalProperties": false,
+  "properties": {
+    "v": {
+      "const": 1,
+      "description": "Format version of the reply."
+    },
+    "ok": {
+      "type": "boolean",
+      "description": "true: result is present. false: error is present."
+    },
+    "result": {
+      "type": "object",
+      "description": "Command result. Its keys depend on the command, see the description above."
+    },
+    "error": {
+      "$ref": "#/$defs/error"
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Unknown field names of the request. Empty when there are none."
+    }
+  },
+  "if": {
+    "properties": { "ok": { "const": true } },
+    "required": ["ok"]
+  },
+  "then": {
+    "required": ["result"],
+    "not": { "required": ["error"] }
+  },
+  "else": {
+    "required": ["error"],
+    "not": { "required": ["result"] },
+    "properties": { "ok": { "const": false } }
+  },
+  "$defs": {
+    "error": {
+      "type": "object",
+      "required": ["code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "invalid_args",
+            "unknown_command",
+            "unsupported_version",
+            "forbidden",
+            "bad_key",
+            "not_found",
+            "internal",
+            "not_ready"
+          ],
+          "description": "Machine-readable error code. not_ready means Windows Enitor is still starting: repeat in a moment."
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human text in the app's language. Do not parse it."
+        },
+        "field": {
+          "type": "string",
+          "description": "The field that failed. Present for invalid_args."
+        }
+      }
+    }
+  }
+}

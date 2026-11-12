@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
 import 'app_fonts.dart';
+import 'ink_wave.dart';
 
 /// Темы «Бумажный журнал»: Manrope — заголовки/числа, Inter — текст.
 /// Scaffold и AppBar ПРОЗРАЧНЫ: фон (цвет + текстура) рисует [AppBackground]
@@ -42,6 +43,16 @@ abstract final class AppTheme {
       ),
       // Прозрачный — фон рисует AppBackground (см. app.dart builder).
       scaffoldBackgroundColor: Colors.transparent,
+      // Фон выпадающих списков (DropdownButton): copyWith не пересчитывает
+      // его из colorScheme — без этого остаётся лиловый M3 по умолчанию.
+      canvasColor: AppColors.surface,
+      // Волна нажатия — своя, одинаковая на всех платформах (см. InkWave).
+      // Серая pressed-подсветка выключена: она заливала плитку целиком
+      // поверх волны, и волна терялась. Цвет волны — тёплые чернила вместо
+      // холодного серого M3. Ховер и фокус (hover/focusColor) не трогаем.
+      splashFactory: InkWave.splashFactory,
+      splashColor: AppColors.textPrimary.withValues(alpha: 0.12),
+      highlightColor: Colors.transparent,
       textTheme: _textTheme(base.textTheme, AppColors.textPrimary),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
@@ -128,6 +139,10 @@ abstract final class AppTheme {
         onSurface: AppColors.textPrimaryDark,
       ),
       scaffoldBackgroundColor: Colors.transparent,
+      canvasColor: AppColors.surfaceDarkElevated,
+      splashFactory: InkWave.splashFactory,
+      splashColor: AppColors.textPrimaryDark.withValues(alpha: 0.14),
+      highlightColor: Colors.transparent,
       textTheme: _textTheme(base.textTheme, AppColors.textPrimaryDark),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,

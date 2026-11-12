@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -8,6 +10,7 @@ import '../../core/utils/haptics.dart';
 import '../models/backlog_item.dart';
 import '../models/day_template.dart';
 import '../models/recurrence_rule.dart';
+import '../models/recurrence_task.dart';
 import '../models/task.dart';
 import '../sources/local/local_storage.dart';
 import 'backlog_repository.dart';
@@ -55,6 +58,16 @@ class TaskRepository {
 
   final _controller = StreamController<List<Task>>.broadcast();
   List<Task> _cache = [];
+
+  /// Задача стала выполненной от действия на этом устройстве (галочка,
+  /// последняя подзадача, счётчик добит, команда интеграции) — источник
+  /// события `task.completed` для вебхуков. Перенос, повторы и восстановление
+  /// бэкапа сюда не пишут: это не действие человека.
+  final _completed = StreamController<Task>.broadcast();
+  Stream<Task> get completedEvents => _completed.stream;
+
+  /// Все задачи (для поиска по id из интеграций).
+  List<Task> get allTasks => List.unmodifiable(_cache);
 
   void _reload() {
     _cache = _storage.readList(_kTasksKey).map(Task.fromJson).toList()
@@ -111,30 +124,60 @@ class TaskRepository {
     for (final rule in _recurrenceRepo.all) {
       if (existingRuleIds.contains(rule.id)) continue;
       if (!rule.occursOn(day)) continue;
-      _cache.add(Task(
-        id: _uuid.v4(),
-        title: rule.taskTitle,
-        description: rule.taskDescription,
-        date: day,
-        order: order++,
-        createdAt: now,
-        updatedAt: now,
-        recurrenceRuleId: rule.id,
-        startMinutes: rule.startMinutes,
-        endMinutes: rule.endMinutes,
-        estimatedMinutes: rule.estimatedMinutes,
-        targetCount: rule.targetCount,
-        subtasks: [
-          for (final t in rule.subtaskTitles) SubTask(id: _uuid.v4(), title: t),
-        ],
-        priority: rule.priority,
-        tags: rule.tags,
-      ));
+      _cache.add(taskFromRule(rule, day, order: order++, now: now));
       added = true;
     }
     if (added) {
       await _save();
       await _statsRepo.recompute(day, tasksForDay(day));
+    }
+  }
+
+  /// Оставляет по одной задаче на правило и день. Дубли появляются, когда
+  /// два устройства до синхронизации создали каждое свой экземпляр (старые
+  /// версии давали им случайный id). Выбор лишних одинаков на всех
+  /// устройствах — см. [compareRecurrenceDuplicates].
+  Future<bool> dedupeRecurrences() async {
+    final groups = <String, List<Task>>{};
+    for (final t in _cache) {
+      final ruleId = t.recurrenceRuleId;
+      if (ruleId == null) continue;
+      groups
+          .putIfAbsent('$ruleId|${dateOnly(t.date)}', () => [])
+          .add(t);
+    }
+    final drop = <Task>[];
+    for (final g in groups.values) {
+      if (g.length < 2) continue;
+      g.sort(compareRecurrenceDuplicates);
+      drop.addAll(g.skip(1));
+    }
+    if (drop.isEmpty) return false;
+    final ids = {for (final t in drop) t.id};
+    _cache.removeWhere((t) => ids.contains(t.id));
+    await _save();
+    for (final day in {for (final t in drop) dateOnly(t.date)}) {
+      await _statsRepo.recompute(day, tasksForDay(day));
+    }
+    for (final goalId in {for (final t in drop) t.goalId}) {
+      await _syncGoal(goalId);
+    }
+    return true;
+  }
+
+  /// Перечитать задачи из хранилища: синхронизация записала туда чужие правки.
+  void reload() => _reload();
+
+  /// Доделать после чужих правок: убрать дубли повторов, пересчитать
+  /// статистику дней [days] (по ним статистика не пришла вместе с задачами —
+  /// например, задачу отметила автоматика на сервере) и вклад их задач в цели.
+  Future<void> afterRemoteChanges(Set<DateTime> days) async {
+    await dedupeRecurrences();
+    for (final day in days) {
+      await _statsRepo.recompute(day, tasksForDay(day));
+      for (final goalId in {for (final t in tasksForDay(day)) t.goalId}) {
+        await _syncGoal(goalId);
+      }
     }
   }
 
@@ -204,10 +247,12 @@ class TaskRepository {
     List<String> subtaskTitles = const [],
     TaskPriority priority = TaskPriority.none,
     List<String> tags = const [],
+    String? id,
   }) async {
     final now = DateTime.now();
     final rule = RecurrenceRule(
-      id: _uuid.v4(),
+      // Явный id — у импорта: повторный импорт узнаёт уже созданное правило.
+      id: id ?? _uuid.v4(),
       taskTitle: title,
       taskDescription: description,
       kind: kind,
@@ -401,6 +446,7 @@ class TaskRepository {
       updatedAt: now,
     );
     await _save();
+    if (reached && !cur.isCompleted) _completed.add(_cache[idx]);
     await _statsRepo.recompute(cur.date, tasksForDay(cur.date));
     await _syncGoal(cur.goalId);
   }
@@ -424,6 +470,7 @@ class TaskRepository {
       updatedAt: now,
     );
     await _save();
+    if (allDone && !cur.isCompleted) _completed.add(_cache[idx]);
     await _statsRepo.recompute(cur.date, tasksForDay(cur.date));
     await _syncGoal(cur.goalId);
   }
@@ -445,6 +492,7 @@ class TaskRepository {
       updatedAt: now,
     );
     await _save();
+    if (done && !cur.isCompleted) _completed.add(_cache[idx]);
     await _statsRepo.recompute(cur.date, tasksForDay(cur.date));
     await _syncGoal(cur.goalId);
   }
@@ -464,6 +512,7 @@ class TaskRepository {
       updatedAt: now,
     );
     await _save();
+    if (!cur.isCompleted) _completed.add(_cache[idx]);
     await _statsRepo.recompute(cur.date, tasksForDay(cur.date));
     await _syncGoal(cur.goalId);
   }
@@ -655,8 +704,14 @@ class TaskRepository {
   Future<void> transferTask(Task task, {required DateTime targetDate}) async {
     final now = DateTime.now();
     final target = dateOnly(targetDate);
+    // Предсказуемый id: если оба синхронизуемых устройства успели перенести
+    // задачу до обмена, копия на сервере сольётся в одну.
+    // Длина постоянная: из 't-' + id задача, которую переносят каждую ночь,
+    // за месяц получила бы id длиннее, чем принимают виджет и команды.
+    final stable = 't-${sha1.convert(utf8.encode(task.id)).toString().substring(0, 20)}';
+    final copyId = _cache.any((t) => t.id == stable) ? _uuid.v4() : stable;
     final copy = Task(
-      id: _uuid.v4(),
+      id: copyId,
       title: task.title,
       description: task.description,
       date: target,
@@ -771,7 +826,9 @@ class TaskRepository {
     final original =
         _cache.where((t) => t.id == task.transferredFromId).firstOrNull;
     await _backlogRepo.add(BacklogItem(
-      id: _uuid.v4(),
+      // Делается автоматически на каждом устройстве — id от задачи, чтобы
+      // после синхронизации в бэклоге не оказалось двух одинаковых пунктов.
+      id: 'b-${task.id}',
       title: task.title,
       description: task.description,
       originalDate: original?.date ?? task.date,
@@ -793,7 +850,10 @@ class TaskRepository {
     }
   }
 
-  void dispose() => _controller.close();
+  void dispose() {
+    _controller.close();
+    _completed.close();
+  }
 }
 
 final taskRepositoryProvider = Provider<TaskRepository>((ref) {

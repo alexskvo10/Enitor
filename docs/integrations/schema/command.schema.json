@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Enitor command request",
+  "description": "A keyed command request sent by Tasker, enitor-cli, MCP or the widget. See docs/integrations/formats.md, section 2. Unknown top-level fields and unknown args are allowed: Enitor does not reject them, it lists them in the reply's warnings.",
+  "type": "object",
+  "required": ["command"],
+  "properties": {
+    "v": {
+      "const": 1,
+      "description": "Format version. Only version 1 exists; a newer version is refused with unsupported_version. A missing version means 1."
+    },
+    "command": {
+      "type": "string",
+      "enum": ["add_task", "add_schedule_item", "complete_task", "list_today"],
+      "description": "The command. Its args are checked by the matching rule below."
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "maxLength": 100,
+      "description": "Optional. A repeat with the same key within 7 days returns the first reply and creates nothing. Without a key every request is a new one."
+    },
+    "args": {
+      "type": "object",
+      "description": "Arguments of the command. Field rules are the same as for links: text is trimmed, dates and times use the formats below."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "command": { "const": "add_task" } },
+        "required": ["command"]
+      },
+      "then": {
+        "required": ["args"],
+        "properties": { "args": { "$ref": "#/$defs/addTaskArgs" } }
+      }
+    },
+    {
+      "if": {
+        "properties": { "command": { "const": "add_schedule_item" } },
+        "required": ["command"]
+      },
+      "then": {
+        "required": ["args"],
+        "properties": { "args": { "$ref": "#/$defs/addScheduleItemArgs" } }
+      }
+    },
+    {
+      "if": {
+        "properties": { "command": { "const": "complete_task" } },
+        "required": ["command"]
+      },
+      "then": {
+        "required": ["args"],
+        "properties": { "args": { "$ref": "#/$defs/completeTaskArgs" } }
+      }
+    },
+    {
+      "if": {
+        "properties": { "command": { "const": "list_today" } },
+        "required": ["command"]
+      },
+      "then": {
+        "properties": { "args": { "$ref": "#/$defs/listTodayArgs" } }
+      }
+    }
+  ],
+  "$defs": {
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "description": "Title. After trimming, 1 to 500 characters (characters, not UTF-16 units)."
+    },
+    "longText": {
+      "type": "string",
+      "maxLength": 5000,
+      "description": "Free text, up to 5000 characters. A longer value is refused, not cut."
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$",
+      "description": "Local calendar day, YYYY-MM-DD, within 5 years of today. Missing means today (before 04:00 'today' is still yesterday)."
+    },
+    "time": {
+      "type": "string",
+      "pattern": "^([01]?[0-9]|2[0-3]):[0-5][0-9]$",
+      "description": "HH:MM, 00:00 to 23:59. A leading zero may be omitted (9:05). end must be later than start; this part is not expressible in JSON Schema and is checked by Enitor."
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["none", "low", "medium", "high"],
+      "description": "Priority. Enitor also accepts any letter case; the lowercase spellings are listed here."
+    },
+    "tags": {
+      "description": "Up to 10 tags of up to 40 characters, '#' is stripped. Enitor also accepts a comma-separated string.",
+      "anyOf": [
+        {
+          "type": "array",
+          "maxItems": 10,
+          "items": { "type": "string", "maxLength": 40 }
+        },
+        { "type": "string" }
+      ]
+    },
+    "addTaskArgs": {
+      "type": "object",
+      "required": ["title"],
+      "properties": {
+        "title": { "$ref": "#/$defs/title" },
+        "description": { "$ref": "#/$defs/longText" },
+        "date": { "$ref": "#/$defs/date" },
+        "start": { "$ref": "#/$defs/time" },
+        "end": { "$ref": "#/$defs/time" },
+        "priority": { "$ref": "#/$defs/priority" },
+        "tags": { "$ref": "#/$defs/tags" }
+      }
+    },
+    "addScheduleItemArgs": {
+      "type": "object",
+      "description": "A schedule item needs a start time; end is optional.",
+      "required": ["title", "start"],
+      "properties": {
+        "title": { "$ref": "#/$defs/title" },
+        "date": { "$ref": "#/$defs/date" },
+        "start": { "$ref": "#/$defs/time" },
+        "end": { "$ref": "#/$defs/time" },
+        "location": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Place, up to 500 characters."
+        },
+        "note": { "$ref": "#/$defs/longText" }
+      }
+    },
+    "completeTaskArgs": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 100,
+          "description": "Full task id, or a unique prefix of at least 4 characters. An ambiguous prefix is answered as not_found."
+        }
+      }
+    },
+    "listTodayArgs": {
+      "type": "object",
+      "properties": {
+        "date": {
+          "$ref": "#/$defs/date",
+          "description": "Day to list. Missing means today."
+        }
+      }
+    }
+  }
+}

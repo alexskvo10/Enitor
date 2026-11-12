@@ -181,12 +181,12 @@ void main() {
   testWidgets('неделя: семь дней, нажатие открывает день', (tester) async {
     final day = effectiveDay(DateTime.now());
     await container.read(scheduleRepositoryProvider).create(
-      title: 'Английский',
-      date: day,
-      startMinutes: 23 * 60 + 20,
-      repeat: RecurrenceKind.interval,
-      intervalDays: 1,
-    );
+          title: 'Английский',
+          date: day,
+          startMinutes: 23 * 60 + 20,
+          repeat: RecurrenceKind.interval,
+          intervalDays: 1,
+        );
     await pumpToday(tester);
     await tester.tap(find.text('Расписание'));
     await tester.pumpAndSettle();
@@ -194,6 +194,13 @@ void main() {
     await tester.pumpAndSettle();
     // Каждый день недели, начиная с дня серии, — по строке.
     expect(find.text('Английский'), findsNWidgets(8 - day.weekday));
+    // В шапке вместо дня недели — первое и последнее число недели.
+    final monday = DateTime(day.year, day.month, day.day - day.weekday + 1);
+    final sunday = DateTime(day.year, day.month, day.day + 7 - day.weekday);
+    expect(
+      find.textContaining(RegExp('^${monday.day}.* – ${sunday.day}')),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text('Английский').last);
     await tester.pumpAndSettle();

@@ -19,6 +19,9 @@ class BacklogRepository {
   final _controller = StreamController<List<BacklogItem>>.broadcast();
   List<BacklogItem> _cache = [];
 
+  /// Перечитать из хранилища: синхронизация записала туда чужие правки.
+  void reload() => _reload();
+
   void _reload() {
     _cache = _storage.readList(_kTaskBacklogKey).map(BacklogItem.fromJson).toList();
     _controller.add(_cache);
@@ -64,6 +67,9 @@ class GoalBacklogRepository {
   final LocalStorage _storage;
   final _controller = StreamController<List<GoalBacklogItem>>.broadcast();
   List<GoalBacklogItem> _cache = [];
+
+  /// Перечитать из хранилища: синхронизация записала туда чужие правки.
+  void reload() => _reload();
 
   void _reload() {
     _cache = _storage

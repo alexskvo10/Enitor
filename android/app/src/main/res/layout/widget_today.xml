@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Виджет «Сегодня»: шапка (название дня, дата, круглый «+»), полоска
+     прогресса, до шести строк задач и «ещё N». Строки фиксированные, без
+     коллекции: проще и не требует RemoteViewsService; лишние скрываются.
+     Высоты (шапка 44dp, прогресс 16dp, строка 32dp) учитывает
+     TodayWidgetProvider, когда считает, сколько строк влезает. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:orientation="vertical"
+    android:padding="14dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+        <LinearLayout
+            android:id="@+id/header"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="serif"
+                android:maxLines="1"
+                android:textColor="@color/widget_ink"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/date"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/widget_ink_muted"
+                android:textSize="12sp" />
+        </LinearLayout>
+        <ImageView
+            android:id="@+id/add"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:padding="6dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/widget_add" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/progressRow"
+        android:layout_width="match_parent"
+        android:layout_height="16dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
+        <ProgressBar
+            android:id="@+id/progress"
+            style="@android:style/Widget.ProgressBar.Horizontal"
+            android:layout_width="0dp"
+            android:layout_height="4dp"
+            android:layout_weight="1"
+            android:max="1"
+            android:progressDrawable="@drawable/widget_progress" />
+        <TextView
+            android:id="@+id/counter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="8dp"
+            android:textColor="@color/widget_ink_muted"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="6dp"
+        android:textColor="@color/widget_ink_muted"
+        android:textSize="14sp"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/allDone"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone">
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/widget_all_done" />
+        <TextView
+            android:id="@+id/allDoneText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingTop="6dp"
+            android:textColor="@color/widget_ink"
+            android:textSize="14sp" />
+        <TextView
+            android:id="@+id/allDoneCounter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/widget_ink_muted"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/rows"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+        <LinearLayout
+            android:id="@+id/row0"
+            android:layout_width="match_parent"
+            android:layout_height="32dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone">
+            <ImageView
+                android:id="@+id/check0"
+                android:layout_width="36dp"
+                android:layout_height="32dp"
+                android:paddingEnd="12dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/widget_check_off" />
+            <TextView
+                android:id="@+id/title0"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:gravity="center_vertical"
+                android:maxLines="1"
+                android:textColor="@color/widget_ink"
+                android:textSize="14sp" />
+            <TextView
+                android:id="@+id/time0"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:fontFeatureSettings="tnum"
+                android:gravity="center_vertical|end"
+                android:maxLines="1"
+                android:paddingStart="8dp"
+                android:textColor="@color/widget_ink_muted"
+                android:textSize="13sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/row1"
+            android:layout_width="match_parent"
+            android:layout_height="32dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone">
+            <ImageView
+                android:id="@+id/check1"
+                android:layout_width="36dp"
+                android:layout_height="32dp"
+                android:paddingEnd="12dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/widget_check_off" />
+            <TextView
+                android:id="@+id/title1"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:gravity="center_vertical"
+                android:maxLines="1"
+                android:textColor="@color/widget_ink"
+                android:textSize="14sp" />
+            <TextView
+                android:id="@+id/time1"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:fontFeatureSettings="tnum"
+                android:gravity="center_vertical|end"
+                android:maxLines="1"
+                android:paddingStart="8dp"
+                android:textColor="@color/widget_ink_muted"
+                android:textSize="13sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/row2"
+            android:layout_width="match_parent"
+            android:layout_height="32dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone">
+            <ImageView
+                android:id="@+id/check2"
+                android:layout_width="36dp"
+                android:layout_height="32dp"
+                android:paddingEnd="12dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/widget_check_off" />
+            <TextView
+                android:id="@+id/title2"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:gravity="center_vertical"
+                android:maxLines="1"
+                android:textColor="@color/widget_ink"
+                android:textSize="14sp" />
+            <TextView
+                android:id="@+id/time2"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:fontFeatureSettings="tnum"
+                android:gravity="center_vertical|end"
+                android:maxLines="1"
+                android:paddingStart="8dp"
+                android:textColor="@color/widget_ink_muted"
+                android:textSize="13sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/row3"
+            android:layout_width="match_parent"
+            android:layout_height="32dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone">
+            <ImageView
+                android:id="@+id/check3"
+                android:layout_width="36dp"
+                android:layout_height="32dp"
+                android:paddingEnd="12dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/widget_check_off" />
+            <TextView
+                android:id="@+id/title3"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:gravity="center_vertical"
+                android:maxLines="1"
+                android:textColor="@color/widget_ink"
+                android:textSize="14sp" />
+            <TextView
+                android:id="@+id/time3"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:fontFeatureSettings="tnum"
+                android:gravity="center_vertical|end"
+                android:maxLines="1"
+                android:paddingStart="8dp"
+                android:textColor="@color/widget_ink_muted"
+                android:textSize="13sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/row4"
+            android:layout_width="match_parent"
+            android:layout_height="32dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone">
+            <ImageView
+                android:id="@+id/check4"
+                android:layout_width="36dp"
+                android:layout_height="32dp"
+                android:paddingEnd="12dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/widget_check_off" />
+            <TextView
+                android:id="@+id/title4"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:gravity="center_vertical"
+                android:maxLines="1"
+                android:textColor="@color/widget_ink"
+                android:textSize="14sp" />
+            <TextView
+                android:id="@+id/time4"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:fontFeatureSettings="tnum"
+                android:gravity="center_vertical|end"
+                android:maxLines="1"
+                android:paddingStart="8dp"
+                android:textColor="@color/widget_ink_muted"
+                android:textSize="13sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/row5"
+            android:layout_width="match_parent"
+            android:layout_height="32dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone">
+            <ImageView
+                android:id="@+id/check5"
+                android:layout_width="36dp"
+                android:layout_height="32dp"
+                android:paddingEnd="12dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/widget_check_off" />
+            <TextView
+                android:id="@+id/title5"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:gravity="center_vertical"
+                android:maxLines="1"
+                android:textColor="@color/widget_ink"
+                android:textSize="14sp" />
+            <TextView
+                android:id="@+id/time5"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:fontFeatureSettings="tnum"
+                android:gravity="center_vertical|end"
+                android:maxLines="1"
+                android:paddingStart="8dp"
+                android:textColor="@color/widget_ink_muted"
+                android:textSize="13sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/more"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="36dp"
+        android:paddingTop="2dp"
+        android:textColor="@color/widget_ink_muted"
+        android:textSize="12sp"
+        android:visibility="gone" />
+</LinearLayout>

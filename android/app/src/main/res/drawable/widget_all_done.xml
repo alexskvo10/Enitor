@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- «Всё сделано»: галочка в круге. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp" android:height="32dp" android:viewportWidth="32" android:viewportHeight="32">
+    <path android:strokeColor="@color/widget_done" android:strokeWidth="2.2"
+        android:fillColor="#00000000"
+        android:pathData="M16,3a13,13 0,1 1,0 26a13,13 0,1 1,0 -26z" />
+    <path android:strokeColor="@color/widget_done" android:strokeWidth="2.4" android:fillColor="#00000000"
+        android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M10.5,16.5l3.8,3.8l7.2,-8" />
+</vector>

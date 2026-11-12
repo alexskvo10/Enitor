@@ -237,14 +237,16 @@ class NotebookEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return SizedBox(
-      height: 168,
-      width: double.infinity,
+    // Не меньше 168, но растёт с текстом: при крупном шрифте в системе
+    // фиксированная высота обрезала подпись.
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 168, minWidth: double.infinity),
       child: CustomPaint(
         painter: _NotebookPainter(theme.colorScheme.primary),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon,
@@ -254,7 +256,9 @@ class NotebookEmptyState extends StatelessWidget {
                 text,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  // 0.7, а не 0.6: при 0.6 подпись не дотягивала до
+                  // контраста 4.5:1.
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                   height: 1.5,
                 ),
               ),

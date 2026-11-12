@@ -9,6 +9,8 @@ import 'package:intl/intl.dart' as intl;
 import 'package:path_provider/path_provider.dart';
 
 import '../data/sources/local/local_storage.dart';
+import '../features/integrations/sync/lan/lan_node.dart';
+import '../features/integrations/sync/sync_engine.dart';
 import '../l10n/app_localizations.dart';
 
 AppLocalizations get _l10n =>
@@ -59,6 +61,10 @@ class BackupService {
       (k, v) => MapEntry(k.toString(), v as Object?),
     );
     await _storage.restore(data, clear: clear);
+    // Иначе синхронизация сочла бы записи, которых нет в копии, удалёнными
+    // и стёрла бы их на сервере и других устройствах.
+    await SyncEngine.reset(_storage);
+    await LanNode.resetAfterRestore(_storage);
   }
 
   // ── Экспорт/импорт через файловый диалог ────────────────────────────────

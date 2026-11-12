@@ -18,6 +18,9 @@ class RecurrenceRepository {
   final _controller = StreamController<List<RecurrenceRule>>.broadcast();
   List<RecurrenceRule> _cache = [];
 
+  /// Перечитать из хранилища: синхронизация записала туда чужие правки.
+  void reload() => _reload();
+
   void _reload() {
     _cache =
         _storage.readList(_kRulesKey).map(RecurrenceRule.fromJson).toList();

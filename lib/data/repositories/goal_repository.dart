@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -142,6 +144,16 @@ class GoalRepository {
   final LocalStorage _storage;
   final GoalBacklogRepository _goalBacklogRepo;
   final _controller = StreamController<List<Goal>>.broadcast();
+
+  /// Цель достигнута действием на этом устройстве (отметка, счётчик,
+  /// последняя подзадача, вклад задач) — источник события `goal.achieved`
+  /// для вебхуков. Перенос и восстановление бэкапа сюда не пишут.
+  final _achieved = StreamController<Goal>.broadcast();
+  Stream<Goal> get achievedEvents => _achieved.stream;
+
+  void _emitIfAchieved(Goal before, Goal after) {
+    if (after.completed && !before.completed) _achieved.add(after);
+  }
   List<Goal> _cache = [];
 
   /// Снимки кольца прогресса по дням: goalId → (день-эпохи → completionValue).
@@ -155,6 +167,9 @@ class GoalRepository {
 
   static int _dayKey(DateTime d) =>
       dateOnly(d).millisecondsSinceEpoch ~/ 86400000;
+
+  /// Перечитать из хранилища: синхронизация записала туда чужие правки.
+  void reload() => _reload();
 
   void _reload() {
     _cache = _storage.readList(_kGoalsKey).map(Goal.fromJson).toList();
@@ -858,6 +873,7 @@ class GoalRepository {
     if (_cache[idx].completed && !cur.completed)
       Haptics.completed(); // цель добита
     await _save();
+    _emitIfAchieved(cur, _cache[idx]);
   }
 
   /// Обновляет вклад привязанных задач (вызывается из TaskRepository).
@@ -870,6 +886,7 @@ class GoalRepository {
     if (l == cur.linkedProgress) return;
     _cache[idx] = _withProgress(cur, linked: l);
     await _save();
+    _emitIfAchieved(cur, _cache[idx]);
   }
 
   /// Цели-счётчики, чей период содержит [date] — кандидаты для привязки задачи.
@@ -895,6 +912,7 @@ class GoalRepository {
       updatedAt: now,
     );
     await _save();
+    _emitIfAchieved(goal, _cache[idx]);
   }
 
   /// Переключает подзадачу цели. Когда все выполнены — цель достигается
@@ -918,6 +936,7 @@ class GoalRepository {
       updatedAt: now,
     );
     await _save();
+    _emitIfAchieved(cur, _cache[idx]);
   }
 
   /// Отмечает все подзадачи цели как [done] разом и синхронизирует статус.
@@ -937,6 +956,7 @@ class GoalRepository {
       updatedAt: now,
     );
     await _save();
+    _emitIfAchieved(cur, _cache[idx]);
   }
 
   /// Обновляет цель целиком (включая дедлайн и заголовок).
@@ -1037,8 +1057,13 @@ class GoalRepository {
   Future<void> transferGoal(Goal goal,
       {required GoalPeriodRef targetRef}) async {
     final now = DateTime.now();
+    // Предсказуемый id — как у переноса задач (синхронизация устройств).
+    // Длина постоянная: из 't-' + id задача, которую переносят каждую ночь,
+    // за месяц получила бы id длиннее, чем принимают виджет и команды.
+    final stable = 't-${sha1.convert(utf8.encode(goal.id)).toString().substring(0, 20)}';
+    final copyId = _cache.any((g) => g.id == stable) ? _uuid.v4() : stable;
     final copy = Goal(
-      id: _uuid.v4(),
+      id: copyId,
       title: goal.title,
       description: goal.description,
       period: targetRef.period,
@@ -1150,7 +1175,8 @@ class GoalRepository {
     final original =
         _cache.where((g) => g.id == goal.transferredFromId).firstOrNull;
     await _goalBacklogRepo.add(GoalBacklogItem(
-      id: _uuid.v4(),
+      // Id от цели — как у бэклога задач (синхронизация устройств).
+      id: 'b-${goal.id}',
       title: goal.title,
       description: goal.description,
       period: goal.period,
@@ -1168,7 +1194,10 @@ class GoalRepository {
     }
   }
 
-  void dispose() => _controller.close();
+  void dispose() {
+    _controller.close();
+    _achieved.close();
+  }
 }
 
 final goalRepositoryProvider = Provider<GoalRepository>((ref) {

@@ -5,8 +5,11 @@ import '../core/theme/app_fonts.dart';
 /// Маленькая пилюля-тег («#labels») — общий стиль для тегов и у задач, и у
 /// целей.
 class TagMini extends StatelessWidget {
-  const TagMini({super.key, required this.label});
+  const TagMini({super.key, required this.label, this.hash = true});
   final String label;
+
+  /// false — служебная пометка («из ссылки»), а не тег: без «#».
+  final bool hash;
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +21,7 @@ class TagMini extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        '#$label',
+        hash ? '#$label' : label,
         style: AppFonts.inter(
           fontSize: 11.5,
           fontWeight: FontWeight.w600,

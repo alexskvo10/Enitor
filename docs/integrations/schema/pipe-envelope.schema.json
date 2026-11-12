@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Windows pipe frame envelope",
+  "description": "One frame sent to the Enitor named pipe (formats.md, section 2, Transports). The frame is 4-byte little-endian length + UTF-8 JSON, at most 64 KB; the reply is one JSON text. source is cli or mcp; Enitor treats any other value as cli.",
+  "type": "object",
+  "required": ["v", "kind"],
+  "oneOf": [
+    {
+      "title": "ping",
+      "description": "Checks that Enitor is running.",
+      "type": "object",
+      "required": ["v", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "v": { "const": 1 },
+        "kind": { "const": "ping" }
+      }
+    },
+    {
+      "title": "permissions",
+      "description": "Asks which permissions the source has. Used by MCP to list only the allowed tools.",
+      "type": "object",
+      "required": ["v", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "v": { "const": 1 },
+        "kind": { "const": "permissions" },
+        "source": {
+          "type": "string",
+          "enum": ["cli", "mcp"]
+        }
+      }
+    },
+    {
+      "title": "command",
+      "description": "A command request, the same as the JSON in command.schema.json.",
+      "type": "object",
+      "required": ["v", "kind", "request"],
+      "additionalProperties": false,
+      "properties": {
+        "v": { "const": 1 },
+        "kind": { "const": "command" },
+        "source": {
+          "type": "string",
+          "enum": ["cli", "mcp"],
+          "description": "Who sends the request. Missing or any other value means cli."
+        },
+        "request": {
+          "type": "object",
+          "required": ["command"],
+          "description": "A command request. Its full rules are in command.schema.json; they are checked by the formats examples test, not by this schema."
+        }
+      }
+    },
+    {
+      "title": "link",
+      "description": "Opens an enitor:// link through the usual confirmation form.",
+      "type": "object",
+      "required": ["v", "kind", "url"],
+      "additionalProperties": false,
+      "properties": {
+        "v": { "const": 1 },
+        "kind": { "const": "link" },
+        "url": {
+          "type": "string",
+          "pattern": "^enitor:",
+          "description": "An enitor:// link, see section 1 of formats.md."
+        }
+      }
+    }
+  ]
+}

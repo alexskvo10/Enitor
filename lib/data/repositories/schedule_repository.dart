@@ -26,6 +26,13 @@ class ScheduleRepository {
 
   List<ScheduleItem> get all => List.unmodifiable(_cache);
 
+  /// Перечитать из хранилища: синхронизация записала туда чужие правки.
+  void reload() {
+    _cache =
+        _storage.readList(_kScheduleKey).map(ScheduleItem.fromJson).toList();
+    _controller.add(all);
+  }
+
   List<ScheduleItem> forDay(DateTime day) => scheduleForDay(_cache, day);
 
   Stream<List<ScheduleItem>> watchAll() async* {
@@ -87,6 +94,41 @@ class ScheduleRepository {
     final idx = _cache.indexWhere((i) => i.id == item.id);
     if (idx == -1) return;
     _cache[idx] = item.copyWith(updatedAt: DateTime.now());
+    await _save();
+  }
+
+  ScheduleItem? byId(String id) => _cache.where((i) => i.id == id).firstOrNull;
+
+  /// Импорт: пункт с тем же id обновляется, иначе добавляется. Так повторный
+  /// импорт того же календаря не дублирует. Цвет и напоминание — настройки
+  /// самого человека, а не календаря: у существующего пункта сохраняются.
+  Future<void> upsert(ScheduleItem item) async {
+    final idx = _cache.indexWhere((i) => i.id == item.id);
+    if (idx == -1) {
+      _cache.add(item);
+    } else {
+      final old = _cache[idx];
+      _cache[idx] = ScheduleItem(
+        id: item.id,
+        title: item.title,
+        date: item.date,
+        startMinutes: item.startMinutes,
+        endMinutes: item.endMinutes,
+        note: item.note,
+        location: item.location,
+        colorIndex: old.colorIndex,
+        repeat: item.repeat,
+        weekdays: item.weekdays,
+        weekInterval: item.weekInterval,
+        monthDays: item.monthDays,
+        intervalDays: item.intervalDays,
+        endDate: item.endDate,
+        exceptDates: item.exceptDates,
+        reminderMinutes: old.reminderMinutes,
+        createdAt: old.createdAt,
+        updatedAt: DateTime.now(),
+      );
+    }
     await _save();
   }
 

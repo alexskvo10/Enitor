@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Только то, что система показывает до первого снимка из Dart (список
+     виджетов, плитка). Всё остальное приходит из приложения на его языке. -->
+<resources>
+    <string name="widget_today_description">Tasks for today with check marks</string>
+    <string name="tile_quick_add_label">New task</string>
+</resources>

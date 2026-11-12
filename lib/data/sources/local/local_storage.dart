@@ -1,7 +1,15 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+/// Префикс ключей «устройство»: состояние именно этого устройства (настройки
+/// интеграций, очередь вебхуков, снимок для виджета). В бэкап не попадает и
+/// при восстановлении бэкапа не стирается — иначе копия с телефона включила
+/// бы на ноутбуке чужие интеграции, а восстановление заново отправило бы
+/// старые события.
+const kDeviceKeyPrefix = 'device.';
 
 /// Простое JSON-хранилище поверх SharedPreferences.
 /// MVP: хранит задачи, цели и профиль как JSON-строки.
@@ -11,6 +19,20 @@ class LocalStorage {
 
   final SharedPreferences _prefs;
 
+  final _changes = StreamController<String>.broadcast(sync: true);
+
+  /// Ключи данных (не «устройство»), записанные через это хранилище, — по
+  /// ним синхронизация понимает, что пора отправить правки.
+  Stream<String> get changes => _changes.stream;
+
+  void _changed(String key) {
+    if (!key.startsWith(kDeviceKeyPrefix)) _changes.add(key);
+  }
+
+  /// Перечитать ключи с диска: их мог записать фоновый изолят (синхронизация
+  /// на Android в фоне), а у этого изолята в памяти старые значения.
+  Future<void> reloadFromDisk() => _prefs.reload();
+
   // ── Сырые операции ──────────────────────────────────────────────────────────
 
   List<Map<String, dynamic>> readList(String key) {
@@ -19,8 +41,11 @@ class LocalStorage {
     return (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
   }
 
-  Future<void> writeList(String key, List<Map<String, dynamic>> data) =>
-      _prefs.setString(key, jsonEncode(data));
+  Future<void> writeList(String key, List<Map<String, dynamic>> data) {
+    final f = _prefs.setString(key, jsonEncode(data));
+    _changed(key);
+    return f;
+  }
 
   Map<String, dynamic>? readMap(String key) {
     final raw = _prefs.getString(key);
@@ -28,8 +53,11 @@ class LocalStorage {
     return jsonDecode(raw) as Map<String, dynamic>;
   }
 
-  Future<void> writeMap(String key, Map<String, dynamic> data) =>
-      _prefs.setString(key, jsonEncode(data));
+  Future<void> writeMap(String key, Map<String, dynamic> data) {
+    final f = _prefs.setString(key, jsonEncode(data));
+    _changed(key);
+    return f;
+  }
 
   Future<void> remove(String key) => _prefs.remove(key);
 
@@ -43,20 +71,27 @@ class LocalStorage {
   /// Есть ли вообще задачи (для авто-восстановления при «пустом» старте).
   bool get hasData => _prefs.getString('tasks') != null;
 
-  /// Полный слепок всех ключей хранилища (для экспорта).
+  /// Слепок всех ключей хранилища для бэкапа — кроме ключей «устройство».
   Map<String, Object?> snapshot() {
     final out = <String, Object?>{};
     for (final k in _prefs.getKeys()) {
+      if (k.startsWith(kDeviceKeyPrefix)) continue;
       out[k] = _prefs.get(k);
     }
     return out;
   }
 
   /// Восстанавливает ключи из слепка. [clear] — стереть текущее перед записью
-  /// (полная замена, а не слияние).
+  /// (полная замена, а не слияние). Ключи «устройство» не трогает ни при
+  /// очистке, ни при записи.
   Future<void> restore(Map<String, Object?> data, {bool clear = true}) async {
-    if (clear) await _prefs.clear();
+    if (clear) {
+      for (final k in _prefs.getKeys().toList()) {
+        if (!k.startsWith(kDeviceKeyPrefix)) await _prefs.remove(k);
+      }
+    }
     for (final entry in data.entries) {
+      if (entry.key.startsWith(kDeviceKeyPrefix)) continue;
       final v = entry.value;
       if (v is String) {
         await _prefs.setString(entry.key, v);

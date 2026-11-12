@@ -28,6 +28,13 @@ class RatingRepository {
     _periods = _readIntMap(_kPeriodRatings);
   }
 
+  /// Перечитать из хранилища: синхронизация записала туда чужие правки.
+  void reload() {
+    _reload();
+    _dayController.add(Map.of(_days));
+    _periodController.add(Map.of(_periods));
+  }
+
   Map<String, int> _readIntMap(String key) {
     final raw = _storage.readMap(key) ?? {};
     return raw.map((k, v) => MapEntry(k, (v as num).toInt()));

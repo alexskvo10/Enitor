@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import '../../core/utils/date_utils.dart';
 import 'recurrence_rule.dart';
 
@@ -82,8 +84,9 @@ class ScheduleItem {
     final days = _utc(d).difference(_utc(start)).inDays;
     return switch (repeat!) {
       RecurrenceKind.weekly => weekdays.contains(d.weekday) &&
-          // Номер недели от понедельника недели начала серии.
-          ((days + start.weekday - 1) ~/ 7) % weekInterval == 0,
+          // Номер недели от понедельника недели начала серии. 0 и меньше
+          // (кривой календарь, чужая версия) — каждую неделю, не деление на 0.
+          ((days + start.weekday - 1) ~/ 7) % max(1, weekInterval) == 0,
       RecurrenceKind.monthly => monthDays.contains(d.day),
       RecurrenceKind.interval => intervalDays > 0 && days % intervalDays == 0,
     };

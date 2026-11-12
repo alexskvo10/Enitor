@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +12,17 @@ import 'data/repositories/profile_repository.dart';
 import 'data/repositories/stats_repository.dart';
 import 'data/repositories/task_repository.dart';
 import 'data/sources/local/local_storage.dart';
+import 'features/integrations/core/command_handler.dart';
+import 'features/integrations/core/command_journal.dart';
+import 'features/integrations/core/integration_gateway.dart';
+import 'features/integrations/core/integration_settings.dart';
+import 'features/integrations/ics/ics_subscription.dart';
+import 'features/integrations/sync/lan/lan_service.dart';
+import 'features/integrations/sync/sync_background.dart';
+import 'features/integrations/sync/sync_service.dart';
+import 'features/integrations/webhooks/webhooks.dart';
+import 'features/integrations/widget/day_snapshot.dart';
+import 'features/integrations/windows/link_registration.dart';
 import 'services/backup_service.dart';
 import 'services/notification_service.dart';
 import 'services/pomodoro_controller.dart';
@@ -64,7 +76,12 @@ Future<SharedPreferences> _initPrefs() async {
   }
 }
 
-Future<void> main() async {
+/// [args] — аргументы запуска. На Windows среди них бывает ссылка
+/// `enitor://…`: так Windows открывает приложение по зарегистрированной схеме.
+Future<void> main(List<String> args) async {
+  // Сигнал UnifiedPush, когда приложение закрыто: система запускает движок
+  // без окна — только обмен с сервером, без интерфейса.
+  if (args.contains('--unifiedpush-bg')) return runPushBackground();
   WidgetsFlutterBinding.ensureInitialized();
 
   final prefs = await _initPrefs();
@@ -132,6 +149,50 @@ Future<void> main() async {
   // Живой таймер: автоперенос ровно в 4:00 каждую ночь.
   // Самоперепланируется — не нужно перезапускать приложение.
   _scheduleNightlyTransfer(container);
+
+  // Внешние входы (ссылки, «Поделиться», Tasker, консоль, MCP). Подключаем
+  // до runApp: команды, пришедшие раньше, ждут в очереди CommandInbox, а
+  // анкету InboxHost откроет после первого кадра.
+  final gateway = container.read(integrationGatewayProvider);
+  await gateway.attach();
+  watchExecutedCommands(container);
+  if (defaultTargetPlatform == TargetPlatform.android) {
+    WidgetSnapshotWriter(container).start();
+  }
+  // Вебхуки: события от действий на этом устройстве + досылка накопленного.
+  final hooks = container.read(webhookServiceProvider)
+    ..onGone = (ep) => notifications.showTrace(
+          currentL10n().hookGoneNotifTitle,
+          ep.url,
+        );
+  hooks.listen();
+  unawaited(hooks.process());
+  // Свой сервер (если подключён): обмен при запуске, после правок, при
+  // возврате в приложение и по событиям сервера.
+  final sync = container.read(syncServiceProvider);
+  sync
+    ..onBackground = ((on) => setBackgroundSync(on, service: sync))
+    ..start();
+  attachForegroundSync(sync);
+  // Синхронизация по сети — только если есть группа своих устройств.
+  container.read(lanSyncServiceProvider).start();
+  if (sync.settings.connected) {
+    unawaited(setBackgroundSync(true, service: sync).catchError((Object _) {}));
+  }
+  // Календарь по ссылке — только если человек сам включил «обновлять».
+  unawaited(refreshIcsSubscription(container));
+  if (defaultTargetPlatform == TargetPlatform.windows) {
+    // Схема enitor:// — на путь этого exe: папку могли перенести.
+    unawaited(
+      container
+          .read(linkRegistrationProvider)
+          .sync(enabled: container.read(integrationSettingsProvider).windowsLinks)
+          .then((s) => container.read(linkSyncResultProvider.notifier).state = s),
+    );
+  }
+  for (final a in args) {
+    if (a.toLowerCase().startsWith('enitor:')) gateway.receiveLink(a);
+  }
 
   runApp(
     UncontrolledProviderScope(

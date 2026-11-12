@@ -7,6 +7,18 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// unifiedpush тянет tink, flutter_secure_storage — tink-android: одни и те же
+// классы дважды. Оставляем одну библиотеку (рецепт из README unifiedpush).
+configurations.all {
+    val tink = "com.google.crypto.tink:tink-android:1.23.0"
+    resolutionStrategy {
+        force(tink)
+        dependencySubstitution {
+            substitute(module("com.google.crypto.tink:tink")).using(module(tink))
+        }
+    }
+}
+
 // Релизная подпись: пароли и путь к keystore — в android/key.properties (не в git).
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")

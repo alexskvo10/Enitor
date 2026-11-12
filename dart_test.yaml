@@ -1,0 +1,4 @@
+# golden-снимки делаются на Windows и не совпадут с Linux (растеризация шрифтов),
+# поэтому в CI тег golden исключён. Запуск локально: flutter test --tags golden
+tags:
+  golden:

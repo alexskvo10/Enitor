@@ -14,6 +14,9 @@ import '../../data/repositories/task_repository.dart';
 import '../../features/about/about_screen.dart';
 import '../../features/goals/goals_screen.dart';
 import '../../features/help/faq_screen.dart';
+import '../../features/integrations/inbox/inbox_host.dart';
+import '../../features/integrations/ui/integrations_screen.dart';
+import '../../features/integrations/ui/sync_screen.dart';
 import '../../features/profile/profile_screen.dart';
 import '../../features/settings/settings_screen.dart';
 import '../../features/stats/stats_screen.dart';
@@ -34,7 +37,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/today',
     routes: [
       ShellRoute(
-        builder: (context, state, child) => _RootScaffold(child: child),
+        // InboxHost — над вкладками: анкета из ссылки открывается на любой.
+        builder: (context, state, child) =>
+            InboxHost(child: _RootScaffold(child: child)),
         routes: [
           GoRoute(
             path: '/today',
@@ -63,6 +68,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings',
         builder: (_, __) => const SettingsScreen(),
+        routes: [
+          GoRoute(
+            path: 'integrations',
+            builder: (_, __) => const IntegrationsScreen(),
+          ),
+          GoRoute(
+            path: 'sync',
+            builder: (_, __) => const SyncScreen(),
+          ),
+          GoRoute(
+            path: 'notifications',
+            builder: (_, __) => const NotificationSettingsScreen(),
+          ),
+        ],
       ),
       GoRoute(
         path: '/about',

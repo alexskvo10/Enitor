@@ -21,6 +21,7 @@ import '../../data/repositories/rating_repository.dart';
 import '../../data/repositories/schedule_repository.dart';
 import '../../data/repositories/stats_repository.dart';
 import '../../data/repositories/task_repository.dart';
+import '../../data/sources/local/local_storage.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../backlog/backlog_screen.dart';
 import '../search/global_search.dart';
@@ -173,10 +174,15 @@ class TodayScreen extends ConsumerStatefulWidget {
   ConsumerState<TodayScreen> createState() => _TodayScreenState();
 }
 
+/// Вид календаря на «Задачах» (месяц / 2 недели / неделя). Ключ
+/// «устройство»: на телефоне удобна неделя, на ПК — месяц, поэтому ни в
+/// бэкап, ни на сервер он не уходит.
+const _kCalendarFormatKey = 'device.ui.todayCalendar';
+
 class _TodayScreenState extends ConsumerState<TodayScreen> {
   late DateTime _selected;
   late DateTime _focused;
-  CalendarFormat _format = CalendarFormat.month;
+  late CalendarFormat _format;
 
   /// 0 — задачи, 1 — расписание.
   int _tab = 0;
@@ -188,6 +194,12 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     final effToday = _effectiveToday(DateTime.now());
     _selected = effToday;
     _focused = effToday;
+    final saved =
+        ref.read(localStorageProvider).readMap(_kCalendarFormatKey)?['format'];
+    _format = CalendarFormat.values.where((f) => f.name == saved).firstOrNull ??
+        CalendarFormat.month;
+    _tab = ref.read(todayTabRequestProvider) ?? 0;
+    _consumeTabRequest();
     // Регистрируем «создать» для Ctrl+N: новая задача на выбранный день.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -206,6 +218,12 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
         ref.read(taskRepositoryProvider).ensureRecurrencesForDay(effToday));
   }
 
+  /// Просьба выполнена — снимаем её, иначе следующее открытие экрана снова
+  /// перескочило бы на ту же вкладку.
+  void _consumeTabRequest() => WidgetsBinding.instance.addPostFrameCallback(
+        (_) => ref.read(todayTabRequestProvider.notifier).state = null,
+      );
+
   bool get _isToday => isSameDay(_selected, _effectiveToday(DateTime.now()));
 
   String _title(BuildContext context) {
@@ -217,6 +235,12 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    // Ссылка просит открыть вкладку, пока экран уже на месте.
+    ref.listen<int?>(todayTabRequestProvider, (_, tab) {
+      if (tab == null) return;
+      setState(() => _tab = tab);
+      _consumeTabRequest();
+    });
     final now = ref.watch(currentTimeProvider).value ?? DateTime.now();
     final isPast = _selected.isBefore(_effectiveToday(now));
     final quietStart =
@@ -310,7 +334,12 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
               });
               unawaited(taskRepo.ensureRecurrencesForDay(sel));
             },
-            onFormatChanged: (fmt) => setState(() => _format = fmt),
+            onFormatChanged: (fmt) {
+              setState(() => _format = fmt);
+              ref
+                  .read(localStorageProvider)
+                  .writeMap(_kCalendarFormatKey, {'format': fmt.name});
+            },
             onPageChanged: (foc) => setState(() => _focused = foc),
             startingDayOfWeek: StartingDayOfWeek.monday,
             // Кнопка формата («Месяц / 2 недели / Неделя») — в виде карточки:
@@ -410,7 +439,9 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                           // карточка «Шаблоны дня» справа.
                           _DayMasthead(
                             date: _selected,
-                            onTemplates: () => showTemplatesSheet(
+                            actionIcon: Icons.dashboard_customize_outlined,
+                            actionLabel: context.l10n.templatesLabel,
+                            onAction: () => showTemplatesSheet(
                               context,
                               date: _selected,
                               isPast: isPast,
@@ -669,6 +700,63 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
 }
 
 enum _TaskAction { pomodoro, actualTime, transfer, copy, edit, delete }
+
+/// Какую вкладку открыть на «Сегодня» (0 — задачи, 1 — расписание): так
+/// ссылка `enitor://open?screen=schedule` попадает сразу в расписание.
+final todayTabRequestProvider = StateProvider<int?>((ref) => null);
+
+/// Анкета новой задачи, заполненная из команды интеграции, с [header] над
+/// ней (откуда пришло). true — пользователь сохранил.
+Future<bool> showPrefilledTaskSheet(
+  BuildContext context, {
+  required Task template,
+  required Widget header,
+}) async {
+  final saved = await showModalBottomSheet<bool>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    builder: (_) => EscDismissible(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          header,
+          Flexible(
+            child: _TaskFormSheet(date: template.date, template: template),
+          ),
+        ],
+      ),
+    ),
+  );
+  return saved == true;
+}
+
+/// То же для пункта расписания.
+Future<bool> showPrefilledScheduleSheet(
+  BuildContext context, {
+  required ScheduleItem template,
+  required Widget header,
+}) async {
+  final saved = await showModalBottomSheet<bool>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    builder: (_) => EscDismissible(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          header,
+          Flexible(
+            child: _ScheduleFormSheet(date: template.date, template: template),
+          ),
+        ],
+      ),
+    ),
+  );
+  return saved == true;
+}
 
 enum _RecurringDeleteChoice { single, fromHere, entire }
 
@@ -1676,9 +1764,13 @@ class _TaskTile extends ConsumerWidget {
 // ─── Форма добавления / редактирования задачи ────────────────────────────────
 
 class _TaskFormSheet extends ConsumerStatefulWidget {
-  const _TaskFormSheet({required this.date, this.existingTask});
+  const _TaskFormSheet({required this.date, this.existingTask, this.template});
   final DateTime date;
   final Task? existingTask;
+
+  /// Анкета новой задачи, заполненная по образцу (команда из ссылки или
+  /// «Поделиться»). В отличие от [existingTask], сохранение создаёт задачу.
+  final Task? template;
 
   bool get isEditing => existingTask != null;
 
@@ -1727,7 +1819,7 @@ class _TaskFormSheetState extends ConsumerState<_TaskFormSheet> {
   @override
   void initState() {
     super.initState();
-    final t = widget.existingTask;
+    final t = widget.existingTask ?? widget.template;
     _titleController = TextEditingController(text: t?.title ?? '');
     _descController = TextEditingController(text: t?.description ?? '');
     _startMinutes = t?.startMinutes;
@@ -2414,7 +2506,7 @@ class _TaskFormSheetState extends ConsumerState<_TaskFormSheet> {
         tags: _tags.toList(),
       );
     }
-    if (mounted) Navigator.of(context).pop();
+    if (mounted) Navigator.of(context).pop(true);
   }
 
   /// Проверка, что выбранные параметры повторения имеют смысл — иначе
@@ -2452,15 +2544,17 @@ class _TimePicker extends StatelessWidget {
         Expanded(
           child: OutlinedButton.icon(
             icon: const Icon(Icons.access_time, size: 16),
-            label: Text(
-              hasTime ? '$label: ${_fmtTime(minutes!)}' : label,
-              overflow: TextOverflow.ellipsis,
+            // На узком телефоне «До: 10:30» не влезал и резался «…»:
+            // отступы поменьше, а если и так тесно — текст чуть ужимается.
+            label: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(hasTime ? '$label: ${_fmtTime(minutes!)}' : label),
             ),
-            style: hasTime
-                ? OutlinedButton.styleFrom(
-                    foregroundColor: Theme.of(context).colorScheme.primary,
-                  )
-                : null,
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              foregroundColor:
+                  hasTime ? Theme.of(context).colorScheme.primary : null,
+            ),
             onPressed: () async {
               final picked = await showTimePicker(
                 context: context,
@@ -2886,24 +2980,36 @@ class _TaskSectionsState extends ConsumerState<_TaskSections> {
 // ─── Два кольца: продуктивность + своевременность ────────────────────────────
 
 /// Журнальная шапка дня: день недели капсом «глиной» + тонкая линейка-правило.
-/// Экран открывается как разворот ежедневника.
+/// Экран открывается как разворот ежедневника. Справа — карточка действия:
+/// «Шаблоны» у задач, «Неделя/День» у расписания. [title] заменяет день недели:
+/// обзор недели показывает там её даты.
 class _DayMasthead extends StatelessWidget {
-  const _DayMasthead({required this.date, required this.onTemplates});
+  const _DayMasthead({
+    required this.date,
+    this.title,
+    required this.actionIcon,
+    required this.actionLabel,
+    required this.onAction,
+  });
   final DateTime date;
-  final VoidCallback onTemplates;
+  final String? title;
+  final IconData actionIcon;
+  final String actionLabel;
+  final VoidCallback onAction;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final locale = Localizations.localeOf(context).languageCode;
-    final weekday = DateFormat('EEEE', locale).format(date).toUpperCase();
+    final heading =
+        (title ?? DateFormat('EEEE', locale).format(date)).toUpperCase();
     final muted = theme.colorScheme.onSurface.withValues(alpha: 0.7);
     return Padding(
       padding: const EdgeInsets.fromLTRB(2, 8, 2, 6),
       child: Row(
         children: [
           Text(
-            weekday,
+            heading,
             style: theme.textTheme.labelMedium?.copyWith(
               color: AppColors.clay,
               fontWeight: FontWeight.w800,
@@ -2915,7 +3021,6 @@ class _DayMasthead extends StatelessWidget {
           // Линейка укорачивается (Expanded), чтобы не залезать под карточку.
           Expanded(child: Container(height: 1, color: theme.dividerColor)),
           const SizedBox(width: 12),
-          // Карточка «Шаблоны дня».
           Material(
             color: theme.colorScheme.surface,
             shape: RoundedRectangleBorder(
@@ -2924,18 +3029,17 @@ class _DayMasthead extends StatelessWidget {
             ),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
-              onTap: onTemplates,
+              onTap: onAction,
               child: Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.dashboard_customize_outlined,
-                        size: 16, color: muted),
+                    Icon(actionIcon, size: 16, color: muted),
                     const SizedBox(width: 6),
                     Text(
-                      context.l10n.templatesLabel,
+                      actionLabel,
                       style: theme.textTheme.labelMedium?.copyWith(
                         color: muted,
                         fontWeight: FontWeight.w600,

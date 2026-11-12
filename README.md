@@ -50,6 +50,7 @@ And the fundamentals that make trusting it with your habits worthwhile:
 - [Screenshots](#screenshots)
 - [Installation](#installation)
 - [Features](#features)
+- [Integrations](#integrations)
 - [Design](#design)
 - [Tech stack](#tech-stack)
 - [Development setup](#development-setup)
@@ -170,6 +171,23 @@ After the first install, Enitor checks GitHub for new releases on its own (about
 - Light / dark / system theme, three background styles (plain, paper grain, dot grid) with an optional vignette.
 - Full Russian and English localization, switchable instantly without restarting.
 - Desktop keyboard shortcuts (`Ctrl+N` to create, `Enter`/`Esc`/`Tab` in forms and dialogs).
+
+---
+
+## Integrations
+
+Enitor can work with your other tools. Most of it runs on this device alone:
+
+- **Links** — `enitor://` links open a filled-in form from a browser, a note or a QR code. Nothing is added until you press Add.
+- **Android** — Tasker and Automate can add tasks and, if you allow it, read your plan for the day.
+- **Windows** — `enitor-cli` from a console or Task Scheduler, and an MCP server for AI assistants such as Claude Desktop.
+- **Webhooks** — events (a task is done, the day is closed, a goal is reached) sent to addresses you enter, such as n8n or Home Assistant. Each request is signed with HMAC-SHA256.
+- **Calendars** — import a `.ics` timetable or a calendar link, export your schedule, or move in from Todoist, Google Tasks or TickTick.
+- **Your own server** — optional. Run `enitor-server` on your PC or a home server to sync your phone and PC, and to give automations REST access to your tasks, goals and schedule. Enitor has no server of its own, so the data goes only to the address you enter. See [docs/integrations/server.md](docs/integrations/server.md).
+
+Step-by-step recipes are in [docs/integrations/recipes.md](docs/integrations/recipes.md), and the exact formats are in [docs/integrations/formats.md](docs/integrations/formats.md). Russian versions: [recipes](docs/integrations/recipes.ru.md), [formats](docs/integrations/formats.ru.md) and [server](docs/integrations/server.ru.md).
+
+Privacy: there is no Enitor server, and nothing leaves your device by itself. Everything that sends your data out — webhooks, calendar links with daily refresh, your own server for sync, and the "Read" permissions for Tasker and AI assistants — is off until you turn it on.
 
 ---
 

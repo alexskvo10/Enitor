@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="widget_paper">#211E19</color>
+    <color name="widget_ink">#ECE7DC</color>
+    <color name="widget_ink_muted">#A39C91</color>
+    <color name="widget_accent">#D9825C</color>
+    <color name="widget_done">#5CC085</color>
+    <color name="widget_track">#332E26</color>
+    <color name="widget_high">#D65745</color>
+    <color name="widget_medium">#E8A23D</color>
+</resources>

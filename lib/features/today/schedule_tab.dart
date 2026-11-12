@@ -58,18 +58,21 @@ class _ScheduleDayViewState extends ConsumerState<_ScheduleDayView> {
         ? AppColors.textSecondaryDark
         : AppColors.textSecondary;
 
-    // Сводка слева от кнопки: у недели — её даты, у дня — сколько пунктов
-    // и сколько времени они занимают.
-    final String summary;
+    // У недели шапка показывает её даты: «2 – 8 ноября», а на стыке месяцев
+    // короче, «28 сент. – 4 окт.», иначе строка не влезет рядом с кнопкой.
+    // Под шапкой у дня — сколько пунктов и сколько времени они занимают.
+    String? weekTitle;
+    var summary = '';
     if (_week) {
       final locale = Localizations.localeOf(context).languageCode;
       final d = widget.date;
-      final fmt = DateFormat('d MMMM', locale);
-      summary = '${fmt.format(DateTime(d.year, d.month, d.day - d.weekday + 1))}'
-          ' – ${fmt.format(DateTime(d.year, d.month, d.day + 7 - d.weekday))}';
-    } else if (items.isEmpty) {
-      summary = '';
-    } else {
+      final monday = DateTime(d.year, d.month, d.day - d.weekday + 1);
+      final sunday = DateTime(d.year, d.month, d.day + 7 - d.weekday);
+      final short = DateFormat('d MMM', locale);
+      weekTitle = monday.month == sunday.month
+          ? '${monday.day} – ${DateFormat('d MMMM', locale).format(sunday)}'
+          : '${short.format(monday)} – ${short.format(sunday)}';
+    } else if (items.isNotEmpty) {
       final busy = busyMinutes(items, 0, 24 * 60);
       summary = [
         l10n.scheduleItemsCount(items.length),
@@ -78,36 +81,29 @@ class _ScheduleDayViewState extends ConsumerState<_ScheduleDayView> {
     }
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                summary,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.labelMedium?.copyWith(color: muted),
-              ),
-            ),
-            TextButton.icon(
-              onPressed: () => setState(() => _week = !_week),
-              icon: Icon(
-                _week
-                    ? Icons.view_day_outlined
-                    : Icons.calendar_view_week_outlined,
-                size: 17,
-              ),
-              label: Text(_week ? l10n.scheduleViewDay : l10n.scheduleViewWeek),
-              style: TextButton.styleFrom(
-                visualDensity: VisualDensity.compact,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              ),
-            ),
-          ],
+        // Та же шапка, что у задач; кнопка показывает, куда переключит:
+        // иконки одной пары «календарь-день / календарь-неделя».
+        _DayMasthead(
+          date: widget.date,
+          title: weekTitle,
+          actionIcon: _week
+              ? Icons.calendar_view_day_outlined
+              : Icons.calendar_view_week_outlined,
+          actionLabel: _week ? l10n.scheduleViewDay : l10n.scheduleViewWeek,
+          onAction: () => setState(() => _week = !_week),
         ),
-        const SizedBox(height: 6),
+        if (summary.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(2, 0, 2, 6),
+            child: Text(
+              summary,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelMedium?.copyWith(color: muted),
+            ),
+          ),
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 200),
           child: _week
@@ -174,83 +170,85 @@ class _ScheduleWeek extends StatelessWidget {
     return Column(
       children: [
         for (var d = 0; d < 7; d++)
-          Builder(builder: (context) {
-            final day = DateTime(monday.year, monday.month, monday.day + d);
-            final items = scheduleForDay(all, day);
-            final isToday = isSameDay(day, now);
-            final selected = isSameDay(day, date);
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Card(
-                margin: EdgeInsets.zero,
-                clipBehavior: Clip.antiAlias,
-                shape: selected
-                    ? RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: const BorderSide(color: AppColors.primary),
-                      )
-                    : null,
-                child: InkWell(
-                  onTap: () => onPickDay(day),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _capitalize(
-                            DateFormat('EEEE, d MMMM', locale).format(day),
-                          ),
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: isToday ? AppColors.primary : null,
-                          ),
-                        ),
-                        if (items.isEmpty)
-                          Text('—', style: TextStyle(color: muted))
-                        else
-                          for (final i in items)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 4),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: BoxDecoration(
-                                      color: _scheduleColor(i) ?? muted,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  SizedBox(
-                                    width: 92,
-                                    child: Text(
-                                      _scheduleTimeLabel(i),
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(color: muted),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Text(
-                                      i.location == null
-                                          ? i.title
-                                          : '${i.title} · ${i.location}',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.bodyMedium,
-                                    ),
-                                  ),
-                                ],
-                              ),
+          Builder(
+            builder: (context) {
+              final day = DateTime(monday.year, monday.month, monday.day + d);
+              final items = scheduleForDay(all, day);
+              final isToday = isSameDay(day, now);
+              final selected = isSameDay(day, date);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Card(
+                  margin: EdgeInsets.zero,
+                  clipBehavior: Clip.antiAlias,
+                  shape: selected
+                      ? RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: const BorderSide(color: AppColors.primary),
+                        )
+                      : null,
+                  child: InkWell(
+                    onTap: () => onPickDay(day),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _capitalize(
+                              DateFormat('EEEE, d MMMM', locale).format(day),
                             ),
-                      ],
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: isToday ? AppColors.primary : null,
+                            ),
+                          ),
+                          if (items.isEmpty)
+                            Text('—', style: TextStyle(color: muted))
+                          else
+                            for (final i in items)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        color: _scheduleColor(i) ?? muted,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    SizedBox(
+                                      width: 92,
+                                      child: Text(
+                                        _scheduleTimeLabel(i),
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(color: muted),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Text(
+                                        i.location == null
+                                            ? i.title
+                                            : '${i.title} · ${i.location}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.bodyMedium,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            );
-          },),
+              );
+            },
+          ),
       ],
     );
   }
@@ -279,10 +277,8 @@ class _ScheduleTile extends ConsumerWidget {
     final nowMin = now.hour * 60 + now.minute;
     final isToday = isSameDay(date, now);
     final end = item.endMinutes;
-    final live = isToday &&
-        end != null &&
-        nowMin >= item.startMinutes &&
-        nowMin < end;
+    final live =
+        isToday && end != null && nowMin >= item.startMinutes && nowMin < end;
     // Пункт без конца — момент: прошёл, как только наступило его время.
     final over = dateOnly(date).isBefore(dateOnly(now)) ||
         (isToday && nowMin >= (end ?? item.startMinutes + 1));
@@ -833,7 +829,8 @@ class _ScheduleFormSheetState extends ConsumerState<_ScheduleFormSheet> {
     }
 
     // Серия, превращённая в разовый пункт, остаётся в том дне, где её правят.
-    final date = _repeat != null || !e.isSeries ? e.date : dateOnly(widget.date);
+    final date =
+        _repeat != null || !e.isSeries ? e.date : dateOnly(widget.date);
     final endDate = _repeat == null
         ? null
         : (_duration == null ? e.endDate : _recEndDate(date, _duration!));
@@ -865,7 +862,7 @@ class _ScheduleFormSheetState extends ConsumerState<_ScheduleFormSheet> {
   }
 
   Future<void> _save() async {
-    if (await _persist() != null && mounted) Navigator.of(context).pop();
+    if (await _persist() != null && mounted) Navigator.of(context).pop(true);
   }
 
   Future<void> _saveAndMakeTask() async {
@@ -874,7 +871,7 @@ class _ScheduleFormSheetState extends ConsumerState<_ScheduleFormSheet> {
     await _makeScheduleTask(context, ref, item, widget.date);
     // Пункт уже сохранён: оставшись в анкете, повторное «Добавить»
     // создало бы дубль.
-    if (mounted) Navigator.of(context).pop();
+    if (mounted) Navigator.of(context).pop(true);
   }
 
   /// Чип дня недели / числа месяца: последний выбранный не снимается —
@@ -996,7 +993,10 @@ class _ScheduleFormSheetState extends ConsumerState<_ScheduleFormSheet> {
               spacing: 6,
               runSpacing: 4,
               children: [
-                for (final k in <RecurrenceKind?>[null, ...RecurrenceKind.values])
+                for (final k in <RecurrenceKind?>[
+                  null,
+                  ...RecurrenceKind.values
+                ])
                   SegChip(
                     label: switch (k) {
                       null => l10n.scheduleRepeatOnce,
@@ -1132,9 +1132,13 @@ class _ScheduleFormSheetState extends ConsumerState<_ScheduleFormSheet> {
                   child: OutlinedButton.icon(
                     onPressed: _saveAndMakeTask,
                     icon: const Icon(Icons.task_alt, size: 18),
-                    label: Text(
-                      l10n.scheduleMakeTask,
-                      overflow: TextOverflow.ellipsis,
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                    ),
+                    // Не «Сделать зада…»: если не влезает — текст ужимается.
+                    label: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(l10n.scheduleMakeTask),
                     ),
                   ),
                 ),

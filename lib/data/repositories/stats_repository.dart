@@ -111,6 +111,9 @@ class StatsRepository {
   final _controller = StreamController<List<DayStats>>.broadcast();
   List<DayStats> _cache = [];
 
+  /// Перечитать из хранилища: синхронизация записала туда чужие правки.
+  void reload() => _reload();
+
   void _reload() {
     _cache = _storage.readList(_kStatsKey).map(DayStats.fromJson).toList();
     _controller.add(_cache);

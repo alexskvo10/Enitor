@@ -99,6 +99,10 @@ class NotificationService {
   String get _goalChannelName => _l10n.notifGoalChannelName;
   String get _goalChannelDesc => _l10n.notifGoalChannelDesc;
 
+  static const _traceChannelId = 'enitor_integrations';
+  String get _traceChannelName => _l10n.notifTraceChannelName;
+  String get _traceChannelDesc => _l10n.notifTraceChannelDesc;
+
   // ── Зарезервированные id (чтобы перепланирование было идемпотентным) ──
   static const _idMorning = 1;
   static const _idEvening = 2;
@@ -158,6 +162,12 @@ class NotificationService {
   // Конец фокуса и перерыва Помодоро — за пределами всех блоков выше.
   // Расписание: до 100 напоминаний на скользящую неделю (см. scheduleReminders).
   static const _scheduleIdBase = 3100;
+
+  // Следы фоновых команд (Tasker): по кругу из 20 id — последние видны в
+  // шторке, старые заменяются новыми.
+  static const _traceIdBase = 3200;
+  static const _traceSlots = 20;
+  int _traceSeq = 0;
 
   static const _idPomodoroFocus = 3000;
   static const _idPomodoroBreak = 3001;
@@ -370,7 +380,7 @@ class NotificationService {
     // а расписание живёт дольше сессии, поэтому перед тем, как ставить тосты,
     // убеждаемся, что к моменту их срабатывания приложение ещё «прописано».
     await _ensureWindowsRegistration();
-    await _plugin.cancelAll();
+    await _cancelScheduled();
     // Помодоро — не расписание, а будильник, который человек завёл сам
     // только что: главный выключатель напоминаний его не касается.
     await _schedulePomodoroAlarms();
@@ -730,6 +740,24 @@ class NotificationService {
     await _plugin.cancelAll();
   }
 
+  /// Снимает запланированное перед пересборкой. На Android — по списку ещё
+  /// не сработавших: cancelAll там убирает и уже показанные уведомления, а с
+  /// ними — следы фоновых команд, которые человек ещё не успел увидеть.
+  Future<void> _cancelScheduled() async {
+    if (_isWindows) return _plugin.cancelAll();
+    for (final p in await _plugin.pendingNotificationRequests()) {
+      await _plugin.cancel(p.id);
+    }
+  }
+
+  /// Тихое уведомление-след: «Добавлено из Tasker: …». Чужая автоматизация
+  /// не должна действовать незаметно.
+  Future<void> showTrace(String title, String body) async {
+    if (!_isSupportedPlatform) return;
+    final id = _traceIdBase + _traceSeq++ % _traceSlots;
+    await _plugin.show(id, title, body, _details(_Channel.trace));
+  }
+
   /// Ставит (или снимает, если null) уведомления на конец фокуса и перерыва.
   ///
   /// Только Android: там свёрнутое приложение замораживается и само сказать
@@ -1027,6 +1055,12 @@ class NotificationService {
           _goalChannelDesc,
           Importance.high
         ),
+      _Channel.trace => (
+          _traceChannelId,
+          _traceChannelName,
+          _traceChannelDesc,
+          Importance.low
+        ),
     };
     return NotificationDetails(
       android: AndroidNotificationDetails(
@@ -1053,7 +1087,7 @@ class NotificationService {
           defaultTargetPlatform == TargetPlatform.windows);
 }
 
-enum _Channel { planning, task, general, goal }
+enum _Channel { planning, task, general, goal, trace }
 
 final notificationServiceProvider = Provider<NotificationService>(
   (ref) => throw UnimplementedError('Override in main()'),

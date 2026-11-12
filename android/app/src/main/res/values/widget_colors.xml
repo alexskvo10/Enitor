@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Цвета виджета — те же, что у «Живой бумаги» в приложении (app_colors.dart):
+     тёплая бумага днём, «ночной кабинет» в тёмной теме (values-night). -->
+<resources>
+    <color name="widget_paper">#F7F4EE</color>
+    <color name="widget_ink">#2A2722</color>
+    <color name="widget_ink_muted">#6F695E</color>
+    <color name="widget_accent">#C26B45</color>
+    <color name="widget_done">#3FA66A</color>
+    <color name="widget_track">#E8E2D6</color>
+    <color name="widget_high">#D65745</color>
+    <color name="widget_medium">#E8A23D</color>
+</resources>
