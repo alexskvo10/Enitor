@@ -167,6 +167,7 @@ Future<void> main(List<String> args) async {
         );
   hooks.listen();
   unawaited(hooks.process());
+  AppLifecycleListener(onResume: () => unawaited(hooks.retryNow()));
   // Свой сервер (если подключён): обмен при запуске, после правок, при
   // возврате в приложение и по событиям сервера.
   final sync = container.read(syncServiceProvider);

@@ -255,6 +255,47 @@ void main() {
     expect(container.read(webhookFailedProvider), isTrue);
   });
 
+  test('вернулись в приложение — недошедшее из-за сети уходит сразу',
+      () async {
+    var online = false;
+    final service = WebhookService(
+      _refOf(container),
+      clock: () => now,
+      client: () => MockClient((_) async {
+        if (!online) throw const SocketException('airplane');
+        return http.Response('', 200);
+      }),
+    );
+    await service.saveEndpoints([
+      WebhookEndpoint(
+        id: 'w1',
+        url: url(),
+        events: const {WebhookEvent.taskCompleted},
+      ),
+    ]);
+    await service.enqueue(WebhookEvent.taskCompleted, 'x', const {});
+    // Два провала по расписанию: следующая попытка — через 30 мин.
+    now = now.add(const Duration(minutes: 1));
+    await service.process();
+    now = now.add(const Duration(minutes: 5));
+    await service.process();
+    final scheduled = service.deliveries.single;
+    expect(scheduled.attempts, 3);
+    expect(scheduled.nextAt, now.add(const Duration(minutes: 30)));
+
+    // Открыли приложение, а сети всё нет — попытка не засчитана.
+    now = now.add(const Duration(minutes: 2));
+    await service.retryNow();
+    expect(service.deliveries.single.attempts, 3);
+    expect(service.deliveries.single.nextAt, scheduled.nextAt);
+
+    // Сеть вернулась — уходит сразу, не дожидаясь расписания.
+    online = true;
+    await service.retryNow();
+    expect(service.deliveries.single.status, DeliveryStatus.delivered);
+    service.dispose();
+  });
+
   test('410 → адрес выключен, уведомление', () async {
     await addEndpoint(events: {WebhookEvent.taskCompleted});
     status = 410;

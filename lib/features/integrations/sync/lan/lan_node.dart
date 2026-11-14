@@ -356,7 +356,21 @@ class LanNode {
     // это время находит тех, кто отвечает на него.
     _lastSweep =
         _clock().subtract(kLanSweepEvery - const Duration(seconds: 30));
-    _tick =
+    resume();
+  }
+
+  /// Приложение ушло в фон (Android): не зовём соседей и не перебираем
+  /// адреса — правок здесь нет, а радио и батарея тратятся. Сервер узла
+  /// работает: сосед сам придёт обменяться.
+  void suspend() {
+    _tick?.cancel();
+    _tick = null;
+  }
+
+  /// Снова на экране: обход каждые 30 с и сразу один, не дожидаясь таймера.
+  void resume() {
+    if (!_running) return;
+    _tick ??=
         Timer.periodic(const Duration(seconds: 30), (_) => unawaited(tick()));
     unawaited(tick());
   }

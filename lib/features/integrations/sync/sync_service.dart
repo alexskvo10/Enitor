@@ -420,7 +420,13 @@ class SyncService {
       onResume: () => unawaited(_onResume()),
       onPause: () {
         // На телефоне соединение в фоне всё равно оборвут — не держим его.
-        if (defaultTargetPlatform == TargetPlatform.android) _stopEvents();
+        // Опрос тоже стоит: в фоне обмен идёт по сигналу сервера
+        // (sync_background), а при возврате — сразу.
+        if (defaultTargetPlatform == TargetPlatform.android) {
+          _stopEvents();
+          _poll?.cancel();
+          _poll = null;
+        }
       },
     );
     if (settings.connected) _listen();
@@ -436,6 +442,7 @@ class SyncService {
       _reloadRepositories(kSyncCollections.map((c) => c.name).toSet());
       _tasksChanged = false;
     }
+    _poll ??= Timer.periodic(kSyncPollInterval, (_) => unawaited(syncNow()));
     _startEvents();
     await syncNow();
   }

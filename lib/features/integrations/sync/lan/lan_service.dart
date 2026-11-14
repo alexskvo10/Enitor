@@ -105,9 +105,12 @@ class LanSyncService {
     _lifecycle ??= AppLifecycleListener(
       onResume: () {
         unawaited(_multicast(true));
-        unawaited(_node?.tick());
+        _node?.resume();
       },
-      onPause: () => unawaited(_multicast(false)),
+      onPause: () {
+        unawaited(_multicast(false));
+        _node?.suspend();
+      },
     );
     _changesSub ??= _storage.changes.listen((key) {
       if (!_syncedKeys.contains(key)) return;

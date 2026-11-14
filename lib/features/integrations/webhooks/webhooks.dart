@@ -392,10 +392,15 @@ class WebhookService {
         await _update(d.id, d.copyWith(status: DeliveryStatus.failed));
         continue;
       }
+      final earlyFrom = _early.remove(d.id);
       final code = await _post(ep, d);
       final attempts = d.attempts + 1;
       final WebhookDelivery next;
-      if (code >= 200 && code < 300) {
+      if (code == 0 && earlyFrom != null) {
+        // Досрочная попытка ([retryNow]), а сети всё нет — в счёт попыток
+        // не идёт, расписание прежнее.
+        next = d.copyWith(nextAt: earlyFrom);
+      } else if (code >= 200 && code < 300) {
         next = d.copyWith(
           status: DeliveryStatus.delivered,
           attempts: attempts,
@@ -476,6 +481,29 @@ class WebhookService {
     } finally {
       client.close();
     }
+  }
+
+  /// Досрочные попытки: id доставки → когда она стояла по расписанию.
+  final _early = <String, DateTime>{};
+
+  /// Вернулись в приложение — сеть могла появиться (выключили авиарежим):
+  /// что не ушло из-за сети, шлём сейчас, а не через полчаса по расписанию.
+  Future<void> retryNow() async {
+    final now = _clock();
+    final list = <WebhookDelivery>[];
+    for (final d in deliveries) {
+      if (d.status == DeliveryStatus.pending &&
+          d.lastCode == 0 &&
+          d.nextAt.isAfter(now)) {
+        _early[d.id] = d.nextAt;
+        list.add(d.copyWith(nextAt: now));
+      } else {
+        list.add(d);
+      }
+    }
+    if (_early.isEmpty) return;
+    await _saveDeliveries(list);
+    await process();
   }
 
   /// «Отправить ещё раз» из журнала: новая серия попыток.

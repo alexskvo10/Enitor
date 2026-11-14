@@ -8,7 +8,18 @@ import 'ink_wave.dart';
 /// Scaffold и AppBar ПРОЗРАЧНЫ: фон (цвет + текстура) рисует [AppBackground]
 /// через MaterialApp.builder — так текстура сплошная под всеми экранами.
 abstract final class AppTheme {
-  /// Inter для текста + Manrope для заголовков и крупных чисел. Оба
+  /// Переходы между экранами. Штатные не годятся: на время перехода они
+  /// заливают фон сплошным цветом (бумажная текстура AppBackground пропадала),
+  /// а без заливки новый экран проявлялся поверх старого. Здесь экраны не
+  /// накладываются: старый гаснет, под ним — текстура, потом проявляется
+  /// новый. Назад — то же в обратную сторону.
+  static const _transitions = PageTransitionsTheme(
+    builders: {
+      TargetPlatform.android: FadeThroughPageTransitionsBuilder(),
+      TargetPlatform.windows: FadeThroughPageTransitionsBuilder(),
+      TargetPlatform.linux: FadeThroughPageTransitionsBuilder(),
+    },
+  );  /// Inter для текста + Manrope для заголовков и крупных чисел. Оба
   /// забандлены в assets (см. pubspec.yaml) — apply() лишь подставляет
   /// fontFamily, веса каждого слота остаются материаловскими дефолтами.
   static TextTheme _textTheme(TextTheme base, Color color) {
@@ -50,6 +61,7 @@ abstract final class AppTheme {
       // Серая pressed-подсветка выключена: она заливала плитку целиком
       // поверх волны, и волна терялась. Цвет волны — тёплые чернила вместо
       // холодного серого M3. Ховер и фокус (hover/focusColor) не трогаем.
+      pageTransitionsTheme: _transitions,
       splashFactory: InkWave.splashFactory,
       splashColor: AppColors.textPrimary.withValues(alpha: 0.12),
       highlightColor: Colors.transparent,
@@ -140,6 +152,7 @@ abstract final class AppTheme {
       ),
       scaffoldBackgroundColor: Colors.transparent,
       canvasColor: AppColors.surfaceDarkElevated,
+      pageTransitionsTheme: _transitions,
       splashFactory: InkWave.splashFactory,
       splashColor: AppColors.textPrimaryDark.withValues(alpha: 0.14),
       highlightColor: Colors.transparent,
@@ -208,6 +221,49 @@ abstract final class AppTheme {
           }
           return on ? onColor : AppColors.textSecondaryDark;
         }),
+      ),
+    );
+  }
+}
+
+/// Переход «через фон»: уходящий экран гаснет за первые 35 % времени,
+/// новый проявляется (с лёгким сдвигом) за оставшиеся — одновременно их
+/// не видно никогда. Фон между ними — общий, из AppBackground.
+class FadeThroughPageTransitionsBuilder extends PageTransitionsBuilder {
+  const FadeThroughPageTransitionsBuilder();
+
+  static const split = 0.35;
+
+  static final _fadeOut = Tween<double>(begin: 1, end: 0)
+      .chain(CurveTween(curve: const Interval(0, split, curve: Curves.easeIn)));
+  static final _fadeIn =
+      CurveTween(curve: const Interval(split, 1, curve: Curves.easeOut));
+  static final _slideIn = Tween<Offset>(
+    begin: const Offset(0.03, 0),
+    end: Offset.zero,
+  ).chain(CurveTween(curve: const Interval(split, 1, curve: Curves.easeOutCubic)));
+
+  @override
+  Duration get transitionDuration => const Duration(milliseconds: 300);
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T>? route,
+    BuildContext? context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return FadeTransition(
+      // Поверх кладут новый экран — этот гаснет (и снова проявляется,
+      // когда тот закрывают).
+      opacity: secondaryAnimation.drive(_fadeOut),
+      child: FadeTransition(
+        opacity: animation.drive(_fadeIn),
+        child: SlideTransition(
+          position: animation.drive(_slideIn),
+          child: child,
+        ),
       ),
     );
   }
