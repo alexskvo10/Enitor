@@ -27,6 +27,7 @@ class AppearanceController extends ChangeNotifier {
       final modeIdx =
           (raw['themeMode'] as int? ?? 0).clamp(0, ThemeMode.values.length - 1);
       _themeMode = ThemeMode.values[modeIdx];
+      _summaryBars = raw['summaryBars'] as bool? ?? false;
     }
   }
 
@@ -36,9 +37,20 @@ class AppearanceController extends ChangeNotifier {
   bool _vignette = false;
   ThemeMode _themeMode = ThemeMode.system; // дефолт — как в системе
 
+  /// Сводка дня и периода полосами вместо двух колец.
+  bool _summaryBars = false;
+
   BackgroundStyle get style => _style;
   bool get vignette => _vignette;
   ThemeMode get themeMode => _themeMode;
+  bool get summaryBars => _summaryBars;
+
+  Future<void> setSummaryBars(bool v) async {
+    if (v == _summaryBars) return;
+    _summaryBars = v;
+    notifyListeners();
+    await _save();
+  }
 
   Future<void> setThemeMode(ThemeMode v) async {
     if (v == _themeMode) return;
@@ -68,6 +80,7 @@ class AppearanceController extends ChangeNotifier {
     _style = BackgroundStyle.paper;
     _vignette = false;
     _themeMode = ThemeMode.system;
+    _summaryBars = false;
     notifyListeners();
     await _save();
   }
@@ -76,6 +89,7 @@ class AppearanceController extends ChangeNotifier {
         'style': _style.index,
         'vignette': _vignette,
         'themeMode': _themeMode.index,
+        'summaryBars': _summaryBars,
       });
 }
 
@@ -254,7 +268,8 @@ class NotebookEmptyState extends StatelessWidget {
     // Не меньше 168, но растёт с текстом: при крупном шрифте в системе
     // фиксированная высота обрезала подпись.
     return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 168, minWidth: double.infinity),
+      constraints:
+          const BoxConstraints(minHeight: 168, minWidth: double.infinity),
       child: CustomPaint(
         painter: _NotebookPainter(theme.colorScheme.primary),
         child: Padding(

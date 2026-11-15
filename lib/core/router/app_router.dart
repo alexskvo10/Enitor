@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../theme/app_colors.dart';
 import '../../data/models/achievement.dart';
@@ -21,6 +22,9 @@ import '../../features/profile/profile_screen.dart';
 import '../../features/settings/settings_screen.dart';
 import '../../features/stats/stats_screen.dart';
 import '../../features/today/today_screen.dart';
+import '../../features/tour/tour.dart';
+import '../../data/repositories/profile_repository.dart';
+import '../utils/date_utils.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../../services/transfer_prompt_controller.dart';
 import '../../services/weekly_retro_controller.dart';
@@ -101,8 +105,8 @@ class _RootScaffold extends ConsumerStatefulWidget {
 
   static const _tabs = <_TabSpec>[
     _TabSpec('/today', Icons.check_circle_outline, Icons.check_circle),
-    _TabSpec('/stats', Icons.show_chart_outlined, Icons.show_chart),
     _TabSpec('/goals', Icons.flag_outlined, Icons.flag),
+    _TabSpec('/stats', Icons.show_chart_outlined, Icons.show_chart),
     _TabSpec('/profile', Icons.person_outline, Icons.person),
   ];
 
@@ -136,9 +140,28 @@ class _RootScaffoldState extends ConsumerState<_RootScaffold> {
     if (!mounted) return;
     await _maybeShowWeeklyRetro();
     if (!mounted) return;
+    await _maybeOfferTour();
+    if (!mounted) return;
     // Тихая автопроверка обновлений (не чаще раза в сутки, см.
     // UpdateService._throttle) — молчит, если обновления нет или сети нет.
     await checkAndShowUpdateDialog(context, ref, manual: false);
+  }
+
+  /// Карточка «В первый раз?» при чистой установке и «Что нового» при первом
+  /// запуске новой версии (если не выключено в настройках).
+  Future<void> _maybeOfferTour() async {
+    final prefs = ref.read(tourPrefsProvider);
+    final version = (await PackageInfo.fromPlatform()).version;
+    final profile = await ref.read(profileProvider.future);
+    if (!mounted) return;
+    final firstDay = profile == null ||
+        dateOnly(profile.startedAt) == dateOnly(DateTime.now());
+    final kind = prefs.offer(version, firstDay: firstDay);
+    if (kind == null) return;
+    final go = await showTourOffer(context, kind);
+    if (go == null) return; // «Позже» — предложим при следующем запуске.
+    await prefs.markSeen(version);
+    if (go && mounted) startTour(GoRouter.of(context));
   }
 
   /// Окно с разбором прошедшей недели — при первом открытии приложения после
@@ -347,6 +370,7 @@ class _RootScaffoldState extends ConsumerState<_RootScaffold> {
         ),
       ),
       bottomNavigationBar: NavigationBar(
+        key: TourKeys.navBar,
         selectedIndex: selected,
         onDestinationSelected: (i) => context.go(tabs[i].path),
         destinations: [

@@ -120,15 +120,24 @@ class _ScheduleDayViewState extends ConsumerState<_ScheduleDayView> {
               : Column(
                   key: const ValueKey('day'),
                   children: [
-                    if (items.isEmpty)
+                    if (items.isEmpty) ...[
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         child: NotebookEmptyState(
                           icon: Icons.event_note_outlined,
                           text: l10n.scheduleEmptyState,
                         ),
-                      )
-                    else
+                      ),
+                      // Расписание пустое совсем — подсказываем, что пары
+                      // и смены можно не вбивать руками, а взять из календаря.
+                      if (all.isEmpty)
+                        TextButton.icon(
+                          onPressed: () =>
+                              CalendarSection.importFile(context, ref),
+                          icon: const Icon(Icons.event_note_outlined, size: 18),
+                          label: Text(l10n.scheduleImportCta),
+                        ),
+                    ] else
                       for (final item in items)
                         _ScheduleTile(
                           item: item,

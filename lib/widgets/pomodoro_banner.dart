@@ -5,6 +5,7 @@ import '../core/theme/app_colors.dart';
 import '../l10n/l10n_extensions.dart';
 import '../services/pomodoro_controller.dart';
 import '../services/pomodoro_prefs.dart';
+import '../features/focus/focus_screen.dart';
 
 /// Баннер активного Помодоро-таймера. Скрыт, когда таймер не запущен.
 /// Живёт на экране Задач над кольцами; состояние — в [pomodoroProvider],
@@ -109,154 +110,162 @@ class PomodoroBanner extends ConsumerWidget {
           accent.withValues(alpha: 0.08),
           theme.colorScheme.surface,
         ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: accent.withValues(alpha: 0.16),
-                    ),
-                    child: Icon(
-                      isBreak ? Icons.coffee_outlined : Icons.timer_outlined,
-                      color: accent,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    // Заголовок задачи обрезается многоточием на узких
-                    // экранах — полный текст доступен по наведению (десктоп)
-                    // или долгому нажатию (телефон), как у кнопок-пилюль.
-                    child: Tooltip(
-                      message:
-                          '${p.taskTitle}\n$phaseLine$sessionSuffix$recorded',
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
+        clipBehavior: Clip.antiAlias,
+        // Нажатие разворачивает таймер на весь экран.
+        child: InkWell(
+          onTap: () => showFocusScreen(context),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    // Маленькое кольцо отсчёта вместо значка — карточка читается
+                    // как свёрнутый таймер, а не как уведомление.
+                    SizedBox.square(
+                      dimension: 40,
+                      child: Stack(
+                        alignment: Alignment.center,
                         children: [
-                          Text(
-                            p.taskTitle,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodyMedium
-                                ?.copyWith(fontWeight: FontWeight.w600),
+                          CircularProgressIndicator(
+                            value: isFinished ? 1 : 1 - p.progress,
+                            strokeWidth: 4,
+                            strokeCap: StrokeCap.round,
+                            color: isFinished ? AppColors.success : accent,
+                            backgroundColor: isDark
+                                ? AppColors.ringTrackDark
+                                : AppColors.ringTrack,
                           ),
-                          Text(
-                            '$phaseLine$sessionSuffix$recorded',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall
-                                ?.copyWith(color: AppColors.textSecondary),
+                          Icon(
+                            isFinished
+                                ? Icons.check_rounded
+                                : isBreak
+                                    ? Icons.coffee_outlined
+                                    : Icons.timer_outlined,
+                            size: 18,
+                            color: isFinished ? AppColors.success : accent,
                           ),
                         ],
                       ),
                     ),
-                  ),
-                  if (!isFinished) ...[
-                    Text(
-                      _mmss(p.remainingSeconds),
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: accent,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                  ],
-                  // ── Кнопки по фазе ──────────────────────────────────────
-                  if (p.phase == PomodoroPhase.focus)
-                    pillButton(
-                      icon: Icons.pause,
-                      tooltip: l10n.pauseTooltip,
-                      onPressed: p.pause,
-                    ),
-                  if (p.phase == PomodoroPhase.paused)
-                    pillButton(
-                      icon: Icons.play_arrow,
-                      tooltip: l10n.resumeTooltip,
-                      onPressed: p.resume,
-                    ),
-                  if (isBreak)
-                    pillButton(
-                      icon: Icons.skip_next,
-                      tooltip: l10n.skipBreakTooltip,
-                      onPressed: p.skipBreak,
-                    ),
-                  if (isFinished) ...[
-                    const SizedBox(width: 8),
-                    // Пилюля НЕ во Flexible: гибкий ребёнок с loose-подгонкой
-                    // забирал половину свободной ширины, отдавал обратно только
-                    // фактическую — остаток повисал справа, а кнопки липли к
-                    // тексту. Обычный ребёнок меряется по содержимому первым,
-                    // и всю слабину забирает Expanded с заголовком, прижимая
-                    // кнопки к правому краю карточки.
-                    // Текст в две строки, а не в одну широкую: иначе пилюля
-                    // растягивается вбок и отжимает заголовок/фазу слева
-                    // (там и без того «Cycle done · Session N · +N min»).
-                    Material(
-                      color: accent.withValues(alpha: 0.14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: InkWell(
-                        onTap: p.anotherFocus,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 6),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                l10n.anotherFocusBtnLine1,
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  color: accent,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text(
-                                l10n.anotherFocusBtnLine2(nextFocusMinutes),
-                                style: theme.textTheme.labelSmall
-                                    ?.copyWith(color: accent),
-                              ),
-                            ],
-                          ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      // Заголовок задачи обрезается многоточием на узких
+                      // экранах — полный текст доступен по наведению (десктоп)
+                      // или долгому нажатию (телефон), как у кнопок-пилюль.
+                      child: Tooltip(
+                        message:
+                            '${p.taskTitle}\n$phaseLine$sessionSuffix$recorded',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              p.taskTitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                            Text(
+                              '$phaseLine$sessionSuffix$recorded',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall
+                                  ?.copyWith(color: AppColors.textSecondary),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ],
-                  const SizedBox(width: 6),
-                  // Стоп — акцентно красная (деструктивное действие: сбрасывает
-                  // текущий цикл), «Готово → Закрыть» остаётся нейтральной.
-                  pillButton(
-                    icon: isFinished ? Icons.close : Icons.stop,
-                    tooltip: isFinished ? l10n.closeTooltip : l10n.stopTooltip,
-                    onPressed: isFinished ? p.dismiss : p.stop,
-                    danger: !isFinished,
-                  ),
-                ],
-              ),
-              if (!isFinished) ...[
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.only(right: 4),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: p.progress,
-                      minHeight: 5,
-                      color: accent,
+                    if (!isFinished) ...[
+                      Text(
+                        _mmss(p.remainingSeconds),
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: accent,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    // ── Кнопки по фазе ──────────────────────────────────────
+                    if (p.phase == PomodoroPhase.focus)
+                      pillButton(
+                        icon: Icons.pause,
+                        tooltip: l10n.pauseTooltip,
+                        onPressed: p.pause,
+                      ),
+                    if (p.phase == PomodoroPhase.paused)
+                      pillButton(
+                        icon: Icons.play_arrow,
+                        tooltip: l10n.resumeTooltip,
+                        onPressed: p.resume,
+                      ),
+                    if (isBreak)
+                      pillButton(
+                        icon: Icons.skip_next,
+                        tooltip: l10n.skipBreakTooltip,
+                        onPressed: p.skipBreak,
+                      ),
+                    if (isFinished) ...[
+                      const SizedBox(width: 8),
+                      // Пилюля НЕ во Flexible: гибкий ребёнок с loose-подгонкой
+                      // забирал половину свободной ширины, отдавал обратно только
+                      // фактическую — остаток повисал справа, а кнопки липли к
+                      // тексту. Обычный ребёнок меряется по содержимому первым,
+                      // и всю слабину забирает Expanded с заголовком, прижимая
+                      // кнопки к правому краю карточки.
+                      // Текст в две строки, а не в одну широкую: иначе пилюля
+                      // растягивается вбок и отжимает заголовок/фазу слева
+                      // (там и без того «Cycle done · Session N · +N min»).
+                      Material(
+                        color: accent.withValues(alpha: 0.14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: InkWell(
+                          onTap: p.anotherFocus,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  l10n.anotherFocusBtnLine1,
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color: accent,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  l10n.anotherFocusBtnLine2(nextFocusMinutes),
+                                  style: theme.textTheme.labelSmall
+                                      ?.copyWith(color: accent),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(width: 6),
+                    // Стоп — акцентно красная (деструктивное действие: сбрасывает
+                    // текущий цикл), «Готово → Закрыть» остаётся нейтральной.
+                    pillButton(
+                      icon: isFinished ? Icons.close : Icons.stop,
+                      tooltip:
+                          isFinished ? l10n.closeTooltip : l10n.stopTooltip,
+                      onPressed: isFinished ? p.dismiss : p.stop,
+                      danger: !isFinished,
                     ),
-                  ),
+                  ],
                 ),
               ],
-            ],
+            ),
           ),
         ),
       ),

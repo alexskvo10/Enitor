@@ -27,6 +27,8 @@ import '../../widgets/pill_toggle.dart';
 import '../../widgets/productivity_ring.dart';
 import '../../widgets/seg_chip.dart';
 import '../../widgets/stagger_reveal.dart';
+import '../../widgets/summary_bars.dart';
+import '../tour/tour.dart';
 import '../../widgets/star_rating.dart';
 import '../../widgets/subtask_checklist.dart';
 import '../../widgets/tag_mini.dart';
@@ -115,6 +117,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen>
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: PillToggle<int>(
+              key: TourKeys.goalPeriods,
               selected: _tabController.index,
               segments: [
                 (0, l10n.goalsPeriodWeek),
@@ -247,21 +250,7 @@ class _GoalsList extends ConsumerWidget {
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
           children: [
-            const SizedBox(height: 16),
-            // ── Кольца прогресса ──────────────────────────────────────────
-            _GoalDualRingRow(
-              value: value,
-              done: done,
-              completedFraction: fraction,
-              total: goals.length,
-              timeliness: timelinessValue,
-              onTimeCount: onTimeGoals,
-              lateCount: lateGoals,
-            ),
-            // ── Оценка прошедшего периода (рефлексия) ─────────────────────
-            if (periodRef.endInclusive.isBefore(dateOnly(DateTime.now())))
-              _PeriodRatingRow(periodRef: periodRef),
-            // ── Навигация по периоду ──────────────────────────────────────
+            // ── Навигация по периоду — первой: сначала «за что», потом цифры ──
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -284,6 +273,20 @@ class _GoalsList extends ConsumerWidget {
                 ),
               ],
             ),
+            // ── Кольца прогресса ──────────────────────────────────────────
+            const SizedBox(height: 8),
+            _GoalDualRingRow(
+              value: value,
+              done: done,
+              completedFraction: fraction,
+              total: goals.length,
+              timeliness: timelinessValue,
+              onTimeCount: onTimeGoals,
+              lateCount: lateGoals,
+            ),
+            // ── Оценка прошедшего периода (рефлексия) ─────────────────────
+            if (periodRef.endInclusive.isBefore(dateOnly(DateTime.now())))
+              _PeriodRatingRow(periodRef: periodRef),
             // ── Карточка «Недостигнутые цели (N)» ──────────────────────
             Consumer(
               builder: (ctx, ref, _) {
@@ -1526,7 +1529,7 @@ class _GoalTile extends StatelessWidget {
 
 // ─── Два кольца: выполнение целей + своевременность ──────────────────────────
 
-class _GoalDualRingRow extends StatelessWidget {
+class _GoalDualRingRow extends ConsumerWidget {
   const _GoalDualRingRow({
     required this.value,
     required this.done,
@@ -1552,7 +1555,25 @@ class _GoalDualRingRow extends StatelessWidget {
       v == v.roundToDouble() ? v.round().toString() : v.toStringAsFixed(1);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (ref.watch(appearanceProvider).summaryBars) {
+      return SummaryBars(
+        bars: [
+          (
+            label: context.l10n.goalsTitle,
+            value: value,
+            caption: '${_fmtNum(completedFraction)} / $total',
+            colors: AppColors.ringGradient,
+          ),
+          (
+            label: context.l10n.onTimeRingLabel,
+            value: timeliness,
+            caption: '$onTimeCount / ${onTimeCount + lateCount}',
+            colors: AppColors.warningGradient,
+          ),
+        ],
+      );
+    }
     final theme = Theme.of(context);
     final l10n = context.l10n;
 

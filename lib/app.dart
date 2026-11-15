@@ -10,6 +10,7 @@ import 'core/l10n/locale_controller.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/appearance.dart';
+import 'features/tour/tour.dart';
 import 'l10n/app_localizations.dart';
 import 'data/repositories/schedule_repository.dart';
 import 'data/repositories/task_repository.dart';
@@ -25,7 +26,8 @@ class EnitorApp extends ConsumerStatefulWidget {
   ConsumerState<EnitorApp> createState() => _EnitorAppState();
 }
 
-class _EnitorAppState extends ConsumerState<EnitorApp> with WidgetsBindingObserver {
+class _EnitorAppState extends ConsumerState<EnitorApp>
+    with WidgetsBindingObserver {
   Timer? _backupDebounce;
 
   @override
@@ -61,8 +63,7 @@ class _EnitorAppState extends ConsumerState<EnitorApp> with WidgetsBindingObserv
   @override
   Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
-    final themeMode =
-        ref.watch(appearanceProvider.select((a) => a.themeMode));
+    final themeMode = ref.watch(appearanceProvider.select((a) => a.themeMode));
     final locale = ref.watch(localeControllerProvider.select((c) => c.locale));
 
     // Задачи изменились (добавили/удалили/перенесли со временем) — пересобираем
@@ -114,11 +115,17 @@ class _EnitorAppState extends ConsumerState<EnitorApp> with WidgetsBindingObserv
             // ограничиваем «страницей» по центру (≤720px), бумажная текстура
             // заполняет бока. На телефоне (<720px) ConstrainedBox прозрачен.
             child: AppBackground(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 720),
-                  child: child ?? const SizedBox.shrink(),
-                ),
+              // Экскурсия — слоем над навигатором: поверх любых экранов.
+              child: Stack(
+                children: [
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 720),
+                      child: child ?? const SizedBox.shrink(),
+                    ),
+                  ),
+                  const Positioned.fill(child: TourLayer()),
+                ],
               ),
             ),
           ),

@@ -24,8 +24,11 @@ import '../../data/repositories/task_repository.dart';
 import '../../data/sources/local/local_storage.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../backlog/backlog_screen.dart';
+import '../focus/focus_screen.dart';
+import '../integrations/ui/calendar_section.dart';
 import '../search/global_search.dart';
 import '../templates/templates_sheet.dart';
+import '../tour/tour.dart';
 import '../../services/notification_controller.dart';
 import '../../services/pomodoro_controller.dart';
 import '../../services/pomodoro_prefs.dart';
@@ -43,6 +46,7 @@ import '../../widgets/pomodoro_banner.dart';
 import '../../widgets/productivity_ring.dart';
 import '../../widgets/seg_chip.dart';
 import '../../widgets/stagger_reveal.dart';
+import '../../widgets/summary_bars.dart';
 import '../../widgets/star_rating.dart';
 import '../../widgets/subtask_checklist.dart';
 import '../../widgets/tag_mini.dart';
@@ -197,7 +201,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     final saved =
         ref.read(localStorageProvider).readMap(_kCalendarFormatKey)?['format'];
     _format = CalendarFormat.values.where((f) => f.name == saved).firstOrNull ??
-        CalendarFormat.month;
+        CalendarFormat.twoWeeks;
     _tab = ref.read(todayTabRequestProvider) ?? 0;
     _consumeTabRequest();
     // Регистрируем «создать» для Ctrl+N: новая задача на выбранный день.
@@ -295,6 +299,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: PillToggle<int>(
+              key: TourKeys.dayToggle,
               selected: _tab,
               segments: [
                 (0, l10n.navToday),
@@ -309,6 +314,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
           ? null
           : _tab == 0
               ? GlowFab(
+                  key: TourKeys.addTask,
                   onPressed: () => _showAddTaskSheet(context, _selected),
                   icon: Icons.add,
                   label: l10n.addTaskFabLabel,
@@ -321,6 +327,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
       body: Column(
         children: [
           TableCalendar<Task>(
+            key: TourKeys.calendar,
             locale: Localizations.localeOf(context).languageCode,
             focusedDay: _focused,
             firstDay: DateTime(2020),
@@ -438,6 +445,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                           // Журнальная шапка дня: день недели «глиной» + линейка +
                           // карточка «Шаблоны дня» справа.
                           _DayMasthead(
+                            key: TourKeys.templates,
                             date: _selected,
                             actionIcon: Icons.dashboard_customize_outlined,
                             actionLabel: context.l10n.templatesLabel,
@@ -454,6 +462,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                           const BatteryHintCard(),
                           const SizedBox(height: 8),
                           _DualRingRow(
+                            key: TourKeys.summary,
                             productivity: stats?.productivity,
                             completedTasks: stats?.completedTasks ?? 0,
                             completedFraction: stats?.completedFraction ?? 0,
@@ -606,6 +615,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                             ),
                           if (tasks.isEmpty)
                             Padding(
+                              key: TourKeys.tasks,
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               child: NotebookEmptyState(
                                 text: _isToday
@@ -614,7 +624,11 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                               ),
                             )
                           else
-                            _TaskSections(tasks: tasks, readOnly: isPast),
+                            _TaskSections(
+                              key: TourKeys.tasks,
+                              tasks: tasks,
+                              readOnly: isPast,
+                            ),
                         ],
                       );
                     },
@@ -1034,6 +1048,7 @@ class _TaskTile extends ConsumerWidget {
                   onSelected: (action) {
                     if (action == _TaskAction.pomodoro) {
                       ref.read(pomodoroProvider).startFocus(task);
+                      unawaited(showFocusScreen(context));
                     } else if (action == _TaskAction.actualTime) {
                       _showActualTimeDialog(
                           context, ref.read(taskRepositoryProvider));
@@ -2668,7 +2683,11 @@ class _DurationPickerState extends State<_DurationPicker> {
 // ─── Секции задач (срочные + невыполненные + выполненные) ────────────────────
 
 class _TaskSections extends ConsumerStatefulWidget {
-  const _TaskSections({required this.tasks, required this.readOnly});
+  const _TaskSections({
+    super.key,
+    required this.tasks,
+    required this.readOnly,
+  });
   final List<Task> tasks;
   final bool readOnly;
 
@@ -2985,6 +3004,7 @@ class _TaskSectionsState extends ConsumerState<_TaskSections> {
 /// обзор недели показывает там её даты.
 class _DayMasthead extends StatelessWidget {
   const _DayMasthead({
+    super.key,
     required this.date,
     this.title,
     required this.actionIcon,
@@ -3056,8 +3076,9 @@ class _DayMasthead extends StatelessWidget {
   }
 }
 
-class _DualRingRow extends StatelessWidget {
+class _DualRingRow extends ConsumerWidget {
   const _DualRingRow({
+    super.key,
     required this.productivity,
     required this.completedTasks,
     required this.completedFraction,
@@ -3082,7 +3103,25 @@ class _DualRingRow extends StatelessWidget {
       v == v.roundToDouble() ? v.round().toString() : v.toStringAsFixed(1);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (ref.watch(appearanceProvider).summaryBars) {
+      return SummaryBars(
+        bars: [
+          (
+            label: context.l10n.tasksRingLabel,
+            value: productivity,
+            caption: '${_fmtNum(completedFraction)} / $totalTasks',
+            colors: AppColors.ringGradient,
+          ),
+          (
+            label: context.l10n.onTimeRingLabel,
+            value: timeliness,
+            caption: '$onTimeCount / ${onTimeCount + lateCount}',
+            colors: AppColors.warningGradient,
+          ),
+        ],
+      );
+    }
     final theme = Theme.of(context);
 
     // Всегда два кольца фиксированного размера — без «прыжка» при появлении

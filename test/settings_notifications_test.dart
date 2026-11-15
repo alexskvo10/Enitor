@@ -1,3 +1,4 @@
+import 'package:enitor/core/theme/appearance.dart';
 import 'package:enitor/data/sources/local/local_storage.dart';
 import 'package:enitor/features/integrations/core/secret_store.dart';
 import 'package:enitor/features/settings/settings_screen.dart';
@@ -67,5 +68,45 @@ void main() {
     expect(find.text('Напоминать о задачах'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('Тихие часы'), 300);
     expect(find.text('Тихие часы'), findsOneWidget);
+  });
+
+  testWidgets('сводка дня: плитки «Кольца/Полосы» влезают и переключают',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    SharedPreferences.setMockInitialValues({});
+    final container = ProviderContainer(
+      overrides: [
+        localStorageProvider.overrideWithValue(
+          LocalStorage(await SharedPreferences.getInstance()),
+        ),
+        secretStoreProvider
+            .overrideWithValue(SecretStore(MemorySecretBackend())),
+        notificationServiceProvider.overrideWithValue(NotificationService()),
+      ],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(
+          locale: Locale('ru'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: SettingsScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Уведомления и связь'.toUpperCase()), findsOneWidget);
+    expect(container.read(appearanceProvider).summaryBars, isFalse);
+    await tester.tap(find.bySemanticsLabel('Полосы'));
+    await tester.pumpAndSettle();
+    expect(container.read(appearanceProvider).summaryBars, isTrue);
+    await tester.tap(find.bySemanticsLabel('Кольца'));
+    await tester.pumpAndSettle();
+    expect(container.read(appearanceProvider).summaryBars, isFalse);
   });
 }

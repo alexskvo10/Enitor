@@ -78,6 +78,7 @@ const keyCategories = <String, String>{
   'device.lan.cursor': _device,
   'device.lan.storeReset': _device,
   'device.ui.todayCalendar': _device,
+  'device.tour': _device,
 };
 
 // Любая строковая константа: `const _prefsKey = 'update_check_state';`.

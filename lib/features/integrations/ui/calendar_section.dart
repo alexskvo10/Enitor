@@ -30,7 +30,8 @@ import '../import/import_preview_screen.dart';
 import '../import/imported_task.dart';
 import 'section_parts.dart';
 
-/// Календари (.ics) и переезд из других приложений. Всё — файлом; ссылка на
+/// Календари (.ics). Переезд из других приложений и полный экспорт —
+/// в Настройки → Данные (методы здесь общие). Всё — файлом; ссылка на
 /// календарь — ровно один запрос по нажатию, на адрес, который ввёл сам
 /// человек.
 class CalendarSection extends ConsumerWidget {
@@ -50,7 +51,7 @@ class CalendarSection extends ConsumerWidget {
               leading: const Icon(Icons.event_note_outlined),
               title: TileTitle(l10n.calImportFile),
               subtitle: Text(l10n.calImportFileSubtitle),
-              onTap: () => _importFile(context, ref),
+              onTap: () => importFile(context, ref),
             ),
             tileDivider,
             ListTile(
@@ -76,20 +77,6 @@ class CalendarSection extends ConsumerWidget {
               subtitle: Text(l10n.calExportSubtitle),
               onTap: () => _export(context, ref),
             ),
-            tileDivider,
-            ListTile(
-              leading: const Icon(Icons.move_down_rounded),
-              title: TileTitle(l10n.appImportTitle),
-              subtitle: Text(l10n.appImportSubtitle),
-              onTap: () => _importApp(context, ref),
-            ),
-            tileDivider,
-            ListTile(
-              leading: const Icon(Icons.data_object_rounded),
-              title: TileTitle(l10n.fullExportTitle),
-              subtitle: Text(l10n.fullExportSubtitle),
-              onTap: () => _fullExport(context, ref),
-            ),
           ],
         ),
         SectionNote(l10n.calNote),
@@ -97,13 +84,14 @@ class CalendarSection extends ConsumerWidget {
     );
   }
 
-  Future<void> _importFile(BuildContext context, WidgetRef ref) async {
+  /// Импорт .ics из файла — отсюда и из пустого «Расписания».
+  static Future<void> importFile(BuildContext context, WidgetRef ref) async {
     final text = await _pickText(context, const ['ics']);
     if (text == null || !context.mounted) return;
     await _previewIcs(context, ref, text);
   }
 
-  Future<void> _previewIcs(
+  static Future<void> _previewIcs(
     BuildContext context,
     WidgetRef ref,
     String text,
@@ -125,7 +113,7 @@ class CalendarSection extends ConsumerWidget {
     );
   }
 
-  Future<void> _importLink(BuildContext context, WidgetRef ref) async {
+  static Future<void> _importLink(BuildContext context, WidgetRef ref) async {
     final l10n = context.l10n;
     final ctrl = TextEditingController(
       text: ref.read(icsSubscriptionProvider)?.url ?? '',
@@ -198,7 +186,7 @@ class CalendarSection extends ConsumerWidget {
     if (context.mounted) await _previewIcs(context, ref, text);
   }
 
-  Future<bool> _confirmHttp(BuildContext context) async {
+  static Future<bool> _confirmHttp(BuildContext context) async {
     final l10n = context.l10n;
     final ok = await showFancyDialog<bool>(
       context: context,
@@ -220,7 +208,7 @@ class CalendarSection extends ConsumerWidget {
     return ok == true;
   }
 
-  Future<void> _export(BuildContext context, WidgetRef ref) async {
+  static Future<void> _export(BuildContext context, WidgetRef ref) async {
     final l10n = context.l10n;
     final now = DateTime.now();
     final text = writeIcs(
@@ -239,7 +227,7 @@ class CalendarSection extends ConsumerWidget {
     }
   }
 
-  Future<void> _fullExport(BuildContext context, WidgetRef ref) async {
+  static Future<void> fullExport(BuildContext context, WidgetRef ref) async {
     final l10n = context.l10n;
     final info = await PackageInfo.fromPlatform();
     if (!context.mounted) return;
@@ -258,7 +246,7 @@ class CalendarSection extends ConsumerWidget {
     }
   }
 
-  Future<void> _importApp(BuildContext context, WidgetRef ref) async {
+  static Future<void> importApp(BuildContext context, WidgetRef ref) async {
     final l10n = context.l10n;
     final source = await showFancyDialog<ImportSource>(
       context: context,
@@ -270,7 +258,11 @@ class CalendarSection extends ConsumerWidget {
         children: [
           for (final (s, name, hint) in [
             (ImportSource.todoist, 'Todoist', l10n.appImportTodoistHint),
-            (ImportSource.googleTasks, 'Google Tasks', l10n.appImportGoogleHint),
+            (
+              ImportSource.googleTasks,
+              'Google Tasks',
+              l10n.appImportGoogleHint
+            ),
             (ImportSource.tickTick, 'TickTick', l10n.appImportTickTickHint),
           ])
             ListTile(
@@ -317,7 +309,10 @@ class CalendarSection extends ConsumerWidget {
   }
 
   /// Текст выбранного файла; null — отмена. Нечитаемый — тост.
-  Future<String?> _pickText(BuildContext context, List<String> ext) async {
+  static Future<String?> _pickText(
+    BuildContext context,
+    List<String> ext,
+  ) async {
     final l10n = context.l10n;
     try {
       final res = await FilePicker.platform.pickFiles(
@@ -342,7 +337,7 @@ class CalendarSection extends ConsumerWidget {
   }
 
   /// Сохраняет текст в файл через системный диалог (как бэкап).
-  Future<bool> _saveText(
+  static Future<bool> _saveText(
     BuildContext context,
     String name,
     String text,

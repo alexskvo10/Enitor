@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/l10n/locale_controller.dart';
 import '../help/pomodoro_guide_sheet.dart';
 import '../integrations/core/secret_store.dart';
+import '../integrations/ui/calendar_section.dart';
+import '../tour/tour.dart';
 import '../integrations/sync/lan/lan_service.dart';
 import '../integrations/sync/sync_service.dart';
 import '../../l10n/app_localizations.dart';
@@ -19,6 +21,8 @@ import '../../services/pomodoro_prefs.dart';
 import '../../widgets/fancy_dialog.dart';
 import '../../widgets/fancy_toast.dart';
 import '../../widgets/pill_toggle.dart';
+import '../../widgets/productivity_ring.dart';
+import '../../widgets/summary_bars.dart';
 
 /// За сколько минут до начала/конца задачи напоминать. 0 — «в момент».
 const _kLeadOptions = <int>[0, 5, 10, 15, 30, 60];
@@ -72,6 +76,14 @@ class SettingsScreen extends ConsumerWidget {
                     ],
                     onChanged: (v) => ref.read(appearanceProvider).setStyle(v),
                   ),
+                  const SizedBox(height: 16),
+                  _tileTitle(context, l10n.summaryStyleLabel),
+                  const SizedBox(height: 8),
+                  _SummaryStylePicker(
+                    bars: appearance.summaryBars,
+                    onChanged: (v) =>
+                        ref.read(appearanceProvider).setSummaryBars(v),
+                  ),
                 ],
               ),
             ),
@@ -82,11 +94,9 @@ class SettingsScreen extends ConsumerWidget {
               value: appearance.vignette,
               onChanged: (v) => ref.read(appearanceProvider).setVignette(v),
             ),
-          ]),
-
-          // ── Язык ────────────────────────────────────────────────────────
-          _sectionTitle(context, l10n.sectionLanguage),
-          _card([
+            const Divider(height: 1, indent: 16, endIndent: 16),
+            // Язык — тоже про то, как выглядит приложение; отдельный раздел
+            // из одной строки с тем же заголовком только удлинял список.
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
@@ -194,59 +204,49 @@ class SettingsScreen extends ConsumerWidget {
           ]),
           _note(context, l10n.pomodoroLengthsNote),
 
-          // ── Уведомления ─────────────────────────────────────────────────
-          // Отдельный экран: пятнадцать переключателей растягивали настройки
-          // так, что до синхронизации и данных приходилось долго листать.
-          _sectionTitle(context, l10n.sectionNotifications),
-          _card([
-            ListTile(
-              leading: const Icon(Icons.notifications_outlined),
-              title: _tileTitle(context, l10n.notificationsTitle),
-              subtitle: Text(
-                prefs.enabled
-                    ? l10n.notifRowOn(
-                        _notifKinds(prefs).where((v) => v).length,
-                        _notifKinds(prefs).length,
-                      )
-                    : l10n.notifRowOff,
+          // ── Уведомления и связь: уведомления, синхронизация, интеграции ─────────
+          // Одна карточка: у каждого раздела по одной строке-входу.
+          _sectionTitle(context, l10n.sectionConnections),
+          _card(
+            key: TourKeys.connections,
+            [
+              ListTile(
+                leading: const Icon(Icons.notifications_outlined),
+                title: _tileTitle(context, l10n.notificationsTitle),
+                subtitle: Text(
+                  prefs.enabled
+                      ? l10n.notifRowOn(
+                          _notifKinds(prefs).where((v) => v).length,
+                          _notifKinds(prefs).length,
+                        )
+                      : l10n.notifRowOff,
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/settings/notifications'),
               ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/settings/notifications'),
-            ),
-          ]),
-
-          // ── Синхронизация ───────────────────────────────────────────────
-          // Отдельно от интеграций: это свои данные на своих устройствах, а
-          // не связь с другими программами.
-          _sectionTitle(context, l10n.syncTitle),
-          _card([
-            ListTile(
-              leading: const Icon(Icons.sync_rounded),
-              title: _tileTitle(context, l10n.syncTitle),
-              subtitle: Text(_syncSubtitle(ref, l10n)),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/settings/sync'),
-            ),
-          ]),
-
-          // ── Интеграции ──────────────────────────────────────────────────
-          // Отдельный экран: здесь и так много всего, а интеграций — целый
-          // набор разделов со своими правами.
-          _sectionTitle(context, l10n.integrationsTitle),
-          _card([
-            ListTile(
-              leading: const Icon(Icons.hub_outlined),
-              title: _tileTitle(context, l10n.integrationsTitle),
-              // Недоставленные события — спокойной строкой, не тревогой.
-              subtitle: Text(
-                ref.watch(webhookFailedProvider)
-                    ? l10n.integrationsSettingsRowAttention
-                    : l10n.integrationsSettingsRowSubtitle,
+              const Divider(height: 1, indent: 16, endIndent: 16),
+              ListTile(
+                leading: const Icon(Icons.sync_rounded),
+                title: _tileTitle(context, l10n.syncTitle),
+                subtitle: Text(_syncSubtitle(ref, l10n)),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/settings/sync'),
               ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/settings/integrations'),
-            ),
-          ]),
+              const Divider(height: 1, indent: 16, endIndent: 16),
+              ListTile(
+                leading: const Icon(Icons.hub_outlined),
+                title: _tileTitle(context, l10n.integrationsTitle),
+                // Недоставленные события — спокойной строкой, не тревогой.
+                subtitle: Text(
+                  ref.watch(webhookFailedProvider)
+                      ? l10n.integrationsSettingsRowAttention
+                      : l10n.integrationsSettingsRowSubtitle,
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/settings/integrations'),
+              ),
+            ],
+          ),
 
           // ── Данные (бэкап) ──────────────────────────────────────────────
           _sectionTitle(context, l10n.sectionData),
@@ -266,20 +266,17 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const Divider(height: 1, indent: 16, endIndent: 16),
             ListTile(
-              leading: const Icon(Icons.settings_backup_restore),
-              title: _tileTitle(context, l10n.resetSettingsTitle),
-              subtitle: Text(l10n.resetSettingsSubtitle),
-              onTap: () => _resetSettings(context, ref),
+              leading: const Icon(Icons.move_down_rounded),
+              title: _tileTitle(context, l10n.appImportTitle),
+              subtitle: Text(l10n.appImportSubtitle),
+              onTap: () => CalendarSection.importApp(context, ref),
             ),
             const Divider(height: 1, indent: 16, endIndent: 16),
             ListTile(
-              leading: const Icon(
-                Icons.delete_forever_outlined,
-                color: AppColors.danger,
-              ),
-              title: _tileTitle(context, l10n.wipeDataTitle),
-              subtitle: Text(l10n.wipeDataSubtitle),
-              onTap: () => _wipeData(context, ref),
+              leading: const Icon(Icons.data_object_rounded),
+              title: _tileTitle(context, l10n.fullExportTitle),
+              subtitle: Text(l10n.fullExportSubtitle),
+              onTap: () => CalendarSection.fullExport(context, ref),
             ),
           ]),
           _note(context, l10n.backupNote),
@@ -294,11 +291,59 @@ class SettingsScreen extends ConsumerWidget {
               onTap: () => context.push('/faq'),
             ),
             const Divider(height: 1, indent: 16, endIndent: 16),
+            // Экскурсия: пройти заново и показ карточки после обновлений.
+            KeyedSubtree(
+              key: TourKeys.tourRow,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.explore_outlined),
+                    title: _tileTitle(context, l10n.tourSettingsTitle),
+                    subtitle: Text(l10n.tourSettingsSubtitle),
+                    trailing: const Icon(Icons.play_arrow_rounded),
+                    onTap: () => startTour(GoRouter.of(context)),
+                  ),
+                  SwitchListTile(
+                    secondary: const SizedBox(width: 24),
+                    title: Text(l10n.tourOnUpdateTitle),
+                    subtitle: Text(l10n.tourOnUpdateSubtitle),
+                    value: ref.watch(tourPrefsProvider).onUpdate,
+                    onChanged: (v) =>
+                        ref.read(tourPrefsProvider).setOnUpdate(v),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1, indent: 16, endIndent: 16),
             ListTile(
               leading: const Icon(Icons.info_outline),
               title: _tileTitle(context, l10n.aboutTitle),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.push('/about'),
+            ),
+          ]),
+
+          // ── Сброс ───────────────────────────────────────────────────────
+          // Отдельно и в самом низу: рядом с экспортом эти строки легко
+          // задеть, когда ищешь «сохранить копию».
+          _sectionTitle(context, l10n.sectionReset),
+          _card([
+            ListTile(
+              leading: const Icon(Icons.settings_backup_restore),
+              title: _tileTitle(context, l10n.resetSettingsTitle),
+              subtitle: Text(l10n.resetSettingsSubtitle),
+              onTap: () => _resetSettings(context, ref),
+            ),
+            const Divider(height: 1, indent: 16, endIndent: 16),
+            ListTile(
+              leading: const Icon(
+                Icons.delete_forever_outlined,
+                color: AppColors.danger,
+              ),
+              title: _tileTitle(context, l10n.wipeDataTitle),
+              subtitle: Text(l10n.wipeDataSubtitle),
+              onTap: () => _wipeData(context, ref),
             ),
           ]),
         ],
@@ -708,10 +753,17 @@ Widget _sectionTitle(BuildContext context, String text) => Padding(
 
 /// Карточка-секция: оборачивает строки настроек, скругляет и клипает (чтобы
 /// разделители и нажатия не вылезали за углы).
-Widget _card(List<Widget> children) => Card(
+///
+/// [key] — на содержимом, а не на Card: у Card внешние отступы входят в её
+/// размер, и подсветка экскурсии по такому ключу шла бы на всю ширину экрана.
+Widget _card(List<Widget> children, {Key? key}) => Card(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       clipBehavior: Clip.antiAlias,
-      child: Column(mainAxisSize: MainAxisSize.min, children: children),
+      child: Column(
+        key: key,
+        mainAxisSize: MainAxisSize.min,
+        children: children,
+      ),
     );
 
 /// Заголовок строки настройки — чуть жирнее обычного titleMedium (w600),
@@ -1331,3 +1383,215 @@ String _fmt(int m) =>
     '${(m ~/ 60).toString().padLeft(2, '0')}:${(m % 60).toString().padLeft(2, '0')}';
 
 // Сегментный переключатель «пилюля» вынесен в widgets/pill_toggle.dart.
+
+/// Выбор вида сводки дня: две плитки с уменьшенной копией настоящего блока
+/// (кольца / полосы). Выбранная подсвечена рамкой и галочкой. При входе на
+/// экран обе копии заполняются, как на «Задачах».
+class _SummaryStylePicker extends StatelessWidget {
+  const _SummaryStylePicker({required this.bars, required this.onChanged});
+
+  final bool bars;
+  final ValueChanged<bool> onChanged;
+
+  // Образец — не до конца, чтобы заполнение было видно.
+  static const _done = 5, _total = 7, _onTime = 3, _closed = 5;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final tasksLabel = l10n.tasksRingLabel;
+    final onTimeLabel = l10n.onTimeRingLabel;
+
+    Widget ring(double v, String sub, String label, [List<Color>? c]) =>
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ProductivityRing(
+              value: v,
+              size: 132,
+              strokeWidth: 10,
+              subtitle: sub,
+              ringColors: c,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        );
+
+    // Копии в натуральную ширину карточки на «Задачах»; FittedBox уменьшает.
+    final ringsPreview = SizedBox(
+      width: 330,
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              ring(_done / _total, '$_done / $_total', tasksLabel),
+              ring(
+                _onTime / _closed,
+                '$_onTime / $_closed',
+                onTimeLabel,
+                AppColors.warningGradient,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    // Полосы ниже колец — уже «натуральной» ширины, чтобы в плитке копия
+    // вышла той же высоты, а не мелкой полоской посередине.
+    final barsPreview = SizedBox(
+      width: 220,
+      child: SummaryBars(
+        bars: [
+          (
+            label: tasksLabel,
+            value: _done / _total,
+            caption: '$_done / $_total',
+            colors: AppColors.ringGradient,
+          ),
+          (
+            label: onTimeLabel,
+            value: _onTime / _closed,
+            caption: '$_onTime / $_closed',
+            colors: AppColors.warningGradient,
+          ),
+        ],
+      ),
+    );
+
+    return Row(
+      children: [
+        Expanded(
+          child: _StyleTile(
+            selected: !bars,
+            label: l10n.summaryRings,
+            onTap: () => onChanged(false),
+            child: ringsPreview,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _StyleTile(
+            selected: bars,
+            label: l10n.summaryBars,
+            onTap: () => onChanged(true),
+            child: barsPreview,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StyleTile extends StatelessWidget {
+  const _StyleTile({
+    required this.selected,
+    required this.label,
+    required this.onTap,
+    required this.child,
+  });
+
+  final bool selected;
+  final String label;
+  final VoidCallback onTap;
+  final Widget child;
+
+  static const _dur = Duration(milliseconds: 240);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
+    final accent = theme.colorScheme.primary;
+    final track = dark ? AppColors.surfaceDarkMuted : AppColors.surfaceMuted;
+    final radius = BorderRadius.circular(18);
+    final muted = theme.colorScheme.onSurface.withValues(alpha: 0.35);
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      excludeSemantics: true,
+      child: AnimatedContainer(
+        duration: _dur,
+        curve: AppColors.easeOut,
+        decoration: BoxDecoration(
+          color:
+              selected ? accent.withValues(alpha: dark ? 0.16 : 0.08) : track,
+          borderRadius: radius,
+          border: Border.all(
+            color: selected
+                ? accent
+                : theme.colorScheme.onSurface.withValues(alpha: 0.06),
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: accent.withValues(alpha: selected ? 0.22 : 0),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            borderRadius: radius,
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+              child: Column(
+                children: [
+                  SizedBox(
+                    height: 78,
+                    child: Center(child: FittedBox(child: child)),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      AnimatedSwitcher(
+                        duration: _dur,
+                        transitionBuilder: (c, a) =>
+                            ScaleTransition(scale: a, child: c),
+                        child: Icon(
+                          selected
+                              ? Icons.check_circle_rounded
+                              : Icons.radio_button_unchecked_rounded,
+                          key: ValueKey(selected),
+                          size: 18,
+                          color: selected ? accent : muted,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          label,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: selected ? accent : null,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
