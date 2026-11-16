@@ -102,7 +102,9 @@ class CalendarSection extends ConsumerWidget {
       schedule: ref.read(scheduleRepositoryProvider),
       now: DateTime.now(),
     );
-    await Navigator.of(context).push<int>(
+    // Поверх всего приложения: из пустого «Расписания» (внутри вкладок)
+    // иначе под экраном оставалась бы нижняя панель.
+    await Navigator.of(context, rootNavigator: true).push<int>(
       MaterialPageRoute(
         builder: (_) => ImportPreviewScreen(
           title: context.l10n.calPreviewTitle,
@@ -297,7 +299,7 @@ class CalendarSection extends ConsumerWidget {
       backlog: ref.read(backlogRepositoryProvider),
       now: DateTime.now(),
     );
-    await Navigator.of(context).push<int>(
+    await Navigator.of(context, rootNavigator: true).push<int>(
       MaterialPageRoute(
         builder: (_) => ImportPreviewScreen(
           title: l10n.appImportPreviewTitle,

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Звук уведомления таймера фокуса берётся по имени из Dart — без этого
+     сжатие ресурсов в релизной сборке выкинуло бы его как неиспользуемый. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@raw/pomodoro_done" />

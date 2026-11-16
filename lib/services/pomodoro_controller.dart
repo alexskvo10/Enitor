@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/utils/haptics.dart';
 import '../data/models/task.dart';
 import '../data/repositories/task_repository.dart';
 import '../data/sources/local/local_storage.dart';
@@ -136,6 +137,17 @@ class PomodoroController extends ChangeNotifier {
     _reset();
   }
 
+  /// Приложение на экране или свёрнуто. На экране сигнал подаёт сам таймер,
+  /// и уведомление о том же было бы вторым звуком поверх него; в фоне
+  /// Android таймер замораживает — тогда сигнал за него подаёт уведомление.
+  void setForeground(bool value) {
+    if (_foreground == value) return;
+    _foreground = value;
+    _syncAlarms();
+  }
+
+  bool _foreground = true;
+
   /// Закрыть баннер из состояния «Готово».
   void dismiss() => _reset();
 
@@ -201,6 +213,7 @@ class PomodoroController extends ChangeNotifier {
       }
       if (!played) {
         _sound.playPomodoroDone();
+        Haptics.focusDone();
         played = true;
       }
       if (phase == PomodoroPhase.focus) {
@@ -307,7 +320,7 @@ class PomodoroController extends ChangeNotifier {
   void _syncAlarms() {
     final alarms = _alarms;
     if (alarms == null) return;
-    final end = _endsAt;
+    final end = _foreground ? null : _endsAt;
     DateTime? focusEnd, breakEnd;
     if (end != null && phase == PomodoroPhase.focus) {
       focusEnd = end;

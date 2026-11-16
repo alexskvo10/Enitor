@@ -1,6 +1,7 @@
 import 'package:enitor/data/models/task.dart';
 import 'package:enitor/data/repositories/task_repository.dart';
 import 'package:enitor/data/sources/local/local_storage.dart';
+import 'package:enitor/services/notification_service.dart';
 import 'package:enitor/services/pomodoro_controller.dart';
 import 'package:enitor/services/pomodoro_prefs.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -126,4 +127,42 @@ void main() {
     expect(launch().phase, PomodoroPhase.idle);
     expect(storage.readMap('pomodoro_state'), isNull);
   });
+
+  test('уведомления о конце отрезка — только пока приложение свёрнуто: '
+      'на экране сигнал подаёт сам таймер, второй звук не нужен', () {
+    final alarms = _Alarms();
+    final timer = PomodoroController(
+      container.read(taskRepositoryProvider),
+      container.read(pomodoroPrefsProvider),
+      storage,
+      alarms: alarms,
+      clock: () => now,
+    );
+    addTearDown(timer.dispose);
+
+    timer.startFocus(task);
+    expect(alarms.focusEnd, isNull);
+
+    timer.setForeground(false);
+    expect(alarms.focusEnd, t0.add(const Duration(minutes: 25)));
+    expect(alarms.breakEnd, t0.add(const Duration(minutes: 30)));
+
+    timer.setForeground(true);
+    expect(alarms.focusEnd, isNull);
+    expect(alarms.breakEnd, isNull);
+  });
+}
+
+class _Alarms extends NotificationService {
+  DateTime? focusEnd, breakEnd;
+
+  @override
+  Future<void> setPomodoroAlarms({
+    DateTime? focusEnd,
+    DateTime? breakEnd,
+    String taskTitle = '',
+  }) async {
+    this.focusEnd = focusEnd;
+    this.breakEnd = breakEnd;
+  }
 }

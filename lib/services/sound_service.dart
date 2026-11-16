@@ -11,7 +11,22 @@ class SoundService {
 
   Future<void> playPomodoroDone() async {
     try {
-      final player = _player ??= AudioPlayer();
+      var player = _player;
+      if (player == null) {
+        player = _player = AudioPlayer();
+        // Сигнал — уведомление, а не музыка: громкость уведомлений, молчит в
+        // беззвучном режиме, а играющую музыку на пару секунд приглушает, а
+        // не останавливает насовсем (по умолчанию плеер забирал звук себе).
+        await player.setAudioContext(
+          AudioContext(
+            android: const AudioContextAndroid(
+              contentType: AndroidContentType.sonification,
+              usageType: AndroidUsageType.notificationEvent,
+              audioFocus: AndroidAudioFocus.gainTransientMayDuck,
+            ),
+          ),
+        );
+      }
       await player.stop();
       await player.play(AssetSource('sounds/pomodoro_done.wav'));
     } catch (_) {

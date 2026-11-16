@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../core/utils/haptics.dart';
 import '../data/models/goal.dart';
 import '../data/models/schedule_item.dart';
 import '../data/models/task.dart';
@@ -98,6 +99,10 @@ class NotificationService {
   static const _goalChannelId = 'todo_goal_reminders';
   String get _goalChannelName => _l10n.notifGoalChannelName;
   String get _goalChannelDesc => _l10n.notifGoalChannelDesc;
+
+  static const _focusChannelId = 'enitor_focus_timer';
+  String get _focusChannelName => _l10n.notifFocusChannelName;
+  String get _focusChannelDesc => _l10n.notifFocusChannelDesc;
 
   static const _traceChannelId = 'enitor_integrations';
   String get _traceChannelName => _l10n.notifTraceChannelName;
@@ -760,8 +765,9 @@ class NotificationService {
 
   /// Ставит (или снимает, если null) уведомления на конец фокуса и перерыва.
   ///
-  /// Только Android: там свёрнутое приложение замораживается и само сказать
-  /// ничего не может. На Windows окно живёт и в фоне, сигнал звучит сам —
+  /// Только Android и только пока приложение свёрнуто (см.
+  /// [PomodoroController.setForeground]): там свёрнутое приложение
+  /// замораживается и само сказать ничего не может. На Windows окно живёт и в фоне, сигнал звучит сам —
   /// тост продублировал бы его.
   Future<void> setPomodoroAlarms({
     DateTime? focusEnd,
@@ -817,7 +823,7 @@ class NotificationService {
         when: tz.TZDateTime.from(at, tz.local),
         title: title,
         body: body,
-        channel: _Channel.task,
+        channel: _Channel.focus,
       );
     }
   }
@@ -1061,7 +1067,28 @@ class NotificationService {
           _traceChannelDesc,
           Importance.low
         ),
+      _Channel.focus => (
+          _focusChannelId,
+          _focusChannelName,
+          _focusChannelDesc,
+          Importance.high
+        ),
     };
+    if (channel == _Channel.focus) {
+      // Тот же сигнал, что звучит в открытом приложении: двойные три ноты и
+      // вибрация в такт (res/raw/pomodoro_done.wav — копия ассета).
+      return NotificationDetails(
+        android: AndroidNotificationDetails(
+          id,
+          name,
+          channelDescription: desc,
+          importance: importance,
+          priority: Priority.high,
+          sound: const RawResourceAndroidNotificationSound('pomodoro_done'),
+          vibrationPattern: Int64List.fromList(Haptics.focusDonePattern),
+        ),
+      );
+    }
     return NotificationDetails(
       android: AndroidNotificationDetails(
         id,
@@ -1087,7 +1114,7 @@ class NotificationService {
           defaultTargetPlatform == TargetPlatform.windows);
 }
 
-enum _Channel { planning, task, general, goal, trace }
+enum _Channel { planning, task, general, goal, trace, focus }
 
 final notificationServiceProvider = Provider<NotificationService>(
   (ref) => throw UnimplementedError('Override in main()'),

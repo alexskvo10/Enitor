@@ -70,3 +70,6 @@ lib/l10n/app_localizations*.dart
 # OS
 Thumbs.db
 ehthumbs.db
+
+# Выход скрипта скриншотов релиза: нужное копируется в docs/release/
+/tool/release_shots/out/

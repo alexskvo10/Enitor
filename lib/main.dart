@@ -168,6 +168,12 @@ Future<void> main(List<String> args) async {
   hooks.listen();
   unawaited(hooks.process());
   AppLifecycleListener(onResume: () => unawaited(hooks.retryNow()));
+  // Уведомления о конце отрезка таймера — только пока приложение свёрнуто.
+  AppLifecycleListener(
+    onStateChange: (s) => container.read(pomodoroProvider).setForeground(
+          s == AppLifecycleState.resumed || s == AppLifecycleState.inactive,
+        ),
+  );
   // Свой сервер (если подключён): обмен при запуске, после правок, при
   // возврате в приложение и по событиям сервера.
   final sync = container.read(syncServiceProvider);

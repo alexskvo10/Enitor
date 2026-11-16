@@ -43,6 +43,40 @@ abstract final class AppTheme {
         .apply(bodyColor: color, displayColor: color);
   }
 
+  /// Подсказки при наведении («Показать меню» и т.п.): вместо серой плашки
+  /// M3 — тёплая «наклейка» в тон приложению: чернильная в светлой теме,
+  /// приподнятая тёплая в тёмной, со скруглением, тонкой кромкой и мягкой
+  /// тенью. Появляется чуть позже, чтобы не мелькать при случайном проходе.
+  static TooltipThemeData _tooltip({required bool dark}) => TooltipThemeData(
+        waitDuration: const Duration(milliseconds: 450),
+        verticalOffset: 20,
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+        margin: const EdgeInsets.symmetric(horizontal: 12),
+        textStyle: TextStyle(
+          fontSize: 12.5,
+          height: 1.25,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.15,
+          color: dark ? AppColors.textPrimaryDark : AppColors.background,
+        ),
+        decoration: BoxDecoration(
+          color: dark ? const Color(0xFF38332B) : AppColors.textPrimary,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: dark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.black.withValues(alpha: 0.2),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: dark ? 0.35 : 0.16),
+              blurRadius: 14,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+      );
+
   static ThemeData light() {
     final base = ThemeData.light(useMaterial3: true);
     return base.copyWith(
@@ -62,6 +96,7 @@ abstract final class AppTheme {
       // поверх волны, и волна терялась. Цвет волны — тёплые чернила вместо
       // холодного серого M3. Ховер и фокус (hover/focusColor) не трогаем.
       pageTransitionsTheme: _transitions,
+      tooltipTheme: _tooltip(dark: false),
       splashFactory: InkWave.splashFactory,
       splashColor: AppColors.textPrimary.withValues(alpha: 0.12),
       highlightColor: Colors.transparent,
@@ -153,6 +188,7 @@ abstract final class AppTheme {
       scaffoldBackgroundColor: Colors.transparent,
       canvasColor: AppColors.surfaceDarkElevated,
       pageTransitionsTheme: _transitions,
+      tooltipTheme: _tooltip(dark: true),
       splashFactory: InkWave.splashFactory,
       splashColor: AppColors.textPrimaryDark.withValues(alpha: 0.14),
       highlightColor: Colors.transparent,

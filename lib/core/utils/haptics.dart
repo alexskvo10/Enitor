@@ -22,4 +22,19 @@ abstract final class Haptics {
       Vibration.vibrate(duration: 50, amplitude: 200).catchError((_) {}),
     );
   }
+
+  /// Конец фокуса или перерыва — импульсы в такт нотам сигнала.
+  static void focusDone() {
+    if (!_supported) return;
+    unawaited(
+      Vibration.vibrate(pattern: focusDonePattern).catchError((_) {}),
+    );
+  }
+
+  /// Пауза/импульс, мс: три ноты через 0,6 с, секунда тишины, ещё раз —
+  /// как в pomodoro_done.wav. Тот же рисунок у уведомления в фоне.
+  static const focusDonePattern = [
+    0, 120, 480, 120, 480, 120, //
+    1510, 120, 480, 120, 480, 120,
+  ];
 }

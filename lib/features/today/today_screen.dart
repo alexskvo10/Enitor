@@ -493,9 +493,6 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                                   now.hour * 60 + now.minute >=
                                       _dayRatingTriggerMinutes(quietStart)))
                             _DayRatingRow(date: _selected),
-                          // ── Кнопки действий ─────────────────────────────────────
-                          // «Скопировать» — на всех днях (когда есть задачи).
-                          // «Удалить все» — только на сегодня / будущих днях.
                           // ── Карточка «Невыполненные задачи (N)» ─────────────
                           Consumer(
                             builder: (ctx, ref, _) {
@@ -522,6 +519,26 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                               );
                             },
                           ),
+                          const SizedBox(height: 10),
+                          if (_isToday)
+                            quote.when(
+                              data: (q) => q == null
+                                  ? const SizedBox.shrink()
+                                  : _QuoteCard(text: q.text, author: q.author),
+                              loading: () => const SizedBox.shrink(),
+                              error: (_, __) => const SizedBox.shrink(),
+                            ),
+                          const SizedBox(height: 8),
+                          if (daySchedule.isNotEmpty)
+                            _ScheduleStrip(
+                              items: daySchedule,
+                              onOpen: () => setState(() => _tab = 1),
+                            ),
+                          // Над самим списком, а не над цитатой: кнопки действуют
+                          // на задачи и должны стоять рядом с ними (как в «Целях»).
+                          // ── Кнопки действий ─────────────────────────────────────
+                          // «Скопировать» — на всех днях (когда есть задачи).
+                          // «Удалить все» — только на сегодня / будущих днях.
                           if (tasks.isNotEmpty) ...[
                             const SizedBox(height: 2),
                             // Wrap, а не Row: на узком экране три кнопки («Перенести
@@ -563,7 +580,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                                     Icons.copy_all_outlined,
                                     size: 17,
                                   ),
-                                  label: Text(l10n.copyBtn),
+                                  label: Text(l10n.copyAllBtn),
                                   style: TextButton.styleFrom(
                                     visualDensity: VisualDensity.compact,
                                     tapTargetSize:
@@ -598,21 +615,6 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                               ],
                             ),
                           ],
-                          const SizedBox(height: 10),
-                          if (_isToday)
-                            quote.when(
-                              data: (q) => q == null
-                                  ? const SizedBox.shrink()
-                                  : _QuoteCard(text: q.text, author: q.author),
-                              loading: () => const SizedBox.shrink(),
-                              error: (_, __) => const SizedBox.shrink(),
-                            ),
-                          const SizedBox(height: 8),
-                          if (daySchedule.isNotEmpty)
-                            _ScheduleStrip(
-                              items: daySchedule,
-                              onOpen: () => setState(() => _tab = 1),
-                            ),
                           if (tasks.isEmpty)
                             Padding(
                               key: TourKeys.tasks,
@@ -2751,8 +2753,8 @@ class _TaskSectionsState extends ConsumerState<_TaskSections> {
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
-    _urg = _sorted(widget.tasks.where((t) => _isUrgent(t, now)), now);
+    final now = ref.read(currentTimeProvider).value ?? DateTime.now();
+    _urg =_sorted(widget.tasks.where((t) => _isUrgent(t, now)), now);
     _inc = _sorted(
         widget.tasks.where((t) => !t.isCompleted && !_isUrgent(t, now)), now);
     _com = _sorted(widget.tasks.where((t) => t.isCompleted), now);

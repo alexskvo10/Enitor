@@ -343,7 +343,7 @@ class _GoalsList extends ConsumerWidget {
                   TextButton.icon(
                     onPressed: () => _copyGoals(context, ref, goals),
                     icon: const Icon(Icons.copy_all_outlined, size: 17),
-                    label: Text(l10n.copyBtn),
+                    label: Text(l10n.copyAllBtn),
                     style: TextButton.styleFrom(
                       visualDensity: VisualDensity.compact,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,

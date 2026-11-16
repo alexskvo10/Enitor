@@ -73,10 +73,14 @@ const List<_Section> _kFaq = [
           'начался.\n\n'
           'Всё время фокуса копится в фактическое время задачи. Если отметишь '
           'задачу выполненной, пока таймер идёт, — он остановится и запишет '
-          'накопленное. Если название задачи не помещается на баннере '
-          'таймера, оно обрезается многоточием — полный текст можно '
-          'посмотреть, наведя курсор (на компьютере) или зажав палец '
-          '(на телефоне).',
+          'накопленное.\n\n'
+          'Таймер открывается на весь экран, и экран, пока он открыт, не '
+          'гаснет. «Свернуть» (или «назад», Esc) убирает его в карточку на '
+          '«Задачах» — таймер идёт дальше, нажатие на карточку разворачивает '
+          'снова. На компьютере пробел ставит на паузу и продолжает.\n\n'
+          'Конец фокуса и перерыва — двойной сигнал и вибрация в такт; '
+          'музыку он лишь ненадолго приглушает. Если приложение свёрнуто, '
+          'тот же сигнал подаст уведомление «Таймер фокуса».',
       'How does Pomodoro work?',
       'A focus timer, followed by a break. The defaults are 25 and 5 minutes '
           "— the classic numbers, but they don't suit everyone, so both "
@@ -85,9 +89,14 @@ const List<_Section> _kFaq = [
           'it started with.\n\n'
           "All focus time accumulates into the task's actual time. If you "
           'mark the task done while the timer is running, it stops and '
-          "records what's been accumulated. If the task title doesn't fit on "
-          'the timer banner, it gets cut off with an ellipsis — see the full '
-          'text by hovering (desktop) or long-pressing (phone).',
+          "records what's been accumulated.\n\n"
+          'The timer opens full screen, and the screen stays on while it is '
+          'open. “Minimize” (or Back, Esc) tucks it into a card on Tasks — '
+          'the timer keeps running; tap the card to open it again. On '
+          'desktop, Space pauses and resumes.\n\n'
+          'The end of focus and of a break is a double chime with vibration '
+          'in time; music only dips for a moment. If the app is minimized, '
+          'a “Focus timer” notification plays the same chime.',
     ),
     _Qa(
       'Какую длину фокуса и перерыва выбрать?',
@@ -173,16 +182,18 @@ const List<_Section> _kFaq = [
           'result opens the day it belongs to (for a task) or the goal itself.',
     ),
     _Qa(
-      'Что делают «Скопировать» и «Удалить все»?',
-      '«Скопировать» переносит задачи выбранного дня в другой день — удобно, '
+      'Что делают «Скопировать все» и «Удалить все»?',
+      'Кнопки стоят прямо над списком задач (и целей). «Скопировать все» '
+          'переносит задачи выбранного дня в другой день — удобно, '
           'когда день похож на прошлый и не хочется набивать всё заново; для '
           'целей так же, но копируется в другой период. «Удалить все» очищает '
           'весь список выбранного дня (или периода) разом и спрашивает '
           'подтверждение — отменить это нельзя. Если один и тот же набор '
           'нужен регулярно, лучше не копировать каждый раз, а сохранить его '
           'шаблоном дня.',
-      'What do "Copy" and "Delete all" do?',
-      '"Copy" puts the selected day\'s tasks onto another day — handy when a '
+      'What do "Copy all" and "Delete all" do?',
+      'The buttons sit right above the task (and goal) list. "Copy all" '
+          'puts the selected day\'s tasks onto another day — handy when a '
           'day resembles a previous one and you\'d rather not retype it; for '
           'goals it works the same way, copying into another period. "Delete '
           'all" clears the whole list for the selected day (or period) at '
@@ -283,12 +294,20 @@ const List<_Section> _kFaq = [
     ),
     _Qa(
       'Как загрузить расписание вуза или график смен?',
-      'Настройки → Интеграции → «Календари и переезд»: импорт .ics из файла '
-          'или по ссылке. Пункты попадут на вкладку «Расписание». Повторный '
+      'Пока расписание пустое — кнопкой «Взять расписание из календаря (.ics)» '
+          'прямо на вкладке. В любой момент — Настройки → Интеграции → '
+          '«Календари»: импорт .ics из файла или по ссылке. Перед импортом '
+          'видно, что попадёт в расписание, а что нет и почему (например, '
+          'события на весь день — у пункта расписания должно быть время). '
+          'Пункты попадут на вкладку «Расписание». Повторный '
           'импорт того же календаря обновляет их, а не дублирует.',
       'How do I load a university timetable or shift plan?',
-      'Settings → Integrations → “Calendars and moving in”: import an .ics '
-          'file or link. The items land on the Schedule tab. Importing the same '
+      'While the schedule is empty — with the “Take a schedule from a '
+          'calendar (.ics)” button right on the tab. Any time — Settings → '
+          'Integrations → “Calendars”: import an .ics file or link. Before '
+          'importing you see what goes in and what does not and why (for '
+          'example, all-day events — a schedule item needs a time). The '
+          'items land on the Schedule tab. Importing the same '
           'calendar again updates them rather than duplicating them.',
     ),
   ]),
@@ -1026,13 +1045,13 @@ const List<_Section> _kFaq = [
     _Qa(
       'Как перенести задачи из Todoist, Google Задач или TickTick?',
       'Сделай экспорт в том приложении (подсказка, где он, — прямо в '
-          'Enitor), затем Настройки → Интеграции → «Переезд из другого '
+          'Enitor), затем Настройки → Данные → «Переезд из другого '
           'приложения». Перед импортом видно, что будет создано и что '
           'пропущено и почему; повторный импорт того же файла дублей не '
           'создаёт.',
       'How do I move my tasks from Todoist, Google Tasks or TickTick?',
       'Export them in that app (Enitor shows where), then Settings → '
-          'Integrations → “Move in from another app”. Before importing you '
+          'Data → “Move in from another app”. Before importing you '
           'see what will be created and what is skipped and why; importing '
           'the same file again creates no duplicates.',
     ),
@@ -1181,15 +1200,51 @@ const List<_Section> _kFaq = [
         'Какие есть сочетания?',
         'Ctrl+N — создать (задачу на «Сегодня», цель на «Цели»). В формах и '
             'диалогах: Enter — сохранить/подтвердить, Esc — закрыть, Tab — '
-            'переход между полями.',
+            'переход между полями. В таймере фокуса: пробел — пауза и '
+            'продолжение, Esc — свернуть.',
         'What shortcuts are available?',
         'Ctrl+N — create (a task on Today, a goal on Goals). In forms and '
             'dialogs: Enter — save/confirm, Esc — close, Tab — move between '
-            'fields.',
+            'fields. In the focus timer: Space — pause and resume, Esc — '
+            'minimize.',
       ),
     ],
   ),
   _Section('Оформление', 'Appearance', Icons.palette_outlined, [
+    _Qa(
+      'Можно вместо колец показывать полосы?',
+      'Да: Настройки → Оформление → «Сводка дня» — нажми на плитку '
+          '«Полосы». Те же два показателя (выполнено и в срок) встанут '
+          'двумя строками — компактнее, экран сразу ближе к задачам. Вид '
+          'меняется и на «Задачах», и в «Целях».',
+      'Can I see bars instead of rings?',
+      'Yes: Settings → Appearance → “Day summary” — tap the “Bars” tile. '
+          'The same two figures (done and on time) become two rows — more '
+          'compact, so the tasks come up sooner. It applies on both Tasks '
+          'and Goals.',
+    ),
+    _Qa(
+      'Как пройти экскурсию по приложению заново?',
+      'Настройки → «Экскурсия по приложению»: 12 коротких шагов, '
+          'приложение само переключает экраны и подсвечивает нужное. Там же '
+          'переключатель «Предлагать после обновлений» — если выключить, '
+          'карточка «Что нового» после обновлений больше не появится.',
+      'How do I take the app tour again?',
+      'Settings → “App tour”: 12 short steps; the app switches screens and '
+          'highlights what matters itself. Next to it is the “Offer after '
+          'updates” switch — turn it off and the “What’s new” card stops '
+          'appearing after updates.',
+    ),
+    _Qa(
+      'Есть виджет на рабочий стол?',
+      'На Android — да, «Сегодня»: задачи на день и кнопка новой задачи. '
+          'Добавь его как любой виджет: долгое нажатие на рабочем столе → '
+          'Виджеты → Enitor. День в нём сменяется в 4:00, как в приложении.',
+      'Is there a home screen widget?',
+      'On Android — yes, “Today”: the day’s tasks and a new-task button. '
+          'Add it like any widget: long-press the home screen → Widgets → '
+          'Enitor. Its day rolls over at 4:00, like the app.',
+    ),
     _Qa(
       'Как сменить тему и фон?',
       'Настройки → Оформление. Тема: системная, светлая или тёмная. Фон: '
@@ -1201,10 +1256,10 @@ const List<_Section> _kFaq = [
     ),
     _Qa(
       'Как сменить язык?',
-      'Настройки → Язык: системный, русский или английский. Меняется сразу, '
+      'Настройки → Оформление → Язык: системный, русский или английский. Меняется сразу, '
           'без перезапуска приложения.',
       'How do I change the language?',
-      'Settings → Language: system, Russian, or English. It applies '
+      'Settings → Appearance → Language: system, Russian, or English. It applies '
           'immediately, without restarting the app.',
     ),
   ]),
@@ -1265,7 +1320,7 @@ class _FaqScreenState extends State<FaqScreen> {
       children: [
         for (final section in _kFaq) ...[
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
             child: Row(
               children: [
                 Icon(section.icon, size: 18, color: theme.colorScheme.primary),
@@ -1281,7 +1336,7 @@ class _FaqScreenState extends State<FaqScreen> {
               ],
             ),
           ),
-          for (final qa in section.items) _QaTile(qa: qa),
+          _QaCard([for (final qa in section.items) _QaTile(qa: qa)]),
         ],
       ],
     );
@@ -1308,10 +1363,33 @@ class _FaqScreenState extends State<FaqScreen> {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
-        for (final qa in matches) _QaTile(qa: qa, initiallyExpanded: true),
+        _QaCard([
+          for (final qa in matches) _QaTile(qa: qa, initiallyExpanded: true),
+        ]),
       ],
     );
   }
+}
+
+/// Вопросы раздела — в одной карточке с разделителями, как строки Настроек.
+class _QaCard extends StatelessWidget {
+  const _QaCard(this.tiles);
+  final List<Widget> tiles;
+
+  @override
+  Widget build(BuildContext context) => Card(
+        margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var i = 0; i < tiles.length; i++) ...[
+              if (i > 0) const Divider(height: 1, indent: 16, endIndent: 16),
+              tiles[i],
+            ],
+          ],
+        ),
+      );
 }
 
 class _QaTile extends StatelessWidget {
@@ -1325,6 +1403,9 @@ class _QaTile extends StatelessWidget {
     final ru = Localizations.localeOf(context).languageCode == 'ru';
     return ExpansionTile(
       initiallyExpanded: initiallyExpanded,
+      // Без линий сверху/снизу у раскрытого: границы задаёт карточка.
+      shape: const Border(),
+      collapsedShape: const Border(),
       tilePadding: const EdgeInsets.symmetric(horizontal: 16),
       childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
       expandedCrossAxisAlignment: CrossAxisAlignment.start,
