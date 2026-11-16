@@ -391,7 +391,7 @@ minute.
 
 Use this for a university timetable or a work rota.
 
-1. **Settings → Integrations → Calendars and moving in → Import a calendar
+1. **Settings → Integrations → Calendars → Import a calendar
    file (.ics)**.
 2. Pick the file. Enitor shows a preview first, including the items it
    can't import (all-day events, "the second Tuesday", yearly rules) and
@@ -417,7 +417,7 @@ last 30 days. Google Calendar, Outlook and Apple Calendar can import the file.
 
 ### Move in from another app
 
-**Settings → Integrations → Move in from another app**. Export a file from
+**Settings → Data → Move in from another app**. Export a file from
 the old app first, then pick it here. You see a preview before anything is
 imported.
 

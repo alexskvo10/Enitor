@@ -1,0 +1,96 @@
+﻿<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<!-- Баннер релиза. Рендер в PNG:
+     msedge --headless --force-device-scale-factor=2 --window-size=1280,600
+            --screenshot=banner.png banner.html -->
+<style>
+  @font-face { font-family: EnManrope; src: url(../../../assets/fonts/Manrope-Bold.ttf); font-weight: 700; }
+  @font-face { font-family: EnInter; src: url(../../../assets/fonts/Inter-Regular.ttf); font-weight: 400; }
+  @font-face { font-family: EnInter; src: url(../../../assets/fonts/Inter-Medium.ttf); font-weight: 500; }
+  @font-face { font-family: EnSerif; src: url(../../../assets/fonts/SourceSerif4-SemiBold.ttf); font-weight: 600; }
+  @font-face { font-family: EnSerif; src: url(../../../assets/fonts/SourceSerif4-Italic.ttf); font-style: italic; }
+
+  html, body { margin: 0; width: 1280px; height: 600px; background: #0f0e0c; overflow: hidden; }
+  .card {
+    position: absolute; inset: 20px;
+    border-radius: 28px;
+    background:
+      radial-gradient(900px 500px at 78% 40%, rgba(147,167,245,.16), transparent 60%),
+      radial-gradient(600px 420px at 10% 100%, rgba(217,130,92,.14), transparent 60%),
+      #1b1915;
+    border: 1px solid rgba(236,231,220,.08);
+    overflow: hidden;
+  }
+  /* бумажная точка, как фон «Точки» в приложении */
+  .card::before {
+    content: ""; position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(236,231,220,.07) 1px, transparent 1.3px);
+    background-size: 18px 18px;
+    mask-image: linear-gradient(90deg, transparent, #000 45%, #000);
+  }
+  .text { position: absolute; left: 60px; top: 70px; width: 560px; }
+  .kicker {
+    font: 700 15px/1 EnManrope; letter-spacing: .28em; color: #D9825C;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .kicker img { width: 44px; height: 44px; border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.45); }
+  h1 { margin: 24px 0 0; font: 600 84px/0.98 EnSerif; color: #F3EEE4; letter-spacing: -.01em; }
+  .tag { margin: 22px 0 0; font: 400 21px/1.45 EnInter; color: #CFC8BC; width: 540px; }
+  .tag em { font: italic 24px/1.4 EnSerif; color: #93A7F5; }
+  .pills { margin-top: 30px; display: flex; gap: 8px; }
+  .pill {
+    font: 500 14px/1 EnInter; color: #E6E0D5;
+    padding: 9px 12px; white-space: nowrap; border-radius: 999px;
+    background: rgba(236,231,220,.06); border: 1px solid rgba(236,231,220,.12);
+  }
+  .pill b { color: #93A7F5; font-weight: 500; margin-right: 6px; }
+
+  .laptop { position: absolute; left: 622px; top: 100px; width: 520px; }
+  .screen {
+    border: 10px solid #2c2822; border-bottom-width: 14px; border-radius: 18px 18px 6px 6px;
+    background: #111; overflow: hidden; line-height: 0;
+    box-shadow: 0 30px 70px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.06);
+  }
+  .screen img { width: 100%; display: block; }
+  .base {
+    height: 16px; margin: 0 -46px; border-radius: 2px 2px 16px 16px;
+    background: linear-gradient(#4a443a, #2a2620 60%, #1d1a16);
+    box-shadow: 0 18px 30px rgba(0,0,0,.5);
+  }
+  .base::after {
+    content: ""; display: block; width: 110px; height: 6px; margin: 0 auto;
+    border-radius: 0 0 8px 8px; background: rgba(0,0,0,.35);
+  }
+  .phone {
+    position: absolute; left: 1046px; top: 172px; width: 168px; height: 364px;
+    border-radius: 28px; padding: 6px; background: #2c2822; z-index: 2;
+    box-shadow: 0 30px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.07) inset;
+  }
+  .phone img { width: 100%; height: 100%; object-fit: cover; object-position: top; border-radius: 22px; display: block; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="text">
+      <div class="kicker"><img src="icon.png" alt="">ENITOR · v0.4.0</div>
+      <h1>Everywhere<br>you are.</h1>
+      <p class="tag">Your phone and your PC in sync, your calendar inside,
+        and a focus timer <em>that fills the whole screen.</em></p>
+      <div class="pills">
+        <span class="pill"><b>⇄</b>Sync</span>
+        <span class="pill"><b>▦</b>Calendars</span>
+        <span class="pill"><b>◷</b>Focus</span>
+        <span class="pill"><b>⚙</b>Automation</span>
+        <span class="pill"><b>✦</b>App tour</span>
+      </div>
+    </div>
+    <div class="laptop">
+      <div class="screen"><img src="today-desktop.png" alt=""></div>
+      <div class="base"></div>
+    </div>
+    <div class="phone"><img src="today-phone.png" alt=""></div>
+  </div>
+</body>
+</html>

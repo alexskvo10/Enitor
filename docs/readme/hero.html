@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<!-- Баннер README. Рендер в PNG:
+     msedge --headless --force-device-scale-factor=2 --window-size=1280,600
+            --screenshot=banner.png banner.html -->
+<style>
+  @font-face { font-family: EnManrope; src: url(../../assets/fonts/Manrope-Bold.ttf); font-weight: 700; }
+  @font-face { font-family: EnInter; src: url(../../assets/fonts/Inter-Regular.ttf); font-weight: 400; }
+  @font-face { font-family: EnInter; src: url(../../assets/fonts/Inter-Medium.ttf); font-weight: 500; }
+  @font-face { font-family: EnSerif; src: url(../../assets/fonts/SourceSerif4-SemiBold.ttf); font-weight: 600; }
+  @font-face { font-family: EnSerif; src: url(../../assets/fonts/SourceSerif4-Italic.ttf); font-style: italic; }
+
+  html, body { margin: 0; width: 1280px; height: 600px; background: #0f0e0c; overflow: hidden; }
+  .card {
+    position: absolute; inset: 20px;
+    border-radius: 28px;
+    background:
+      radial-gradient(900px 500px at 78% 40%, rgba(147,167,245,.16), transparent 60%),
+      radial-gradient(600px 420px at 10% 100%, rgba(217,130,92,.14), transparent 60%),
+      #1b1915;
+    border: 1px solid rgba(236,231,220,.08);
+    overflow: hidden;
+  }
+  /* бумажная точка, как фон «Точки» в приложении */
+  .card::before {
+    content: ""; position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(236,231,220,.07) 1px, transparent 1.3px);
+    background-size: 18px 18px;
+    mask-image: linear-gradient(90deg, transparent, #000 45%, #000);
+  }
+  .text { position: absolute; left: 64px; top: 64px; width: 640px; }
+  .kicker {
+    font: 700 15px/1 EnManrope; letter-spacing: .28em; color: #D9825C;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .kicker img { width: 44px; height: 44px; border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.45); }
+  h1 { margin: 24px 0 0; font: 600 84px/0.98 EnSerif; color: #F3EEE4; letter-spacing: -.01em; }
+  .tag { margin: 22px 0 0; font: 400 22px/1.45 EnInter; color: #CFC8BC; width: 620px; }
+  .tag em { font: italic 24px/1.4 EnSerif; color: #93A7F5; }
+  .pills { margin-top: 30px; display: flex; gap: 9px; }
+  .pill {
+    font: 500 15px/1 EnInter; color: #E6E0D5;
+    padding: 10px 14px; white-space: nowrap; border-radius: 999px;
+    background: rgba(236,231,220,.06); border: 1px solid rgba(236,231,220,.12);
+  }
+  .pill b { color: #93A7F5; font-weight: 500; margin-right: 6px; }
+
+  .phone {
+    position: absolute; width: 238px; height: 515px; border-radius: 34px;
+    padding: 8px; background: #2a2620;
+    box-shadow: 0 30px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.06) inset;
+  }
+  .phone img { width: 100%; height: 100%; object-fit: cover; object-position: top; border-radius: 27px; display: block; }
+  .p1 { left: 760px; top: 60px; transform: rotate(-6deg); }
+  .p2 { left: 960px; top: 34px; transform: rotate(5deg); z-index: 2; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="text">
+      <div class="kicker"><img src="../release/v0.4.0/icon.png" alt="">ENITOR · TASKS · GOALS · STATS</div>
+      <h1>Get better,<br>not just busy.</h1>
+      <p class="tag">Tasks, a schedule and goals that add up to honest numbers —
+        <em>so you learn something about yourself.</em></p>
+      <div class="pills">
+        <span class="pill"><b>✓</b>Tasks</span>
+        <span class="pill"><b>▦</b>Schedule</span>
+        <span class="pill"><b>⚑</b>Goals</span>
+        <span class="pill"><b>◔</b>Stats</span>
+        <span class="pill"><b>◷</b>Focus</span>
+        <span class="pill"><b>⇄</b>Sync</span>
+      </div>
+    </div>
+    <div class="phone p1"><img src="../release/v0.4.0/import.png" alt=""></div>
+    <div class="phone p2"><img src="../release/v0.4.0/focus.png" alt=""></div>
+  </div>
+</body>
+</html>
