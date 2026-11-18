@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/models/goal.dart';
 import '../data/models/task.dart';
+import '../core/utils/date_utils.dart';
 import '../data/repositories/goal_repository.dart';
 import '../data/repositories/task_repository.dart';
 import '../data/sources/local/local_storage.dart';
@@ -34,7 +35,7 @@ class TransferPromptController {
   DateTime _lastFourAmBoundary(DateTime now) {
     final todayFourAm = DateTime(now.year, now.month, now.day, 4);
     return now.isBefore(todayFourAm)
-        ? todayFourAm.subtract(const Duration(days: 1))
+        ? addDays(todayFourAm, -1)
         : todayFourAm;
   }
 

@@ -154,6 +154,7 @@ class GoalRepository {
   void _emitIfAchieved(Goal before, Goal after) {
     if (after.completed && !before.completed) _achieved.add(after);
   }
+
   List<Goal> _cache = [];
 
   /// Снимки кольца прогресса по дням: goalId → (день-эпохи → completionValue).
@@ -256,8 +257,7 @@ class GoalRepository {
     final order = [
       for (var i = 0; i < _cache.length; i++)
         if (_cache[i].isCounter || _cache[i].childProgress != 0) i,
-    ]..sort((a, b) =>
-        _cache[a].period.index.compareTo(_cache[b].period.index));
+    ]..sort((a, b) => _cache[a].period.index.compareTo(_cache[b].period.index));
     for (final i in order) {
       final cur = _cache[i];
       var sum = 0;
@@ -534,7 +534,7 @@ class GoalRepository {
     while (!cursor.isAfter(end) && guard < 100000) {
       guard++;
       if (cursor.isAfter(todayDate)) break; // будущие недели не считаем
-      var weekEnd = cursor.add(const Duration(days: 6));
+      var weekEnd = addDays(cursor, 6);
       if (weekEnd.isAfter(todayDate)) weekEnd = todayDate;
 
       var sumRing = 0.0;
@@ -582,7 +582,7 @@ class GoalRepository {
           bestOnTime = doneTotal == 0 ? null : tRate;
         }
       }
-      cursor = cursor.add(const Duration(days: 7));
+      cursor = addDays(cursor, 7);
     }
     return (best, bestCompletion, bestOnTime);
   }
@@ -610,8 +610,8 @@ class GoalRepository {
         ChartGrouping.yearly => startOfYear(d),
       };
   static DateTime _chartNextBucket(DateTime c, ChartGrouping g) => switch (g) {
-        ChartGrouping.daily => c.add(const Duration(days: 1)),
-        ChartGrouping.weekly => c.add(const Duration(days: 7)),
+        ChartGrouping.daily => addDays(c, 1),
+        ChartGrouping.weekly => addDays(c, 7),
         ChartGrouping.monthly => DateTime(c.year, c.month + 1),
         ChartGrouping.yearly => DateTime(c.year + 1),
       };
@@ -743,7 +743,7 @@ class GoalRepository {
       final ref = GoalPeriodRef.current(period, cursor);
       // Конец бакета, но не позже конца периода и не позже сегодня.
       var bucketEnd =
-          _chartNextBucket(cursor, grouping).subtract(const Duration(days: 1));
+          addDays(_chartNextBucket(cursor, grouping), -1);
       if (bucketEnd.isAfter(ref.endInclusive)) bucketEnd = ref.endInclusive;
       if (bucketEnd.isAfter(todayDate)) bucketEnd = todayDate;
 
@@ -825,7 +825,7 @@ class GoalRepository {
         continue;
       }
       var bucketEnd =
-          _chartNextBucket(cursor, grouping).subtract(const Duration(days: 1));
+          addDays(_chartNextBucket(cursor, grouping), -1);
       if (bucketEnd.isAfter(todayDate)) bucketEnd = todayDate;
 
       var sumRing = 0.0;
@@ -992,16 +992,20 @@ class GoalRepository {
     final idx = _cache.indexWhere((g) => g.id == goal.id);
     if (idx == -1) return;
     final now = DateTime.now();
-    final nowCompleting = !goal.completed;
+    // База — актуальная цель из кэша, не снимок виджета: иначе затираются
+    // подзадачи и прогресс, отмеченные после снимка, а двойной тап дважды
+    // «выполняет» цель вместо выполнить-и-снять (как у задач).
+    final cur = _cache[idx];
+    final nowCompleting = !cur.completed;
     if (nowCompleting) Haptics.completed(); // цель отмечена выполненной
-    _cache[idx] = goal.copyWith(
+    _cache[idx] = cur.copyWith(
       completed: nowCompleting,
       completedAt: nowCompleting ? now : null,
       clearCompletedAt: !nowCompleting,
       updatedAt: now,
     );
     await _save();
-    _emitIfAchieved(goal, _cache[idx]);
+    _emitIfAchieved(cur, _cache[idx]);
   }
 
   /// Переключает подзадачу цели. Когда все выполнены — цель достигается
@@ -1154,7 +1158,8 @@ class GoalRepository {
     // Предсказуемый id — как у переноса задач (синхронизация устройств).
     // Длина постоянная: из 't-' + id задача, которую переносят каждую ночь,
     // за месяц получила бы id длиннее, чем принимают виджет и команды.
-    final stable = 't-${sha1.convert(utf8.encode(goal.id)).toString().substring(0, 20)}';
+    final stable =
+        't-${sha1.convert(utf8.encode(goal.id)).toString().substring(0, 20)}';
     final copyId = _cache.any((g) => g.id == stable) ? _uuid.v4() : stable;
     final copy = Goal(
       id: copyId,

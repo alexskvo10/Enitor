@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:enitor/data/models/goal.dart';
+import 'package:enitor/data/models/recurrence_rule.dart';
 import 'package:enitor/data/repositories/goal_repository.dart';
 import 'package:enitor/data/repositories/task_repository.dart';
 import 'package:enitor/data/sources/local/local_storage.dart';
@@ -204,6 +205,61 @@ void main() {
         .single;
     expect(goalOn(inMonth), m.id);
     expect(goalOn(nextMonth), isNull, reason: 'цель месяца там не идёт');
+  });
+
+  test('перенос задачи-счётчика не удваивает вклад в цель', () async {
+    final m = await add(monthRef, 'Отжимания', 100);
+    final t = await tasks.createAndAdd(
+        title: 'Подходы', date: today, goalId: m.id, targetCount: 5);
+    await tasks.setCounterProgress(t, 3);
+    expect(g(m.id).progressCount, 3);
+    final inMonth = monthRef.endInclusive;
+    await tasks.transferTask(tasks.taskById(t.id)!, targetDate: inMonth);
+    expect(g(m.id).progressCount, 3, reason: 'копия забрала 3 с собой');
+    final copy = tasks.allTasks.firstWhere((x) => x.transferredFromId == t.id);
+    await tasks.incrementCounter(copy, 1);
+    expect(g(m.id).progressCount, 4);
+  });
+
+  test('отметка цели берёт актуальное состояние, а не снимок', () async {
+    final goal = await goals.addGoal(
+      title: 'Две части',
+      period: GoalPeriod.month,
+      year: monthRef.year,
+      month: monthRef.month,
+      subtaskTitles: ['a', 'b'],
+    );
+    final snapshot = g(goal.id);
+    await goals.toggleGoalSubtask(snapshot, snapshot.subtasks.first.id);
+    await goals.toggleComplete(snapshot);
+    expect(g(goal.id).subtasks.where((x) => x.done).length, 1,
+        reason: 'отмеченная подзадача не затёрта');
+    // Двойной тап со старым снимком: выполнили и сняли.
+    final s2 = g(goal.id);
+    await goals.toggleComplete(s2);
+    await goals.toggleComplete(s2);
+    expect(g(goal.id).completed, s2.completed);
+  });
+
+  test('повтор помнит цель только внутри её периода', () async {
+    final m = await add(monthRef, 'Чтение', 30);
+    await tasks.createRecurrence(
+      title: 'Читать',
+      kind: RecurrenceKind.interval,
+      startDate: today,
+      goalId: m.id,
+    );
+    final inMonth = monthRef.endInclusive;
+    final nextMonth = monthRef.next.start;
+    await tasks.ensureRecurrencesForDay(inMonth);
+    await tasks.ensureRecurrencesForDay(nextMonth);
+    String? goalOn(DateTime d) => tasks
+        .tasksForDay(d)
+        .singleWhere((x) => x.recurrenceRuleId != null)
+        .goalId;
+    expect(goalOn(today), m.id);
+    expect(goalOn(inMonth), m.id);
+    expect(goalOn(nextMonth), isNull);
   });
 
   test('единица и родитель переживают JSON', () {

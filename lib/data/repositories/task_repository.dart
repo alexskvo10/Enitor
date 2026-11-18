@@ -53,14 +53,21 @@ class TaskRepository {
   Future<void> _syncGoal(String? goalId) async {
     if (goalId == null) return;
     final time = _goalRepo.goalById(goalId)?.isTime ?? false;
-    final sum = _cache.where((t) => t.goalId == goalId).fold<int>(
-        0,
-        (s, t) =>
-            s +
-            (time
-                ? t.actualMinutes ??
-                    (t.isCompleted ? t.estimatedMinutes ?? 0 : 0)
-                : t.goalContribution));
+    // Копия переноса забирает прогресс счётчика с собой: оригинал, у которого
+    // есть копия в той же цели, уже не считается (иначе 3/5 + 3/5 = 6).
+    // Без копии (ушёл в бэклог) оригинал свой вклад сохраняет. Минуты не
+    // переезжают — их отдаёт каждая задача за себя.
+    final moved = {
+      for (final t in _cache)
+        if (t.goalId == goalId && t.transferredFromId != null)
+          t.transferredFromId!,
+    };
+    int part(Task t) => time
+        ? t.actualMinutes ?? (t.isCompleted ? t.estimatedMinutes ?? 0 : 0)
+        : t.goalContribution;
+    final sum = _cache
+        .where((t) => t.goalId == goalId && (time || !moved.contains(t.id)))
+        .fold<int>(0, (s, t) => s + part(t));
     await _goalRepo.setLinkedProgress(goalId, sum);
   }
 
@@ -135,7 +142,15 @@ class TaskRepository {
     for (final rule in _recurrenceRepo.all) {
       if (existingRuleIds.contains(rule.id)) continue;
       if (!rule.occursOn(day)) continue;
-      _cache.add(taskFromRule(rule, day, order: order++, now: now));
+      _cache.add(
+        taskFromRule(
+          rule,
+          day,
+          order: order++,
+          now: now,
+          goalOn: (id) => _goalOn(id, day) != null,
+        ),
+      );
       added = true;
     }
     if (added) {
@@ -199,7 +214,7 @@ class TaskRepository {
     final rule = _recurrenceRepo.byId(ruleId);
     if (rule != null) {
       await _recurrenceRepo.update(rule.copyWith(
-        endDate: fromDay.subtract(const Duration(days: 1)),
+        endDate: addDays(fromDay, -1),
         updatedAt: DateTime.now(),
       ));
     }
@@ -256,6 +271,7 @@ class TaskRepository {
     List<String> subtaskTitles = const [],
     TaskPriority priority = TaskPriority.none,
     List<String> tags = const [],
+    String? goalId,
     String? id,
   }) async {
     final now = DateTime.now();
@@ -279,6 +295,7 @@ class TaskRepository {
       subtaskTitles: subtaskTitles,
       priority: priority,
       tags: tags,
+      goalId: goalId,
     );
     await _recurrenceRepo.add(rule);
     await ensureRecurrencesForDay(startDate);
@@ -309,7 +326,7 @@ class TaskRepository {
     final today = dateOnly(DateTime.now());
     final result = <int, int>{};
     for (var d = 0; d < days; d++) {
-      final day = today.add(Duration(days: d));
+      final day = addDays(today, d);
       final count = _unfinishedCountFor(day);
       if (count > 0) result[d] = count;
     }
@@ -345,7 +362,7 @@ class TaskRepository {
     final now = DateTime.now();
     final result = <Task>[];
     for (var d = 0; d < days; d++) {
-      final day = dateOnly(now.add(Duration(days: d)));
+      final day = dateOnly(addDays(now, d));
       for (final t in tasksForDay(day)) {
         if (t.isCompleted || t.isTransferred) continue;
         if (t.startMinutes == null) continue;
@@ -764,6 +781,8 @@ class TaskRepository {
     }
     await _save();
     await _statsRepo.recompute(target, tasksForDay(target));
+    await _syncGoal(task.goalId);
+    if (copy.goalId != task.goalId) await _syncGoal(copy.goalId);
   }
 
   /// Переносит все невыполненные неповторяющиеся задачи дня [day] на [targetDate].

@@ -254,7 +254,7 @@ class _RootScaffoldState extends ConsumerState<_RootScaffold> {
     final candidate = DateTime(now.year, now.month, now.day, 4);
     return now.isBefore(candidate)
         ? candidate
-        : candidate.add(const Duration(days: 1));
+        : addDays(candidate, 1);
   }
 
   /// Живой момент переноса (приложение открыто, наступило 4:00): плашки

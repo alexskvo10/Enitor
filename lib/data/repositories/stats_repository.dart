@@ -481,7 +481,7 @@ class StatsRepository {
     var run = 0;
     for (var cursor = minDay;
         !cursor.isAfter(todayDate);
-        cursor = cursor.add(const Duration(days: 1))) {
+        cursor = addDays(cursor, 1)) {
       final st = statusOf(cursor);
       if (st == true) {
         run++;
@@ -496,7 +496,7 @@ class StatsRepository {
     var current = 0;
     for (var cursor = todayDate;
         !cursor.isBefore(minDay);
-        cursor = cursor.subtract(const Duration(days: 1))) {
+        cursor = addDays(cursor, -1)) {
       final st = statusOf(cursor);
       if (st == true) {
         current++;
@@ -539,8 +539,8 @@ class StatsRepository {
       };
 
   static DateTime _nextBucketStatic(DateTime c, ChartGrouping g) => switch (g) {
-        ChartGrouping.daily => c.add(const Duration(days: 1)),
-        ChartGrouping.weekly => c.add(const Duration(days: 7)),
+        ChartGrouping.daily => addDays(c, 1),
+        ChartGrouping.weekly => addDays(c, 7),
         ChartGrouping.monthly => DateTime(c.year, c.month + 1),
         ChartGrouping.yearly => DateTime(c.year + 1),
       };

@@ -92,7 +92,7 @@ final achievementStatsProvider = Provider<AchievementStats?>((ref) {
     goalsDone: goals.where((g) => g.completed).length,
     currentStreak: streaks.current,
     bestStreak: streaks.best,
-    daysUsing: todayDate.difference(dateOnly(profile.startedAt)).inDays + 1,
+    daysUsing: calendarDaysBetween(profile.startedAt, todayDate) + 1,
     perfectDays: dayStats
         .where((s) =>
             s.totalTasks > 0 &&

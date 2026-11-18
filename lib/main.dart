@@ -23,6 +23,7 @@ import 'features/integrations/sync/sync_service.dart';
 import 'features/integrations/webhooks/webhooks.dart';
 import 'features/integrations/widget/day_snapshot.dart';
 import 'features/integrations/windows/link_registration.dart';
+import 'core/utils/date_utils.dart';
 import 'services/backup_service.dart';
 import 'services/notification_service.dart';
 import 'services/pomodoro_controller.dart';
@@ -34,7 +35,7 @@ DateTime _nextFourAm() {
   // Если 4:00 сегодня уже прошло — берём завтра.
   return now.isBefore(candidate)
       ? candidate
-      : candidate.add(const Duration(days: 1));
+      : addDays(candidate, 1);
 }
 
 /// Планирует тихое списание зависших копий (см. [TaskRepository.

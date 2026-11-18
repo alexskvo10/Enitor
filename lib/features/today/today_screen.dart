@@ -67,7 +67,6 @@ String _fmtTime(int minutes) => '${(minutes ~/ 60).toString().padLeft(2, '0')}:'
 String _capitalize(String s) =>
     s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
-
 // ─── Граница «прошлое» с учётом ночного времени ──────────────────────────────
 
 /// До 4:00 утра вчерашний день ещё считается «сегодняшним» для редактирования.
@@ -103,7 +102,7 @@ _TimeState _calcTimeState(Task task, DateTime now) {
   // Сколько календарных дней прошло с даты задачи: 0 — тот же день; 1 — уже
   // наступил следующий календарный день (но эффективный «сегодня» по
   // правилу 4:00 утра ещё вчерашний, см. проверку выше).
-  final daysSince = dateOnly(now).difference(dateOnly(task.date)).inDays;
+  final daysSince = calendarDaysBetween(task.date, now);
 
   // Окно до 4:00: уже наступил следующий календарный день. Для обычных
   // задач — сразу просрочены, как и раньше. Для «через полночь» — конец
@@ -157,7 +156,7 @@ bool _isTransferable(Task t, DateTime now) {
 DateTime _calcTransferTarget(DateTime taskDate, DateTime now) {
   final calendarToday = dateOnly(now);
   if (dateOnly(taskDate).isBefore(calendarToday)) return calendarToday;
-  return calendarToday.add(const Duration(days: 1));
+  return addDays(calendarToday, 1);
 }
 
 // ─── Главный экран ───────────────────────────────────────────────────────────
@@ -2471,6 +2470,7 @@ class _TaskFormSheetState extends ConsumerState<_TaskFormSheet> {
         subtaskTitles: subtaskTitles,
         priority: _priority,
         tags: _tags.toList(),
+        goalId: _goalId,
       );
     } else if (widget.isEditing) {
       final existing = widget.existingTask!;
@@ -2501,6 +2501,14 @@ class _TaskFormSheetState extends ConsumerState<_TaskFormSheet> {
         updated = updated.copyWith(
           completedAt: allDone ? (existing.completedAt ?? now) : null,
           clearCompleted: !allDone,
+        );
+      } else if (updated.isCounter) {
+        // У счётчика — набранным числом: сменили цель 5 → 10 при 5/5 —
+        // задача снова не выполнена, 3/5 → цель 3 — выполнена.
+        final reached = updated.progressCount >= updated.targetCount!;
+        updated = updated.copyWith(
+          completedAt: reached ? (existing.completedAt ?? now) : null,
+          clearCompleted: !reached,
         );
       }
       await repo.updateTask(updated);
@@ -2750,7 +2758,7 @@ class _TaskSectionsState extends ConsumerState<_TaskSections> {
   void initState() {
     super.initState();
     final now = ref.read(currentTimeProvider).value ?? DateTime.now();
-    _urg =_sorted(widget.tasks.where((t) => _isUrgent(t, now)), now);
+    _urg = _sorted(widget.tasks.where((t) => _isUrgent(t, now)), now);
     _inc = _sorted(
         widget.tasks.where((t) => !t.isCompleted && !_isUrgent(t, now)), now);
     _com = _sorted(widget.tasks.where((t) => t.isCompleted), now);

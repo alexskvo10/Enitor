@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/appearance.dart';
 import '../../data/models/goal.dart';
 import '../../data/repositories/goal_repository.dart';
+import '../../core/utils/date_utils.dart';
 import '../../data/repositories/stats_repository.dart' show ChartGrouping;
 import '../../l10n/l10n_extensions.dart';
 import '../../widgets/error_view.dart';
@@ -390,7 +391,7 @@ class _GoalProductivityChartState extends ConsumerState<GoalProductivityChart> {
       case ChartGrouping.daily:
         return '${d.day} ${monthGen[d.month]} ${d.year}';
       case ChartGrouping.weekly:
-        final end = d.add(const Duration(days: 6));
+        final end = addDays(d, 6);
         if (d.month == end.month) {
           return '${d.day}–${end.day} ${monthGen[d.month]} ${d.year}';
         } else if (d.year == end.year) {
@@ -434,7 +435,7 @@ class _GoalProductivityChartState extends ConsumerState<GoalProductivityChart> {
               style: const TextStyle(fontSize: 10)),
         );
       case ChartGrouping.weekly:
-        final end = d.add(const Duration(days: 6));
+        final end = addDays(d, 6);
         return Padding(
           padding: const EdgeInsets.only(top: 3),
           child: Column(

@@ -14,6 +14,7 @@ import 'package:timezone/timezone.dart' as tz;
 import '../core/utils/haptics.dart';
 import '../data/models/goal.dart';
 import '../data/models/schedule_item.dart';
+import '../core/utils/date_utils.dart';
 import '../data/models/task.dart';
 import '../l10n/app_localizations.dart';
 import 'notification_prefs.dart';
@@ -694,14 +695,14 @@ class NotificationService {
   tz.TZDateTime? _goalUrgentAt(Goal goal) {
     final effectiveDeadline = goal.deadline ?? goal.periodEnd;
     final threshold = goal.ref.urgencyThreshold;
-    final d = effectiveDeadline.subtract(Duration(days: threshold));
+    final d = addDays(effectiveDeadline, -threshold);
     return tz.TZDateTime(tz.local, d.year, d.month, d.day, 9);
   }
 
   /// Момент, когда цель становится просроченной — на следующий день после
   /// конца периода, в 9:00 (см. _GoalUrgency.overdue).
   tz.TZDateTime _goalOverdueAt(Goal goal) {
-    final d = goal.periodEnd.add(const Duration(days: 1));
+    final d = addDays(goal.periodEnd, 1);
     return tz.TZDateTime(tz.local, d.year, d.month, d.day, 9);
   }
 
@@ -714,7 +715,7 @@ class NotificationService {
     final overnight = start != null && end < start;
     final day = task.date;
     final base = overnight
-        ? DateTime(day.year, day.month, day.day).add(const Duration(days: 1))
+        ? addDays(DateTime(day.year, day.month, day.day), 1)
         : DateTime(day.year, day.month, day.day);
     return tz.TZDateTime(
         tz.local, base.year, base.month, base.day, end ~/ 60, end % 60);
@@ -726,8 +727,7 @@ class NotificationService {
     final end = _taskEndAt(task);
     if (end != null) return end;
     final day = task.date;
-    final midnight =
-        DateTime(day.year, day.month, day.day).add(const Duration(days: 1));
+    final midnight = addDays(DateTime(day.year, day.month, day.day), 1);
     return tz.TZDateTime(tz.local, midnight.year, midnight.month, midnight.day);
   }
 
@@ -850,8 +850,8 @@ class NotificationService {
   }) async {
     if (_isWindows) {
       for (var d = 0; d < _windowsDailyDays; d++) {
-        final when = _nextInstanceOf(minutesOfDay ~/ 60, minutesOfDay % 60)
-            .add(Duration(days: d));
+        final when = _tzAddDays(
+            _nextInstanceOf(minutesOfDay ~/ 60, minutesOfDay % 60), d);
         await _scheduleAt(
           id: id * 100 + d,
           when: when,
@@ -895,7 +895,7 @@ class NotificationService {
     for (var d = 0; d < _generalHorizonDays; d++) {
       final count = countsByDay[d];
       if (count == null || count <= 0) continue;
-      final day = today.add(Duration(days: d));
+      final day = addDays(today, d);
       // Через конструктор, а не сложением Duration: при переходе на летнее
       // время сложение сдвинуло бы час, а нам нужны те же 12:30 по стене.
       final when = tz.TZDateTime(
@@ -935,9 +935,14 @@ class NotificationService {
   }) async {
     if (_isWindows) {
       for (var w = 0; w < _windowsWeeklyOccurrences; w++) {
-        final when = _nextWeekdayInstanceOf(
-                weekday, minutesOfDay ~/ 60, minutesOfDay % 60)
-            .add(Duration(days: 7 * w));
+        final when = _tzAddDays(
+          _nextWeekdayInstanceOf(
+            weekday,
+            minutesOfDay ~/ 60,
+            minutesOfDay % 60,
+          ),
+          7 * w,
+        );
         await _scheduleAt(
           id: id * 100 + w,
           when: when,
@@ -1019,7 +1024,7 @@ class NotificationService {
     var scheduled =
         tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
     if (!scheduled.isAfter(now)) {
-      scheduled = scheduled.add(const Duration(days: 1));
+      scheduled = _tzAddDays(scheduled, 1);
     }
     return scheduled;
   }
@@ -1030,7 +1035,7 @@ class NotificationService {
   tz.TZDateTime _nextWeekdayInstanceOf(int weekday, int hour, int minute) {
     var scheduled = _nextInstanceOf(hour, minute);
     while (scheduled.weekday != weekday) {
-      scheduled = scheduled.add(const Duration(days: 1));
+      scheduled = _tzAddDays(scheduled, 1);
     }
     return scheduled;
   }
@@ -1119,3 +1124,15 @@ enum _Channel { planning, task, general, goal, trace, focus }
 final notificationServiceProvider = Provider<NotificationService>(
   (ref) => throw UnimplementedError('Override in main()'),
 );
+
+/// [t] плюс [n] календарных дней с тем же временем на часах (через переход
+/// на летнее время `add(Duration(days:))` сдвинул бы напоминание на час).
+tz.TZDateTime _tzAddDays(tz.TZDateTime t, int n) => tz.TZDateTime(
+      t.location,
+      t.year,
+      t.month,
+      t.day + n,
+      t.hour,
+      t.minute,
+      t.second,
+    );

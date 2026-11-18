@@ -370,7 +370,7 @@ enum _TfKind {
   (DateTime, DateTime) resolve(DateTime? startedAt) {
     final d = today();
     return switch (this) {
-      _TfKind.week => (d.subtract(const Duration(days: 7)), d),
+      _TfKind.week => (addDays(d, -7), d),
       _TfKind.month => (subtractMonths(d, 1), d),
       _TfKind.months3 => (subtractMonths(d, 3), d),
       _TfKind.months6 => (subtractMonths(d, 6), d),
@@ -625,7 +625,7 @@ class _BestBucketCard extends StatelessWidget {
         return dateOnly(d) == today() ? l10n.bestDateToday(dateStr) : dateStr;
 
       case ChartGrouping.weekly:
-        final end = d.add(const Duration(days: 6));
+        final end = addDays(d, 6);
         if (d.month == end.month) {
           // «24–30 мая 2026»
           return '${d.day}–${end.day} ${monthGen[d.month]} ${d.year}';

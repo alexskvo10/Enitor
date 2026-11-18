@@ -135,7 +135,7 @@ class _TagStatsScreenState extends ConsumerState<TagStatsScreen> {
       ThemeData theme, AppLocalizations l10n, List<Task> tasks) {
     final todayDate = today();
     final from =
-        _tf.days == null ? null : todayDate.subtract(Duration(days: _tf.days!));
+        _tf.days == null ? null : addDays(todayDate, -(_tf.days!));
 
     final byTag = <String, _TagAgg>{};
     for (final t in tasks) {

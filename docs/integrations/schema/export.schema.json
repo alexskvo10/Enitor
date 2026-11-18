@@ -433,7 +433,8 @@
         "targetCount",
         "subtaskTitles",
         "priority",
-        "tags"
+        "tags",
+        "goalId"
       ],
       "additionalProperties": false,
       "properties": {
@@ -462,7 +463,11 @@
         "targetCount": { "$ref": "#/$defs/nullableInt" },
         "subtaskTitles": { "$ref": "#/$defs/stringList" },
         "priority": { "$ref": "#/$defs/priority" },
-        "tags": { "$ref": "#/$defs/stringList" }
+        "tags": { "$ref": "#/$defs/stringList" },
+        "goalId": {
+          "$ref": "#/$defs/nullableString",
+          "description": "Id of the counter goal its tasks count towards, or null. A task outside the goal's period gets no goal."
+        }
       }
     },
     "TemplateItem": {

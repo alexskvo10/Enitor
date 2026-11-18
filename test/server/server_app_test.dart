@@ -398,4 +398,27 @@ void main() {
     expect((out['changes'] as List).map((c) => c['id']), ['k']);
     await dir.delete(recursive: true);
   });
+
+  test('папку восстановили из старой копии — устройство с курсором впереди '
+      'получает всё', () async {
+    final dir = await Directory.systemTemp.createTemp('enitor-server');
+    final file = File('${dir.path}/data.json');
+    final s1 = await SyncStore.open(file);
+    await s1.put('dayRatings', 'x', {'value': 1});
+    final copy = await file.readAsString(); // бэкап папки на rev 1
+    await s1.put('dayRatings', 'y', {'value': 2});
+    await s1.put('dayRatings', 'z', {'value': 3}); // устройство B видело rev 3
+    await file.writeAsString(copy); // восстановили
+
+    final s2 = await SyncStore.open(file);
+    await s2.put('dayRatings', 'w', {'value': 4}); // снова rev 2
+    final out = await s2.sync({
+      'cursor': 3,
+      'epoch': s2.epoch,
+      'changes': <Object>[],
+    });
+    expect((out['changes'] as List).map((c) => c['id']),
+        containsAll(['x', 'w']));
+    await dir.delete(recursive: true);
+  });
 }

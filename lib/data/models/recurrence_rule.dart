@@ -1,3 +1,4 @@
+import '../../core/utils/date_utils.dart';
 import 'task.dart' show TaskPriority;
 
 /// Виды повторений:
@@ -28,6 +29,7 @@ class RecurrenceRule {
     this.subtaskTitles = const [],
     this.priority = TaskPriority.none,
     this.tags = const [],
+    this.goalId,
   });
 
   final String id;
@@ -64,6 +66,10 @@ class RecurrenceRule {
   final TaskPriority priority;
   final List<String> tags;
 
+  /// Цель, в которую идут экземпляры. Экземпляр за пределами её периода
+  /// создаётся без цели (см. [taskFromRule]).
+  final String? goalId;
+
   /// Срабатывает ли правило в указанный день. Только дата (без времени).
   bool occursOn(DateTime date) {
     final d = DateTime(date.year, date.month, date.day);
@@ -83,7 +89,7 @@ class RecurrenceRule {
       case RecurrenceKind.monthly:
         return monthDays.contains(d.day);
       case RecurrenceKind.interval:
-        final diff = d.difference(start).inDays;
+        final diff = calendarDaysBetween(start, d);
         return intervalDays > 0 && diff % intervalDays == 0;
     }
   }
@@ -111,6 +117,8 @@ class RecurrenceRule {
     List<String>? subtaskTitles,
     TaskPriority? priority,
     List<String>? tags,
+    String? goalId,
+    bool clearGoalId = false,
   }) =>
       RecurrenceRule(
         id: id,
@@ -136,6 +144,7 @@ class RecurrenceRule {
         subtaskTitles: subtaskTitles ?? this.subtaskTitles,
         priority: priority ?? this.priority,
         tags: tags ?? this.tags,
+        goalId: clearGoalId ? null : (goalId ?? this.goalId),
       );
 
   Map<String, dynamic> toJson() => {
@@ -148,8 +157,7 @@ class RecurrenceRule {
         'intervalDays': intervalDays,
         'startDate': startDate.toIso8601String(),
         'endDate': endDate?.toIso8601String(),
-        'exceptDates':
-            exceptDates.map((d) => d.toIso8601String()).toList(),
+        'exceptDates': exceptDates.map((d) => d.toIso8601String()).toList(),
         'createdAt': createdAt.toIso8601String(),
         'updatedAt': updatedAt.toIso8601String(),
         'startMinutes': startMinutes,
@@ -159,6 +167,7 @@ class RecurrenceRule {
         'subtaskTitles': subtaskTitles,
         'priority': priority.index,
         'tags': tags,
+        'goalId': goalId,
       };
 
   factory RecurrenceRule.fromJson(Map<String, dynamic> j) => RecurrenceRule(
@@ -192,7 +201,8 @@ class RecurrenceRule {
                 const [],
         priority: TaskPriority.values[(j['priority'] as int? ?? 0)
             .clamp(0, TaskPriority.values.length - 1)],
-        tags: (j['tags'] as List?)?.map((e) => e as String).toList() ??
-            const [],
+        tags:
+            (j['tags'] as List?)?.map((e) => e as String).toList() ?? const [],
+        goalId: j['goalId'] as String?,
       );
 }

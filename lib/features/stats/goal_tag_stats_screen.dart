@@ -133,7 +133,7 @@ class _GoalTagStatsScreenState extends ConsumerState<GoalTagStatsScreen> {
       ThemeData theme, AppLocalizations l10n, List<Goal> goals) {
     final todayDate = today();
     final from =
-        _tf.days == null ? null : todayDate.subtract(Duration(days: _tf.days!));
+        _tf.days == null ? null : addDays(todayDate, -(_tf.days!));
 
     final byTag = <String, _GoalTagAgg>{};
     for (final g in goals) {

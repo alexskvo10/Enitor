@@ -4,6 +4,29 @@ DateTime dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
 DateTime today() => dateOnly(DateTime.now());
 
+/// [d] плюс [n] календарных дней, с тем же временем на часах. Не
+/// `add(Duration(days: n))`: тот прибавляет n×24 ч, и через переход на
+/// летнее/зимнее время полночь съезжает на 23:00 или 01:00 — дата
+/// становится вчерашней, а поиск по ключу-полуночи промахивается.
+DateTime addDays(DateTime d, int n) => DateTime(
+      d.year,
+      d.month,
+      d.day + n,
+      d.hour,
+      d.minute,
+      d.second,
+      d.millisecond,
+      d.microsecond,
+    );
+
+/// Сколько календарных дней от [from] до [to] (время не учитывается).
+/// Через UTC: у местных дат сутки перехода длятся 23 или 25 часов, и
+/// `difference(...).inDays` теряет день.
+int calendarDaysBetween(DateTime from, DateTime to) =>
+    DateTime.utc(to.year, to.month, to.day)
+        .difference(DateTime.utc(from.year, from.month, from.day))
+        .inDays;
+
 /// Час, с которого начинается «день приложения»: до него ночные часы ещё
 /// относятся к уходящему дню.
 const kDayStartHour = 4;
@@ -15,9 +38,8 @@ const kDayStartHour = 4;
 /// (`_effectiveToday`) и не применялось в статистике, из-за чего задача,
 /// законченная в 01:30, попадала в «опоздания», хотя приложение всё ещё
 /// показывало её вчерашним днём.
-DateTime effectiveDay(DateTime d) => d.hour < kDayStartHour
-    ? dateOnly(d).subtract(const Duration(days: 1))
-    : dateOnly(d);
+DateTime effectiveDay(DateTime d) =>
+    d.hour < kDayStartHour ? addDays(dateOnly(d), -1) : dateOnly(d);
 
 /// Минуты от начала [effectiveDay] для момента [d]. Ночь после полуночи
 /// продолжает шкалу уходящего дня: 01:30 → 1530, а не 90. Нужно, чтобы
@@ -30,7 +52,7 @@ int minutesFromDayStart(DateTime d) {
 /// Понедельник текущей недели для переданной даты.
 DateTime startOfWeek(DateTime d) {
   final day = dateOnly(d);
-  return day.subtract(Duration(days: day.weekday - 1));
+  return addDays(day, -(day.weekday - 1));
 }
 
 DateTime startOfMonth(DateTime d) => DateTime(d.year, d.month);
@@ -62,6 +84,6 @@ Iterable<DateTime> daysBetween(DateTime from, DateTime to) sync* {
   final end = dateOnly(to);
   while (!current.isAfter(end)) {
     yield current;
-    current = current.add(const Duration(days: 1));
+    current = addDays(current, 1);
   }
 }

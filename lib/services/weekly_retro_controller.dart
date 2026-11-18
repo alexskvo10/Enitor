@@ -14,7 +14,7 @@ const _kWeeklyRetroKey = 'weekly_retro_check';
 /// Через [effectiveDay] — по правилу дня приложения ночь до 4:00 ещё
 /// принадлежит уходящему дню, а значит и уходящей неделе.
 DateTime retroReviewWeekStart(DateTime now) =>
-    startOfWeek(effectiveDay(now)).subtract(const Duration(days: 7));
+    addDays(startOfWeek(effectiveDay(now)), -7);
 
 /// Момент, с которого разбор недели [retroReviewWeekStart] становится
 /// доступен: настроенные [weekday] (1..7) и [minutes] внутри ТЕКУЩЕЙ (ещё
@@ -25,8 +25,8 @@ DateTime retroDueAt(
   required int minutes,
 }) {
   final currentWeekMonday =
-      retroReviewWeekStart(now).add(const Duration(days: 7));
-  final day = currentWeekMonday.add(Duration(days: weekday - 1));
+      addDays(retroReviewWeekStart(now), 7);
+  final day = addDays(currentWeekMonday, weekday - 1);
   return DateTime(day.year, day.month, day.day)
       .add(Duration(minutes: minutes));
 }

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/appearance.dart';
+import '../../core/utils/date_utils.dart';
 import '../../data/repositories/stats_repository.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../../widgets/error_view.dart';
@@ -302,7 +303,7 @@ class ProductivityChart extends ConsumerWidget {
         return '${d.day} ${monthGen[d.month]} ${d.year}';
 
       case ChartGrouping.weekly:
-        final end = d.add(const Duration(days: 6));
+        final end = addDays(d, 6);
         if (d.month == end.month) {
           // «24–30 мая 2026»
           return '${d.day}–${end.day} ${monthGen[d.month]} ${d.year}';
@@ -364,7 +365,7 @@ class ProductivityChart extends ConsumerWidget {
         );
 
       case ChartGrouping.weekly:
-        final end = d.add(const Duration(days: 6));
+        final end = addDays(d, 6);
         return Padding(
           padding: const EdgeInsets.only(top: 3),
           child: Column(

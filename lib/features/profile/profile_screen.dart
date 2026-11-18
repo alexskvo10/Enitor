@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/utils/date_utils.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/goal.dart';
 import '../../data/repositories/achievements_repository.dart';
@@ -58,7 +59,7 @@ class ProfileScreen extends ConsumerWidget {
           if (profile == null) return const SizedBox();
           final locale = Localizations.localeOf(context).languageCode;
           final daysUsing =
-              DateTime.now().difference(profile.startedAt).inDays + 1;
+              calendarDaysBetween(profile.startedAt, DateTime.now()) + 1;
           final avg = avgAsync.value;
           final delta = (avg != null && profile.lastWeekAvgProductivity != null)
               ? (avg - profile.lastWeekAvgProductivity!) * 100

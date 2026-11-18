@@ -126,15 +126,12 @@ class GoalDeadlineStats {
 /// суток, поэтому только completedAt приводим через [dateOnly].
 double _overrunDaysOf(Goal g) {
   final effectiveDeadline = g.deadline ?? g.periodEnd;
-  return dateOnly(g.completedAt!)
-      .difference(effectiveDeadline)
-      .inDays
-      .toDouble();
+  return calendarDaysBetween(effectiveDeadline, g.completedAt!).toDouble();
 }
 
 /// Длительность периода цели в днях — вес для «по длительности периода».
 double _periodWeightOf(Goal g) =>
-    (g.periodEnd.difference(g.periodStart).inDays + 1).toDouble();
+    (calendarDaysBetween(g.periodStart, g.periodEnd) + 1).toDouble();
 
 GoalDeadlineBucket _bucketFrom({
   String? label,

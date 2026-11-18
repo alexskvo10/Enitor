@@ -115,7 +115,7 @@ class GoalPeriodRef {
   DateTime get endInclusive {
     switch (period) {
       case GoalPeriod.week:
-        return dateOnly(weekStart!).add(const Duration(days: 6));
+        return addDays(dateOnly(weekStart!), 6);
       case GoalPeriod.month:
         return DateTime(year, month! + 1, 0);
       case GoalPeriod.season:
@@ -144,7 +144,7 @@ class GoalPeriodRef {
   /// Период полностью в прошлом (grace-окно тоже истекло) → только просмотр.
   bool isPast([DateTime? now]) {
     final today = dateOnly(now ?? DateTime.now());
-    return today.isAfter(endInclusive.add(Duration(days: graceDays)));
+    return today.isAfter(addDays(endInclusive, graceDays));
   }
 
   /// Стабильный ключ для группировки целей по периоду.
@@ -214,7 +214,7 @@ class GoalPeriodRef {
         return GoalPeriodRef(
           period: period,
           year: year,
-          weekStart: start.add(Duration(days: 7 * delta)),
+          weekStart: addDays(start, 7 * delta),
         );
       case GoalPeriod.month:
         final m = DateTime(year, month! + delta);

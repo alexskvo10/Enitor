@@ -51,7 +51,7 @@ DateTime? weekGoalsGraceEnd(DateTime weekStart) {
     year: weekStart.year,
     weekStart: weekStart,
   );
-  final end = ref.endInclusive.add(Duration(days: ref.graceDays));
+  final end = addDays(ref.endInclusive, ref.graceDays);
   return today().isAfter(end) ? null : end;
 }
 
@@ -66,7 +66,7 @@ WeekStats computeWeekStats(
   Map<String, int> ratings,
 ) {
   final res = WeekStats();
-  final weekEnd = weekStart.add(const Duration(days: 6));
+  final weekEnd = addDays(weekStart, 6);
   bool inWeek(DateTime d) =>
       !dateOnly(d).isBefore(weekStart) && !dateOnly(d).isAfter(weekEnd);
 
@@ -127,7 +127,7 @@ WeekStats computeWeekStats(
   // Средняя оценка дней (рефлексия 1..10) — только оценённые дни.
   final weekRatings = <int>[];
   for (var i = 0; i < 7; i++) {
-    final key = RatingRepository.dayKey(weekStart.add(Duration(days: i)));
+    final key = RatingRepository.dayKey(addDays(weekStart, i));
     final r = ratings[key];
     if (r != null) weekRatings.add(r);
   }

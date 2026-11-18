@@ -17,7 +17,7 @@ List<IcsOutEvent> buildIcsExport({
   required List<Task> tasks,
   required DateTime now,
 }) {
-  final from = dateOnly(now).subtract(const Duration(days: _pastDays));
+  final from = addDays(dateOnly(now), -_pastDays);
   return [
     for (final i in schedule)
       IcsOutEvent(

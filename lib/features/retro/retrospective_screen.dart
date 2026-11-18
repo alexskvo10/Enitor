@@ -32,7 +32,7 @@ class _RetrospectiveScreenState extends ConsumerState<RetrospectiveScreen> {
   @override
   void initState() {
     super.initState();
-    _weekStart = startOfWeek(today()).subtract(const Duration(days: 7));
+    _weekStart = addDays(startOfWeek(today()), -7);
   }
 
   bool get _isCurrentWeek => _weekStart == startOfWeek(today());
@@ -52,7 +52,7 @@ class _RetrospectiveScreenState extends ConsumerState<RetrospectiveScreen> {
     final prev = loading
         ? null
         : computeWeekStats(
-            _weekStart.subtract(const Duration(days: 7)),
+            addDays(_weekStart, -7),
             allStats,
             goals,
             ratings,
@@ -79,7 +79,7 @@ class _RetrospectiveScreenState extends ConsumerState<RetrospectiveScreen> {
                       icon: const Icon(Icons.chevron_left),
                       tooltip: l10n.prevWeekTooltip,
                       onPressed: () => setState(() => _weekStart =
-                          _weekStart.subtract(const Duration(days: 7))),
+                          addDays(_weekStart, -7)),
                     ),
                     Flexible(
                       child: Text(
@@ -94,7 +94,7 @@ class _RetrospectiveScreenState extends ConsumerState<RetrospectiveScreen> {
                       onPressed: _isCurrentWeek
                           ? null
                           : () => setState(() => _weekStart =
-                              _weekStart.add(const Duration(days: 7))),
+                              addDays(_weekStart, 7)),
                     ),
                   ],
                 ),

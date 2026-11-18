@@ -116,7 +116,7 @@ class WidgetSnapshotWriter {
     final now = _clock();
     // Завтрашние задачи из повторений появляются при открытии дня —
     // открываем его так же, как это сделал бы пользователь.
-    final tomorrow = effectiveDay(now).add(const Duration(days: 1));
+    final tomorrow = addDays(effectiveDay(now), 1);
     await repo.ensureRecurrencesForDay(effectiveDay(now));
     await repo.ensureRecurrencesForDay(tomorrow);
     final l10n = currentL10n();

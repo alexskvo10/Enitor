@@ -16,7 +16,9 @@ Task taskFromRule(
   DateTime day, {
   required int order,
   required DateTime now,
+  bool Function(String goalId)? goalOn,
 }) {
+  final goalId = rule.goalId;
   final d = dateOnly(day);
   final id = recurrenceTaskId(rule.id, d);
   return Task(
@@ -38,6 +40,9 @@ Task taskFromRule(
     ],
     priority: rule.priority,
     tags: rule.tags,
+    // Цель правила — только если она идёт в этот день: серия живёт дольше
+    // месяца, а декабрьская задача в ноябрьскую цель не считается.
+    goalId: goalId != null && (goalOn?.call(goalId) ?? false) ? goalId : null,
   );
 }
 

@@ -193,7 +193,7 @@ _GoalUrgency _calcGoalUrgency(Goal goal) {
 
   // Порог срочности считаем по дедлайну (если задан) или концу периода
   final effectiveDeadline = goal.deadline ?? goal.periodEnd;
-  final daysLeft = effectiveDeadline.difference(today).inDays;
+  final daysLeft = calendarDaysBetween(today, effectiveDeadline);
   if (daysLeft <= goal.ref.urgencyThreshold) return _GoalUrgency.urgent;
 
   // Цель уже началась (startDate задана и наступила) — подсвечиваем активной
@@ -2405,7 +2405,7 @@ class _WeekPickerDialogState extends State<_WeekPickerDialog> {
     _focused = _weekStart;
   }
 
-  DateTime get _weekEnd => _weekStart.add(const Duration(days: 6));
+  DateTime get _weekEnd => addDays(_weekStart, 6);
 
   String _weekLabel(bool ru) => GoalPeriodRef(
         period: GoalPeriod.week,

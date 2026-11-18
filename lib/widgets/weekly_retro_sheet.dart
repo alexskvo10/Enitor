@@ -44,9 +44,9 @@ class WeeklyRetroData {
     required Map<String, int> ratings,
     required List<Task> tasks,
   }) {
-    final prevStart = weekStart.subtract(const Duration(days: 7));
+    final prevStart = addDays(weekStart, -7);
     List<Task> tasksOfWeek(DateTime start) {
-      final end = start.add(const Duration(days: 6));
+      final end = addDays(start, 6);
       return tasks.where((t) {
         return !dateOnly(t.date).isBefore(start) &&
             !dateOnly(t.date).isAfter(end);

@@ -60,13 +60,13 @@ class YearHeatmap extends ConsumerWidget {
     final todayD = today();
     final lastWeekStart = startOfWeek(todayD);
     final firstWeekStart =
-        lastWeekStart.subtract(Duration(days: 7 * (weeks - 1)));
+        addDays(lastWeekStart, -(7 * (weeks - 1)));
 
     // Подписи месяцев: над колонкой, где начинается новый месяц.
     final monthLabels = <Widget>[];
     int? prevMonth;
     for (var w = 0; w < weeks; w++) {
-      final ws = firstWeekStart.add(Duration(days: 7 * w));
+      final ws = addDays(firstWeekStart, 7 * w);
       if (ws.month != prevMonth) {
         prevMonth = ws.month;
         monthLabels.add(Positioned(
@@ -86,7 +86,7 @@ class YearHeatmap extends ConsumerWidget {
     for (var w = 0; w < weeks; w++) {
       final dayCells = <Widget>[];
       for (var d = 0; d < 7; d++) {
-        final date = firstWeekStart.add(Duration(days: 7 * w + d));
+        final date = addDays(firstWeekStart, 7 * w + d);
         dayCells.add(Padding(
           padding: const EdgeInsets.only(bottom: _gap),
           child: _Cell(

@@ -172,7 +172,7 @@ class EnitorServer {
       case ('GET days', 1):
         final from = _parseDay(q['from'], 'from');
         final to = _parseDay(q['to'] ?? q['from'], 'to');
-        final n = to.difference(from).inDays;
+        final n = calendarDaysBetween(from, to);
         if (n < 0 || n >= kMaxDaysRange) {
           throw const StoreError(
             400,
@@ -240,7 +240,13 @@ class EnitorServer {
       final rule = RecurrenceRule.fromJson(r);
       if (materialized.contains(rule.id) || !rule.occursOn(d)) continue;
       tasks.add({
-        ...taskFromRule(rule, d, order: order++, now: _clock()).toJson(),
+        ...taskFromRule(
+          rule,
+          d,
+          order: order++,
+          now: _clock(),
+          goalOn: _goalOnDay(d),
+        ).toJson(),
         'virtual': true,
       });
     }
@@ -261,6 +267,15 @@ class EnitorServer {
 
   bool _goalCovers(Goal g, DateTime d) =>
       !d.isBefore(g.ref.start) && !d.isAfter(g.ref.endInclusive);
+
+  /// Идёт ли цель-счётчик в день [d] — экземпляр повтора берёт цель правила
+  /// только тогда (как на устройстве).
+  bool Function(String) _goalOnDay(DateTime d) => (id) {
+        final g = store.get('goals', id);
+        if (g == null) return false;
+        final goal = Goal.fromJson(g);
+        return goal.isCounter && _goalCovers(goal, d);
+      };
 
   List<Map<String, dynamic>> _listByDate(String coll, Map<String, String> q) {
     final from = q['from'] == null ? null : _parseDay(q['from'], 'from');
@@ -318,7 +333,13 @@ class EnitorServer {
     final (rule, day) = v;
     final order =
         store.all('tasks').where((t) => _sameDay(t['date'], day)).length;
-    return taskFromRule(rule, day, order: order, now: _clock()).toJson();
+    return taskFromRule(
+      rule,
+      day,
+      order: order,
+      now: _clock(),
+      goalOn: _goalOnDay(day),
+    ).toJson();
   }
 
   /// `r-<правило>-<yyyymmdd>` → правило и день, если правило на этот день есть

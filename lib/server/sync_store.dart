@@ -225,7 +225,10 @@ class SyncStore {
       throw const StoreError(400, 'bad_request', 'cursor and changes required');
     }
     final epoch = body['epoch'];
-    final cursor = epoch != null && epoch != _epoch ? 0 : sent;
+    // Курсор впереди нашей ревизии — папку сервера восстановили из старой
+    // копии (epoch в том же файле, его не сменить): тоже отдаём всё, иначе
+    // устройство ждало бы ревизий, которые здесь уже никогда не наступят.
+    final cursor = (epoch != null && epoch != _epoch) || sent > _rev ? 0 : sent;
     final newDevice = _seen(body['deviceId'], body['deviceName']);
     final applied = <Map<String, dynamic>>[];
     final mineRevs = <int>{};
