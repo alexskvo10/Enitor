@@ -94,12 +94,16 @@ class GoalBacklogItem {
     this.targetCount,
     this.progressCount = 0,
     this.subtaskTitles = const [],
+    this.unit = GoalUnit.count,
   });
 
   final String id;
   final String title;
   final String? description;
   final GoalPeriod period;
+
+  /// Единица счётчика цели (минуты у цели во времени).
+  final GoalUnit unit;
 
   /// Период, в котором цель была изначально создана.
   final GoalPeriodRef originalRef;
@@ -123,6 +127,7 @@ class GoalBacklogItem {
         'targetCount': targetCount,
         'progressCount': progressCount,
         'subtaskTitles': subtaskTitles,
+        'unit': unit.name,
       };
 
   factory GoalBacklogItem.fromJson(Map<String, dynamic> j) => GoalBacklogItem(
@@ -137,6 +142,7 @@ class GoalBacklogItem {
         subtaskTitles:
             (j['subtaskTitles'] as List?)?.map((e) => e as String).toList() ??
                 const [],
+        unit: j['unit'] == 'minutes' ? GoalUnit.minutes : GoalUnit.count,
       );
 
   static Map<String, dynamic> _refToJson(GoalPeriodRef r) => {

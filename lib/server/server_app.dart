@@ -571,7 +571,8 @@ class EnitorServer {
             );
           }
           if (coll == 'goals') {
-            final linked = out['linkedProgress'] as int? ?? 0;
+            final linked = (out['linkedProgress'] as int? ?? 0) +
+                (out['childProgress'] as int? ?? 0);
             final target = out['targetCount'] as int?;
             out['manualProgress'] = (v - linked).clamp(0, 1 << 30);
             if (target != null) {

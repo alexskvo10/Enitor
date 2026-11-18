@@ -8,12 +8,12 @@ import '../../core/current_time_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/appearance.dart';
 import '../../core/utils/date_utils.dart';
-import '../../core/utils/format_utils.dart';
 import '../../data/models/goal.dart';
 import '../../data/models/task.dart' show SubTask, TaskPriority;
 import '../../data/repositories/backlog_repository.dart';
 import '../../data/repositories/goal_repository.dart';
 import '../../data/repositories/rating_repository.dart';
+import '../../data/repositories/task_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../search/global_search.dart';
@@ -804,6 +804,11 @@ class _GoalSectionsState extends ConsumerState<_GoalSections> {
 
 enum _GoalAction { transfer, edit, copy, delete }
 
+/// Часы без хвоста «.0»: 1.5 → «1.5», 20.0 → «20».
+String _trimHours(double h) => h == h.roundToDouble()
+    ? h.round().toString()
+    : h.toStringAsFixed(2).replaceFirst(RegExp(r'0$'), '');
+
 class _GoalTile extends StatelessWidget {
   const _GoalTile({
     required this.goal,
@@ -1108,6 +1113,8 @@ class _GoalTile extends StatelessWidget {
   Widget _buildCounterBar(BuildContext context, ThemeData theme) {
     final pct = ((goal.counterProgress ?? 0) * 100).round();
     final muted = theme.colorScheme.onSurface.withValues(alpha: 0.6);
+    // Цель во времени: ± полчаса, а не минута.
+    final step = goal.isTime ? 30 : 1;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
       child: Column(
@@ -1136,7 +1143,7 @@ class _GoalTile extends StatelessWidget {
                   iconSize: 30,
                   icon: const Icon(Icons.remove_circle_outline),
                   onPressed: goal.progressCount > 0
-                      ? () => repo.incrementGoalCounter(goal, -1)
+                      ? () => repo.incrementGoalCounter(goal, -step)
                       : null,
                 ),
               InkWell(
@@ -1149,7 +1156,7 @@ class _GoalTile extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        '${compactCount(goal.progressCount)} / ${compactCount(goal.targetCount!)}  ·  $pct%',
+                        '${fmtGoalAmount(goal.progressCount, goal, context)} / ${fmtGoalAmount(goal.targetCount!, goal, context)}  ·  $pct%',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: muted,
                           fontWeight: FontWeight.w500,
@@ -1172,11 +1179,11 @@ class _GoalTile extends StatelessWidget {
                   onPressed: goal.progressCount < (goal.targetCount ?? 0)
                       ? () async {
                           final willComplete = !goal.completed &&
-                              goal.progressCount + 1 >= goal.targetCount!;
+                              goal.progressCount + step >= goal.targetCount!;
                           final navContext =
                               Navigator.of(context, rootNavigator: true)
                                   .context;
-                          await repo.incrementGoalCounter(goal, 1);
+                          await repo.incrementGoalCounter(goal, step);
                           if (willComplete) {
                             await _promptQuality(navContext);
                           }
@@ -1194,7 +1201,18 @@ class _GoalTile extends StatelessWidget {
   Future<void> _showSetCounterDialog(BuildContext context) async {
     final l10n = context.l10n;
     final navContext = Navigator.of(context, rootNavigator: true).context;
-    final controller = TextEditingController(text: '${goal.progressCount}');
+    // Цель во времени вводится в часах (можно дробных), хранится в минутах.
+    final time = goal.isTime;
+    String hours(int m) => _trimHours(m / 60);
+    int? parse(String v) {
+      final t = v.trim().replaceAll(',', '.');
+      if (!time) return int.tryParse(t);
+      final h = double.tryParse(t);
+      return h == null ? null : (h * 60).round();
+    }
+
+    final controller = TextEditingController(
+        text: time ? hours(goal.progressCount) : '${goal.progressCount}');
     final value = await showFancyDialog<int>(
       context: context,
       icon: Icons.tag_rounded,
@@ -1204,14 +1222,18 @@ class _GoalTile extends StatelessWidget {
       contentBuilder: (ctx) => TextField(
         controller: controller,
         autofocus: true,
-        keyboardType: TextInputType.number,
+        keyboardType: time
+            ? const TextInputType.numberWithOptions(decimal: true)
+            : TextInputType.number,
         textAlign: TextAlign.center,
         decoration: InputDecoration(
           border: const OutlineInputBorder(),
-          suffixText: '/ ${goal.targetCount}',
-          helperText: l10n.enterNumberHelper(goal.targetCount!),
+          suffixText: '/ ${time ? fmtDuration(goal.targetCount!, ctx) : goal.targetCount}',
+          helperText: time
+              ? l10n.enterHoursHelper
+              : l10n.enterNumberHelper(goal.targetCount!),
         ),
-        onSubmitted: (v) => Navigator.pop(ctx, int.tryParse(v.trim())),
+        onSubmitted: (v) => Navigator.pop(ctx, parse(v)),
       ),
       actions: (ctx) => [
         TextButton(
@@ -1220,8 +1242,7 @@ class _GoalTile extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         FilledButton(
-          onPressed: () =>
-              Navigator.pop(ctx, int.tryParse(controller.text.trim())),
+          onPressed: () => Navigator.pop(ctx, parse(controller.text)),
           child: Text(l10n.ok),
         ),
       ],
@@ -1301,7 +1322,11 @@ class _GoalTile extends StatelessWidget {
               : Text(
                   goal.isChecklist
                       ? '${goal.subtasksDone}/${goal.subtasks.length}'
-                      : compactCount(goal.progressCount),
+                      // В кольце тесно: у времени только целые часы.
+                      : goal.isTime && goal.progressCount >= 60
+                          ? fmtDuration(
+                              goal.progressCount ~/ 60 * 60, context)
+                          : fmtGoalAmount(goal.progressCount, goal, context),
                   style: theme.textTheme.labelSmall),
         ],
       ),
@@ -1413,6 +1438,21 @@ class _GoalTile extends StatelessWidget {
 
     if (goal.description != null) {
       lines.add(Text(goal.description!, style: baseStyle));
+    }
+
+    final parent =
+        goal.parentId == null ? null : repo.goalById(goal.parentId!);
+    if (parent != null) {
+      lines.add(
+        Wrap(
+          spacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Icon(Icons.north_east, size: 14, color: mutedIconColor),
+            Text(l10n.partOfGoal(parent.title), style: baseStyle),
+          ],
+        ),
+      );
     }
 
     // Оценка качества достижения — только если выставлена (рефлексия).
@@ -1663,7 +1703,11 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
   DateTime? _startDate;
   DateTime? _deadline;
   bool _isCounter = false;
+
+  /// Число в поле «Цель:» — в разах или, у цели во времени, в часах.
   int _targetCount = 10;
+  bool _isTime = false;
+  String? _parentId;
 
   // Подзадачи (чек-лист) — взаимоисключающи со счётчиком.
   final List<TextEditingController> _subtaskCtrls = [];
@@ -1717,7 +1761,10 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
     _startDate = widget.existingGoal?.startDate;
     _deadline = widget.existingGoal?.deadline;
     _isCounter = widget.existingGoal?.isCounter ?? false;
+    _isTime = widget.existingGoal?.isTime ?? false;
     _targetCount = widget.existingGoal?.targetCount ?? 10;
+    if (_isTime) _targetCount = (_targetCount / 60).round().clamp(1, 1 << 20);
+    _parentId = widget.existingGoal?.parentId;
     _priority = widget.existingGoal?.priority ?? TaskPriority.none;
     _tags.addAll(widget.existingGoal?.tags ?? const []);
     for (final s in (widget.existingGoal?.subtasks ?? const <SubTask>[])) {
@@ -2064,6 +2111,24 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
                 value: _isCounter,
                 onChanged: (v) => setState(() => _isCounter = v),
               ),
+              if (_isCounter) ...[
+                Wrap(
+                  spacing: 6,
+                  children: [
+                    SegChip(
+                      label: l10n.goalUnitCount,
+                      selected: !_isTime,
+                      onTap: () => setState(() => _isTime = false),
+                    ),
+                    SegChip(
+                      label: l10n.goalUnitHours,
+                      selected: _isTime,
+                      onTap: () => setState(() => _isTime = true),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
               if (_isCounter)
                 Row(
                   children: [
@@ -2082,16 +2147,23 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
                         ),
                         onChanged: (v) {
                           final n = int.tryParse(v.trim());
-                          if (n != null && n >= 2) _targetCount = n;
+                          // Час — уже 60 минут, так что «1» у времени можно.
+                          if (n != null && n >= 1) _targetCount = n;
                         },
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Text(l10n.counterTargetExampleGoal,
-                        style: theme.textTheme.bodySmall),
+                    Expanded(
+                      child: Text(
+                          _isTime
+                              ? l10n.counterTargetExampleHours
+                              : l10n.counterTargetExampleGoal,
+                          style: theme.textTheme.bodySmall),
+                    ),
                   ],
                 ),
             ],
+            _buildParentPicker(theme),
             // ── Подзадачи (скрыты, если счётчик) ──────────────────────────
             if (!_isCounter) _buildSubtasksSection(theme),
             // ── Теги (как у задач) ──────────────────────────────────────────
@@ -2108,6 +2180,57 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
           ],
         ),
       ),
+    );
+  }
+
+  /// «Часть цели»: цели-счётчики более длинного периода, в которые пойдёт
+  /// прогресс этой. Пусто — пикер не показываем.
+  Widget _buildParentPicker(ThemeData theme) {
+    final l10n = context.l10n;
+    final goals = ref.read(goalRepositoryProvider).parentCandidatesFor(
+          widget.periodRef,
+          childIsTime: _isCounter && _isTime,
+          excludeId: widget.existingGoal?.id,
+        );
+    if (goals.isEmpty) return const SizedBox.shrink();
+    final validId = goals.any((g) => g.id == _parentId) ? _parentId : null;
+    final ru = Localizations.localeOf(context).languageCode == 'ru';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        Text(l10n.parentGoalLabel, style: theme.textTheme.labelMedium),
+        const SizedBox(height: 6),
+        DropdownButtonFormField<String?>(
+          // Ключ по набору вариантов: смена «Раз/Часы» меняет список, а
+          // initialValue читается только при создании поля.
+          key: ValueKey('${goals.map((g) => g.id).join()}$validId'),
+          initialValue: validId,
+          isExpanded: true,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
+          items: [
+            DropdownMenuItem<String?>(
+              value: null,
+              child: Text(l10n.noParentGoalOption),
+            ),
+            for (final g in goals)
+              DropdownMenuItem<String?>(
+                value: g.id,
+                child: Text(
+                  '${g.title} · ${g.ref.labelFor(ru)}',
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+          ],
+          onChanged: (v) => setState(() => _parentId = v),
+        ),
+        // У подзадач сверху всего 4 — им хватало отступов переключателя.
+        const SizedBox(height: 12),
+      ],
     );
   }
 
@@ -2178,11 +2301,23 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
     final repo = ref.read(goalRepositoryProvider);
     final descText = _descController.text.trim();
     final description = descText.isEmpty ? null : descText;
+    final time = _isCounter && _isTime;
+    final unit = time ? GoalUnit.minutes : GoalUnit.count;
+    // У «раз» счётчик — от 2; у времени поле в часах, храним минуты.
+    final target = time ? _targetCount * 60 : _targetCount.clamp(2, 1 << 30);
+    // Родитель мог выпасть из списка (сменили «Раз/Часы») — не сохраняем его.
+    final parentId = repo
+            .parentCandidatesFor(widget.periodRef,
+                childIsTime: time, excludeId: widget.existingGoal?.id)
+            .any((g) => g.id == _parentId)
+        ? _parentId
+        : null;
 
     if (widget.isEditing) {
       final existing = widget.existingGoal!;
       final now = DateTime.now();
       final subs = _subtasksForEdit();
+      final unitChanged = existing.unit != unit;
       var updated = existing.copyWith(
         title: title,
         description: description,
@@ -2191,12 +2326,17 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
         clearStartDate: _startDate == null,
         deadline: _deadline,
         clearDeadline: _deadline == null,
-        targetCount: _isCounter ? _targetCount : null,
+        targetCount: _isCounter ? target : null,
         clearTargetCount: !_isCounter,
         subtasks: subs,
         priority: _priority,
         tags: _tags.toList(),
         updatedAt: now,
+        unit: unit,
+        parentId: parentId,
+        clearParentId: parentId == null,
+        // Разы и минуты несравнимы: ручную часть при смене единицы обнуляем.
+        manualProgress: unitChanged ? 0 : null,
       );
       // При наличии подзадач достижение цели определяется ими.
       if (subs.isNotEmpty) {
@@ -2208,6 +2348,10 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
         );
       }
       await repo.updateGoal(updated);
+      // Вклад задач считался в старой единице.
+      if (unitChanged) {
+        await ref.read(taskRepositoryProvider).syncGoal(existing.id);
+      }
     } else {
       final r = widget.periodRef;
       await repo.addGoal(
@@ -2220,10 +2364,12 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
         weekStart: r.weekStart,
         startDate: _startDate,
         deadline: _deadline,
-        targetCount: _isCounter ? _targetCount : null,
+        targetCount: _isCounter ? target : null,
         subtaskTitles: _subtaskTitles(),
         priority: _priority,
         tags: _tags.toList(),
+        unit: unit,
+        parentId: parentId,
       );
     }
 

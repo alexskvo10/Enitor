@@ -76,7 +76,7 @@ class _ScheduleDayViewState extends ConsumerState<_ScheduleDayView> {
       final busy = busyMinutes(items, 0, 24 * 60);
       summary = [
         l10n.scheduleItemsCount(items.length),
-        if (busy > 0) l10n.scheduleBusyShort(_fmtDuration(busy, context)),
+        if (busy > 0) l10n.scheduleBusyShort(fmtDuration(busy, context)),
       ].join(' · ');
     }
 
@@ -350,7 +350,7 @@ class _ScheduleTile extends ConsumerWidget {
                           children: [
                             if (duration != null)
                               Text(
-                                _fmtDuration(duration, context),
+                                fmtDuration(duration, context),
                                 style: theme.textTheme.bodySmall
                                     ?.copyWith(color: muted),
                               ),

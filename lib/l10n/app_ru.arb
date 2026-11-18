@@ -144,6 +144,8 @@
   "deleteAllConfirmTitle": "Удалить все задачи?",
 
   "estimateWithActual": "{est} → {actual} факт.",
+  "actualOnly": "{actual} факт.",
+  "avgTimePerTask": "≈ {duration} на задачу",
   "estimateLabel": "Оценка: {est}",
 
   "qualityQuestion": "Насколько ты оценишь качество выполнения этой задачи?",
@@ -309,6 +311,13 @@
   "deadlineHelp": "Выбери дедлайн",
   "counterTargetExampleGoal": "напр. 12",
   "goalCounterSwitchSubtitle": "Прогресс к числу (напр. 12 книг, 100 км)",
+  "goalUnitCount": "Раз",
+  "goalUnitHours": "Часы",
+  "counterTargetExampleHours": "напр. 20 ч — время фокуса задач идёт сюда",
+  "enterHoursHelper": "Часы, можно дробные: 1,5",
+  "parentGoalLabel": "Часть цели",
+  "noParentGoalOption": "Сама по себе",
+  "partOfGoal": "Часть цели «{title}»",
 
   "chooseBtn": "Выбрать",
   "copyToEllipsisTitle": "Скопировать в…",

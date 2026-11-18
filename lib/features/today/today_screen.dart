@@ -67,15 +67,6 @@ String _fmtTime(int minutes) => '${(minutes ~/ 60).toString().padLeft(2, '0')}:'
 String _capitalize(String s) =>
     s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
-String _fmtDuration(int minutes, BuildContext context) {
-  final ru = Localizations.localeOf(context).languageCode == 'ru';
-  final hSuffix = ru ? 'ч' : 'h';
-  final mSuffix = ru ? 'м' : 'm';
-  if (minutes < 60) return '$minutes$mSuffix';
-  final h = minutes ~/ 60;
-  final m = minutes % 60;
-  return m == 0 ? '$h$hSuffix' : '$h$hSuffix $m$mSuffix';
-}
 
 // ─── Граница «прошлое» с учётом ночного времени ──────────────────────────────
 
@@ -1617,11 +1608,16 @@ class _TaskTile extends ConsumerWidget {
 
     final lines = <String>[];
     if (task.estimatedMinutes != null) {
-      final est = '~${_fmtDuration(task.estimatedMinutes!, context)}';
+      final est = '~${fmtDuration(task.estimatedMinutes!, context)}';
       lines.add(task.actualMinutes != null
           ? context.l10n.estimateWithActual(
-              est, _fmtDuration(task.actualMinutes!, context))
+              est, fmtDuration(task.actualMinutes!, context))
           : est);
+    } else if (task.actualMinutes != null) {
+      // Фокус без оценки: отработанное время иначе нигде не видно.
+      lines.add(
+        context.l10n.actualOnly(fmtDuration(task.actualMinutes!, context)),
+      );
     }
     if (task.description != null) lines.add(task.description!);
 
@@ -1739,7 +1735,7 @@ class _TaskTile extends ConsumerWidget {
                 if (task.estimatedMinutes != null) ...[
                   Text(
                     l10n.estimateLabel(
-                        _fmtDuration(task.estimatedMinutes!, ctx)),
+                        fmtDuration(task.estimatedMinutes!, ctx)),
                     style: Theme.of(ctx).textTheme.bodySmall,
                   ),
                   const SizedBox(height: 12),
@@ -2026,7 +2022,7 @@ class _TaskFormSheetState extends ConsumerState<_TaskFormSheet> {
               DropdownMenuItem<String?>(
                 value: g.id,
                 child: Text(
-                  '${g.title} · ${compactCount(g.progressCount)}/${compactCount(g.targetCount!)}',
+                  '${g.title} · ${fmtGoalAmount(g.progressCount, g, context)}/${fmtGoalAmount(g.targetCount!, g, context)}',
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -2646,7 +2642,7 @@ class _DurationPickerState extends State<_DurationPicker> {
           children: [
             for (final m in _presets)
               SegChip(
-                label: _fmtDuration(m, context),
+                label: fmtDuration(m, context),
                 selected: _chipSelected == m,
                 onTap: () {
                   setState(() {
@@ -3320,7 +3316,7 @@ class _DayBudgetRow extends StatelessWidget {
       notes = [
         l10n.dayOverloadedNote,
         afterEnd ? l10n.dayNotClosedNote : l10n.doesNotFitBefore23Note,
-        if (busy > 0) l10n.scheduleBusyNote(_fmtDuration(busy, context)),
+        if (busy > 0) l10n.scheduleBusyNote(fmtDuration(busy, context)),
         if (noEstimate > 0) l10n.noEstimateNote(noEstimate),
       ];
     } else {
@@ -3328,7 +3324,7 @@ class _DayBudgetRow extends StatelessWidget {
       accent = theme.colorScheme.primary;
       label = isToday ? l10n.remainingForLabel : l10n.planLabel;
       notes = [
-        if (busy > 0) l10n.scheduleBusyNote(_fmtDuration(busy, context)),
+        if (busy > 0) l10n.scheduleBusyNote(fmtDuration(busy, context)),
         if (noEstimate > 0) l10n.noEstimateNote(noEstimate),
       ];
     }
@@ -3363,7 +3359,7 @@ class _DayBudgetRow extends StatelessWidget {
 
     // Справа — остаток времени (для «готово» — галочка вместо текста).
     trailing ??= Text(
-      l10n.approxDuration(_fmtDuration(sum, context)),
+      l10n.approxDuration(fmtDuration(sum, context)),
       style: theme.textTheme.bodyMedium?.copyWith(
         color: textColor,
         fontWeight: FontWeight.w600,

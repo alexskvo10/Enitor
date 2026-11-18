@@ -106,57 +106,93 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
     final nextFocus = ref.watch(pomodoroPrefsProvider).focusMinutes;
     final progress = isFinished ? 1.0 : p.progress.clamp(0.0, 1.0);
 
+    // Ореол дышит только в фокусе и на перерыве; на паузе и в конце
+    // контроллер стоит, чтобы не гнать кадры впустую.
+    final breathing = p.phase == PomodoroPhase.focus || isBreak;
+    if (breathing && !_breath.isAnimating) {
+      _breath.repeat(reverse: true);
+    } else if (!breathing && _breath.isAnimating) {
+      _breath.stop();
+    }
+
     final ring = LayoutBuilder(
       builder: (context, c) {
         final size = math.min(300.0, math.min(c.maxWidth, c.maxHeight));
-        return AnimatedBuilder(
-          animation: _breath,
-          builder: (context, child) => CustomPaint(
+        final stroke = size * 0.04;
+        // Размытый ореол рисуется один раз в своём слое, а «дыхание» — только
+        // прозрачность этого слоя: без размытия на каждом кадре.
+        // Ореол в своём слое: на каждом кадре дыхания перерисовывается только
+        // он, а кольцо и цифры — раз в секунду.
+        final halo = RepaintBoundary(
+          child: CustomPaint(
             size: Size.square(size),
-            painter: _FocusRingPainter(
-              progress: progress,
+            painter: _HaloPainter(
               color: accent,
-              track: dark ? AppColors.ringTrackDark : AppColors.ringTrack,
-              halo: p.phase == PomodoroPhase.focus || isBreak
-                  ? 0.05 + 0.07 * Curves.easeInOut.transform(_breath.value)
-                  : 0.04,
-              stroke: size * 0.04,
+              stroke: stroke,
+              alpha: breathing
+                  ? _breath
+                      .drive(CurveTween(curve: Curves.easeInOut))
+                      .drive(Tween(begin: 0.05, end: 0.12))
+                  : const AlwaysStoppedAnimation(0.04),
             ),
-            child: child,
           ),
-          child: SizedBox.square(
-            dimension: size,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (isFinished)
-                  Icon(Icons.check_rounded, size: size * 0.26, color: accent)
-                else
-                  AnimatedOpacity(
-                    opacity: isPaused ? 0.45 : 1,
-                    duration: const Duration(milliseconds: 250),
-                    child: Text(
-                      _mmss(p.remainingSeconds),
-                      style: AppFonts.manrope(
-                        fontSize: size * 0.22,
-                        fontWeight: FontWeight.w700,
-                        color: theme.colorScheme.onSurface,
-                      ).copyWith(
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                        height: 1,
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 8),
-                Text(
-                  isFinished
-                      ? phaseLine
-                      : l10n.focusOfMinutes(p.totalSeconds ~/ 60),
-                  style: theme.textTheme.bodyMedium?.copyWith(color: muted),
+        );
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            halo,
+            RepaintBoundary(
+              child: CustomPaint(
+                size: Size.square(size),
+                painter: _FocusRingPainter(
+                  progress: progress,
+                  color: accent,
+                  track: dark ? AppColors.ringTrackDark : AppColors.ringTrack,
+                  stroke: stroke,
                 ),
-              ],
+                child: SizedBox.square(
+                  dimension: size,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (isFinished)
+                        Icon(
+                          Icons.check_rounded,
+                          size: size * 0.26,
+                          color: accent,
+                        )
+                      else
+                        AnimatedOpacity(
+                          opacity: isPaused ? 0.45 : 1,
+                          duration: const Duration(milliseconds: 250),
+                          child: Text(
+                            _mmss(p.remainingSeconds),
+                            style: AppFonts.manrope(
+                              fontSize: size * 0.22,
+                              fontWeight: FontWeight.w700,
+                              color: theme.colorScheme.onSurface,
+                            ).copyWith(
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                              height: 1,
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 8),
+                      Text(
+                        isFinished
+                            ? phaseLine
+                            : l10n.focusOfMinutes(p.totalSeconds ~/ 60),
+                        style:
+                            theme.textTheme.bodyMedium?.copyWith(color: muted),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-          ),
+          ],
         );
       },
     );
@@ -349,14 +385,37 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
   }
 }
 
-/// Кольцо отсчёта: дорожка, дуга оставшегося времени с точкой на конце и
-/// мягкий ореол за кольцом.
+/// Мягкий ореол за кольцом; яркость дышит вместе с [alpha].
+class _HaloPainter extends CustomPainter {
+  _HaloPainter({required this.color, required this.stroke, required this.alpha})
+      : super(repaint: alpha);
+
+  final Color color;
+  final double stroke;
+  final Animation<double> alpha;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawCircle(
+      size.center(Offset.zero),
+      size.width / 2 + stroke / 2,
+      Paint()
+        ..color = color.withValues(alpha: alpha.value)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, stroke * 2),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_HaloPainter o) =>
+      o.color != color || o.stroke != stroke || o.alpha != alpha;
+}
+
+/// Кольцо отсчёта: дорожка и дуга оставшегося времени с точкой на конце.
 class _FocusRingPainter extends CustomPainter {
   _FocusRingPainter({
     required this.progress,
     required this.color,
     required this.track,
-    required this.halo,
     required this.stroke,
   });
 
@@ -364,20 +423,12 @@ class _FocusRingPainter extends CustomPainter {
   final double progress;
   final Color color;
   final Color track;
-  final double halo;
   final double stroke;
 
   @override
   void paint(Canvas canvas, Size size) {
     final c = size.center(Offset.zero);
     final r = size.width / 2 - stroke;
-    canvas.drawCircle(
-      c,
-      r + stroke * 1.5,
-      Paint()
-        ..color = color.withValues(alpha: halo)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, stroke * 2),
-    );
     canvas.drawCircle(
       c,
       r,
@@ -415,7 +466,6 @@ class _FocusRingPainter extends CustomPainter {
   bool shouldRepaint(_FocusRingPainter o) =>
       o.progress != progress ||
       o.color != color ||
-      o.halo != halo ||
       o.track != track ||
       o.stroke != stroke;
 }

@@ -83,7 +83,8 @@ class _BacklogTaskTile extends ConsumerWidget {
                   ),
                   if (item.isCounter)
                     Text(
-                      l10n.progressLabel(item.progressCount, item.targetCount!),
+                      l10n.progressLabel(
+                          '${item.progressCount}', '${item.targetCount}'),
                       style: theme.textTheme.bodySmall,
                     ),
                 ],
@@ -203,7 +204,12 @@ class _BacklogGoalTile extends ConsumerWidget {
                   ),
                   if (item.isCounter)
                     Text(
-                      l10n.progressLabel(item.progressCount, item.targetCount!),
+                      item.unit == GoalUnit.minutes
+                          ? l10n.progressLabel(
+                              fmtDuration(item.progressCount, context),
+                              fmtDuration(item.targetCount!, context))
+                          : l10n.progressLabel('${item.progressCount}',
+                              '${item.targetCount}'),
                       style: theme.textTheme.bodySmall,
                     ),
                 ],
@@ -247,6 +253,7 @@ class _BacklogGoalTile extends ConsumerWidget {
       weekStart: currentRef.weekStart,
       targetCount: item.targetCount,
       subtaskTitles: item.subtaskTitles,
+      unit: item.unit,
     );
     await backlogRepo.remove(item.id);
   }

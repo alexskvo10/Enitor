@@ -235,6 +235,7 @@ Map<String, Object?> goalToWire(Goal g) => {
       'period': g.period.name,
       if (g.targetCount != null) 'target': g.targetCount,
       'progress': g.progressCount,
+      if (g.isTime) 'unit': 'minutes',
     };
 
 /// Очередь, отправка, повторы. Работает, пока приложение открыто; при

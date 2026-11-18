@@ -54,6 +54,7 @@ And the fundamentals that make it worth trusting with your habits:
 | **⚙ Automation** | `enitor://` links and Share, Tasker / Automate, `enitor-cli`, an MCP server for AI assistants, signed webhooks. |
 | **▣ Widget** | A Today widget with tick boxes and a quick-add tile on Android. |
 | **◷ Focus** | The timer takes the whole screen and keeps it awake; minimize it to a card and back. A chime you won't miss, with vibration. |
+| **⚑ Goals** | Counters in hours, filled by focus time; a month's goal can be part of the year's. |
 | **◔ Rings or bars** | Choose how the day summary looks. |
 | **✦ Tour** | A 12-step guided tour on first launch, and a "What's new" card after updates. |
 
@@ -124,16 +125,18 @@ Full notes: [Release 0.4.0](https://github.com/alexskvo10/Enitor/releases/tag/v0
 ### ⚑ Goals
 - Week, month, season or year, with an optional deadline.
 - A checkbox, a counter or a checklist; counters can track linked tasks ("10 workouts this month").
+- **Counters in hours** — "20 hours of English this month" fills itself from the focus time of linked tasks (or their estimate, if a task is done without the timer).
+- **Goals inside goals** — mark "2 books in November" as part of "24 books this year", and the year fills from the months (and a month from its weeks).
 - Carrying a goal into the next period is a copy, never an edit of the original.
 
 ### ◔ Stats & profile
 - Productivity and on-time charts by day, week, month or year, for tasks and goals.
-- **Estimate accuracy** (median-based, by count and by time, by size and tag), **goal deadline compliance**, per-tag breakdowns.
+- **Estimate accuracy** (median-based, by count and by time, by size and tag), **goal deadline compliance**, per-tag breakdowns — including the average time a task with that tag really takes.
 - Streak, year heatmap, **all-time records**, an optional daily rating, and the weekly review that opens itself.
 - Achievements for volume, streaks, punctuality and milestones.
 
 ### ◷ Focus timer
-- Focus, then a break, tied to a task; finished focus time is logged into it.
+- Focus, then a break, tied to a task; finished focus time is logged into it and shown on the task card, with or without an estimate.
 - **Full screen** with a big countdown ring; the screen stays on. Minimize it to a card and keep going; `Space` and `Esc` on the desktop.
 - The end of a stretch is a double chime with vibration in time; music only dips for a moment. Minimized, a *Focus timer* notification plays the same chime.
 - Lengths are yours to set (25/5 by default), with a short in-app guide on choosing them.

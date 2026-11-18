@@ -7,6 +7,11 @@ import 'task.dart' show SubTask, TaskPriority;
 /// «Цели» (по возрастанию длительности).
 enum GoalPeriod { week, month, season, year }
 
+/// В чём меряется цель-счётчик: в разах («12 книг») или во времени
+/// («20 часов английского»). У времени все числа цели — target, ручная
+/// часть, вклады — в МИНУТАХ; в часы переводит только интерфейс.
+enum GoalUnit { count, minutes }
+
 /// Модели-датаклассы не зависят от Flutter (BuildContext), поэтому берём
 /// текущий язык из глобальной [intl.Intl.defaultLocale] — его синхронизирует
 /// с уже разрешённой Flutter-локалью builder в app.dart на каждой перестройке.
@@ -311,6 +316,9 @@ class Goal {
     this.subtasks = const [],
     this.priority = TaskPriority.none,
     this.tags = const [],
+    this.unit = GoalUnit.count,
+    this.parentId,
+    this.childProgress = 0,
   });
 
   final String id;
@@ -376,8 +384,21 @@ class Goal {
   /// Теги для группировки и поиска («здоровье», «карьера»). Без «#» в данных.
   final List<String> tags;
 
-  /// Итоговое значение счётчика = ручная часть + вклад задач.
-  int get progressCount => manualProgress + linkedProgress;
+  /// Единица счётчика (см. [GoalUnit]).
+  final GoalUnit unit;
+
+  /// Цель более длинного периода, частью которой является эта («2 книги в
+  /// ноябре» → «24 книги за год»). Прогресс этой цели идёт в родителя.
+  final String? parentId;
+
+  /// Кэш вклада подцелей (обновляет GoalRepository при каждом сохранении).
+  final int childProgress;
+
+  /// Цель во времени: числа в минутах.
+  bool get isTime => unit == GoalUnit.minutes;
+
+  /// Итоговое значение счётчика = ручная часть + вклад задач + подцелей.
+  int get progressCount => manualProgress + linkedProgress + childProgress;
 
   /// Цель-счётчик (с прогрессом к числу), а не обычная галочка.
   bool get isCounter => targetCount != null && targetCount! > 1;
@@ -449,6 +470,10 @@ class Goal {
     List<SubTask>? subtasks,
     TaskPriority? priority,
     List<String>? tags,
+    GoalUnit? unit,
+    String? parentId,
+    bool clearParentId = false,
+    int? childProgress,
   }) =>
       Goal(
         id: id,
@@ -478,6 +503,9 @@ class Goal {
         subtasks: subtasks ?? this.subtasks,
         priority: priority ?? this.priority,
         tags: tags ?? this.tags,
+        unit: unit ?? this.unit,
+        parentId: clearParentId ? null : (parentId ?? this.parentId),
+        childProgress: childProgress ?? this.childProgress,
       );
 
   Map<String, dynamic> toJson() => {
@@ -505,6 +533,9 @@ class Goal {
         'subtasks': subtasks.map((s) => s.toJson()).toList(),
         'priority': priority.index,
         'tags': tags,
+        'unit': unit.name,
+        'parentId': parentId,
+        'childProgress': childProgress,
       };
 
   factory Goal.fromJson(Map<String, dynamic> j) => Goal(
@@ -547,5 +578,8 @@ class Goal {
             .clamp(0, TaskPriority.values.length - 1)],
         tags: (j['tags'] as List?)?.map((e) => e as String).toList() ??
             const [],
+        unit: j['unit'] == 'minutes' ? GoalUnit.minutes : GoalUnit.count,
+        parentId: j['parentId'] as String?,
+        childProgress: j['childProgress'] as int? ?? 0,
       );
 }

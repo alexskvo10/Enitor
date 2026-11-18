@@ -223,11 +223,92 @@ class GoalRepository {
       );
 
   Future<void> _save() async {
+    final rolled = _rollUpParents();
     await _storage.writeList(
         _kGoalsKey, _cache.map((g) => g.toJson()).toList());
     if (_recordSnapshots()) await _persistSnapshots();
     _controller.add(List.unmodifiable(_cache));
+    for (final (before, after) in rolled) {
+      _emitIfAchieved(before, after);
+    }
   }
+
+  // ─── Подцели ───────────────────────────────────────────────────────────────
+
+  /// Вклад подцели [child] в родителя [parent]. Во времени — минуты подцели
+  /// (подцель «в разах» времени не даёт); в разах — значение счётчика-«раз»
+  /// подцели или 1 за достигнутую подцель любого вида.
+  static int childContribution(Goal child, Goal parent) {
+    if (parent.isTime) return child.isTime ? child.progressCount : 0;
+    if (child.isCounter && !child.isTime) return child.progressCount;
+    return child.completed ? 1 : 0;
+  }
+
+  /// Пересчитывает [Goal.childProgress] всех родителей. Родитель всегда из
+  /// более длинного периода, поэтому идём от коротких периодов к длинным:
+  /// месяц уже пересчитан, когда до него дойдёт год. Перенесённые оригиналы
+  /// не считаются — их прогресс уехал в копию.
+  /// Возвращает пары (до, после) для целей, которые изменились.
+  // ponytail: полный проход O(целей²) на каждое сохранение — целей единицы
+  // и десятки; индекс по parentId, если их станут тысячи.
+  List<(Goal, Goal)> _rollUpParents() {
+    final changed = <(Goal, Goal)>[];
+    final order = [
+      for (var i = 0; i < _cache.length; i++)
+        if (_cache[i].isCounter || _cache[i].childProgress != 0) i,
+    ]..sort((a, b) =>
+        _cache[a].period.index.compareTo(_cache[b].period.index));
+    for (final i in order) {
+      final cur = _cache[i];
+      var sum = 0;
+      if (cur.isCounter) {
+        for (final c in _cache) {
+          if (c.parentId == cur.id && !c.isTransferred && c.id != cur.id) {
+            sum += childContribution(c, cur);
+          }
+        }
+        sum = sum.clamp(0, cur.targetCount!);
+      }
+      if (sum == cur.childProgress) continue;
+      _cache[i] = cur.isCounter
+          ? _withProgress(cur, child: sum)
+          : cur.copyWith(childProgress: 0);
+      changed.add((cur, _cache[i]));
+    }
+    return changed;
+  }
+
+  /// Цели-счётчики, частью которых может стать цель периода [child]:
+  /// период длиннее и содержит начало [child]. Цель во времени принимает
+  /// только подцели во времени.
+  List<Goal> parentCandidatesFor(
+    GoalPeriodRef child, {
+    required bool childIsTime,
+    String? excludeId,
+  }) =>
+      _cache
+          .where((g) =>
+              g.id != excludeId &&
+              g.isCounter &&
+              !g.isTransferred &&
+              g.period.index > child.period.index &&
+              (!g.isTime || childIsTime) &&
+              _covers(g, child))
+          .toList();
+
+  static bool _covers(Goal parent, GoalPeriodRef child) =>
+      !child.start.isBefore(parent.periodStart) &&
+      !child.start.isAfter(parent.periodEnd);
+
+  /// [parentId], если родитель по-прежнему покрывает период [target], иначе
+  /// null — для копий и переносов.
+  String? _parentFor(String? parentId, GoalPeriodRef target) {
+    if (parentId == null) return null;
+    final p = goalById(parentId);
+    return p != null && _covers(p, target) ? parentId : null;
+  }
+
+  Goal? goalById(String id) => _cache.where((g) => g.id == id).firstOrNull;
 
   /// Значение кольца цели [g] на конец дня [d]: живое (текущее) для сегодня,
   /// иначе — последний снимок с датой ≤ d, а при отсутствии снимков —
@@ -811,6 +892,8 @@ class GoalRepository {
     List<String> subtaskTitles = const [],
     TaskPriority priority = TaskPriority.none,
     List<String> tags = const [],
+    GoalUnit unit = GoalUnit.count,
+    String? parentId,
   }) async {
     final now = DateTime.now();
     final goal = Goal(
@@ -830,6 +913,8 @@ class GoalRepository {
       ],
       priority: priority,
       tags: tags,
+      unit: unit,
+      parentId: parentId,
       createdAt: now,
       updatedAt: now,
     );
@@ -839,15 +924,17 @@ class GoalRepository {
   }
 
   /// Пересобирает цель с новыми manual/linked, пересчитывая completed/completedAt.
-  Goal _withProgress(Goal cur, {int? manual, int? linked}) {
+  Goal _withProgress(Goal cur, {int? manual, int? linked, int? child}) {
     final now = DateTime.now();
     final m = manual ?? cur.manualProgress;
     final l = linked ?? cur.linkedProgress;
-    final total = m + l;
+    final c = child ?? cur.childProgress;
+    final total = m + l + c;
     final reached = cur.targetCount != null && total >= cur.targetCount!;
     return cur.copyWith(
       manualProgress: m,
       linkedProgress: l,
+      childProgress: c,
       completed: reached,
       completedAt: reached ? (cur.completedAt ?? now) : null,
       clearCompletedAt: !reached,
@@ -855,7 +942,8 @@ class GoalRepository {
     );
   }
 
-  /// Изменяет счётчик цели на [delta] (обычно +1/−1) — меняет ручную часть.
+  /// Изменяет счётчик цели на [delta] (+1/−1; у цели во времени — минуты)
+  /// — меняет ручную часть.
   Future<void> incrementGoalCounter(Goal goal, int delta) =>
       setGoalProgress(goal, goal.progressCount + delta);
 
@@ -867,7 +955,8 @@ class GoalRepository {
     final cur = _cache[idx];
     if (!cur.isCounter) return;
     final desired = value.clamp(0, cur.targetCount!);
-    final manual = (desired - cur.linkedProgress).clamp(0, cur.targetCount!);
+    final manual = (desired - cur.linkedProgress - cur.childProgress)
+        .clamp(0, cur.targetCount!);
     if (manual == cur.manualProgress) return;
     _cache[idx] = _withProgress(cur, manual: manual);
     if (_cache[idx].completed && !cur.completed)
@@ -963,7 +1052,9 @@ class GoalRepository {
   Future<void> updateGoal(Goal goal) async {
     final idx = _cache.indexWhere((g) => g.id == goal.id);
     if (idx == -1) return;
-    _cache[idx] = goal;
+    // Счётчик: достигнута ли цель, решает прогресс — после смены числа или
+    // единицы пересчитываем.
+    _cache[idx] = goal.isCounter ? _withProgress(goal) : goal;
     await _save();
   }
 
@@ -996,6 +1087,7 @@ class GoalRepository {
         originalRef: original?.ref ?? goal.ref,
         addedAt: DateTime.now(),
         targetCount: goal.targetCount,
+        unit: goal.unit,
         progressCount: goal.manualProgress,
         subtaskTitles: goal.subtasks.map((s) => s.title).toList(),
       ));
@@ -1021,6 +1113,8 @@ class GoalRepository {
         weekStart:
             target.weekStart == null ? null : dateOnly(target.weekStart!),
         targetCount: src.targetCount,
+        unit: src.unit,
+        parentId: _parentFor(src.parentId, target),
         subtasks: [
           for (final s in src.subtasks) SubTask(id: _uuid.v4(), title: s.title),
         ],
@@ -1073,6 +1167,8 @@ class GoalRepository {
       weekStart:
           targetRef.weekStart == null ? null : dateOnly(targetRef.weekStart!),
       targetCount: goal.targetCount,
+      unit: goal.unit,
+      parentId: _parentFor(goal.parentId, targetRef),
       manualProgress: goal.manualProgress,
       // Переносим подзадачи С их состоянием (живая копия).
       subtasks: [
@@ -1183,6 +1279,7 @@ class GoalRepository {
       originalRef: original?.ref ?? goal.ref,
       addedAt: DateTime.now(),
       targetCount: goal.targetCount,
+      unit: goal.unit,
       progressCount: goal.manualProgress,
       subtaskTitles: goal.subtasks.map((s) => s.title).toList(),
     ));

@@ -514,7 +514,7 @@ button.danger { color: var(--danger); }
 
   function goalRow(g) {
     // Прогресс цели = ручная часть + связанная с задачами (см. Goal.progressCount).
-    var total = (g.manualProgress || 0) + (g.linkedProgress || 0);
+    var total = (g.manualProgress || 0) + (g.linkedProgress || 0) + (g.childProgress || 0);
     var cb = el('input', {
       type: 'checkbox',
       'aria-label': 'Отметить цель',

@@ -376,23 +376,57 @@ const List<_Section> _kFaq = [
     _Qa(
       'Какие бывают цели?',
       'Обычная (галочка), счётчик-квота (прогресс к числу за период) и '
-          'чек-лист (набор подзадач). У цели есть период: неделя, месяц, сезон '
-          'или год, и необязательный дедлайн.',
+          'чек-лист (набор подзадач). Счётчик меряется в разах («12 книг») '
+          'или в часах («20 часов английского»). У цели есть период: неделя, '
+          'месяц, сезон или год, и необязательный дедлайн.',
       'What types of goals are there?',
       'A plain goal (checkbox), a counter/quota (progress toward a number '
-          'over a period), and a checklist (a set of subtasks). Every goal '
-          'has a period — week, month, season, or year — and an optional '
-          'deadline.',
+          'over a period), and a checklist (a set of subtasks). A counter is '
+          'measured in times ("12 books") or in hours ("20 hours of '
+          'English"). Every goal has a period — week, month, season, or '
+          'year — and an optional deadline.',
     ),
     _Qa(
       'Как привязать задачи к цели?',
-      'Цель-квоту можно связать с задачами: выполнение таких задач '
-          'автоматически прибавляется к прогрессу цели. Удобно для целей вроде '
-          '«10 тренировок в месяц».',
+      'Цель-счётчик можно связать с задачами (поле «Цель» в задаче). Если '
+          'счётчик в разах, каждая выполненная задача прибавляет 1 — удобно '
+          'для «10 тренировок в месяц». Если в часах, в цель идёт время '
+          'фокуса по задаче, а задача, сделанная без таймера, отдаёт свою '
+          'оценку. Кнопки ± у цели в часах шагают по полчаса, а число можно '
+          'ввести дробным: «1,5».',
       'How do I link tasks to a goal?',
-      'A quota goal can be linked to tasks: completing those tasks '
-          "automatically adds to the goal's progress. Handy for goals "
-          'like "10 workouts this month".',
+      'A counter goal can be linked to tasks (the Goal field of a task). '
+          'For a counter in times, each completed task adds 1 — handy for '
+          '"10 workouts this month". For a counter in hours, the focus time '
+          'logged on the task goes in, and a task done without the timer '
+          'adds its estimate. On an hours goal the ± buttons step by half an '
+          'hour, and you can type a fraction like "1.5".',
+    ),
+    _Qa(
+      'Можно ли сделать цель частью другой?',
+      'Да. В форме цели выбери «Часть цели» — там цели-счётчики более '
+          'длинного периода, в который попадает твоя: неделя может быть '
+          'частью месяца, сезона или года, месяц — сезона или года, сезон — '
+          'года. Прогресс подцели сам идёт вверх, в том числе по цепочке '
+          'неделя → месяц → сезон → год. Счётчик отдаёт своё число, обычная '
+          'цель или чек-лист — 1, когда достигнуты. В цель в часах можно '
+          'вложить только цели в часах. Неделя на стыке месяцев относится к '
+          'месяцу, в котором началась.\n\n'
+          'Пример: месячная «Книги — 20 ч» и недельная «Книги — 5 ч» с '
+          'пометкой «Часть цели» на месячную. Задачи с чтением привязывай к '
+          'недельной — время попадёт и в неделю, и в месяц.',
+      'Can a goal be part of another?',
+      'Yes. In the goal form pick “Part of a goal” — it lists counter goals '
+          'of a longer period that contains yours: a week can be part of a '
+          'month, season or year, a month part of a season or year, a season '
+          'part of a year. Progress flows up by itself, all the way along '
+          'week → month → season → year. A counter passes on its number; a '
+          'plain goal or a checklist adds 1 once it is reached. An hours goal '
+          'only takes hours goals inside it. A week that spans two months '
+          'belongs to the month it starts in.\n\n'
+          'Example: a monthly “Reading — 20 h” and a weekly “Reading — 5 h” '
+          'marked as part of the monthly one. Link your reading tasks to the '
+          'weekly goal — the time lands in both the week and the month.',
     ),
     _Qa(
       'Что такое дедлайн у цели и когда цель «в срок»?',

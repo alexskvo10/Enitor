@@ -231,7 +231,7 @@
     },
     "Goal": {
       "type": "object",
-      "description": "A goal. Model: Goal.toJson. Progress is manualProgress plus linkedProgress (progress of linked tasks).",
+      "description": "A goal. Model: Goal.toJson. Progress is manualProgress plus linkedProgress (progress of linked tasks) plus childProgress (progress of sub-goals).",
       "required": [
         "id",
         "period",
@@ -315,7 +315,20 @@
           "items": { "$ref": "#/$defs/SubTask" }
         },
         "priority": { "$ref": "#/$defs/priority" },
-        "tags": { "$ref": "#/$defs/stringList" }
+        "tags": { "$ref": "#/$defs/stringList" },
+        "unit": {
+          "enum": ["count", "minutes"],
+          "description": "What a counter goal counts. For minutes, targetCount and every progress field are minutes. Missing means count."
+        },
+        "parentId": {
+          "$ref": "#/$defs/nullableString",
+          "description": "A counter goal of a longer period this goal is part of; its progress adds to the parent's childProgress."
+        },
+        "childProgress": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Progress from sub-goals. Missing means 0."
+        }
       }
     },
     "ScheduleItem": {
@@ -578,7 +591,11 @@
           "type": "integer",
           "minimum": 0
         },
-        "subtaskTitles": { "$ref": "#/$defs/stringList" }
+        "subtaskTitles": { "$ref": "#/$defs/stringList" },
+        "unit": {
+          "enum": ["count", "minutes"],
+          "description": "Unit of the goal's counter; missing means count."
+        }
       }
     }
   }

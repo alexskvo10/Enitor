@@ -48,13 +48,24 @@ class TaskRepository {
   final BacklogRepository _backlogRepo;
 
   /// Пересчитывает вклад привязанных задач в цель [goalId] (сумма вкладов).
+  /// Цели во времени задача отдаёт минуты: отработанные, а если их нет, но
+  /// задача выполнена, — оценку (не каждый засекает время фокусом).
   Future<void> _syncGoal(String? goalId) async {
     if (goalId == null) return;
-    final sum = _cache
-        .where((t) => t.goalId == goalId)
-        .fold<int>(0, (s, t) => s + t.goalContribution);
+    final time = _goalRepo.goalById(goalId)?.isTime ?? false;
+    final sum = _cache.where((t) => t.goalId == goalId).fold<int>(
+        0,
+        (s, t) =>
+            s +
+            (time
+                ? t.actualMinutes ??
+                    (t.isCompleted ? t.estimatedMinutes ?? 0 : 0)
+                : t.goalContribution));
     await _goalRepo.setLinkedProgress(goalId, sum);
   }
+
+  /// Пересчитать вклад задач в цель — после смены её единицы в форме.
+  Future<void> syncGoal(String goalId) => _syncGoal(goalId);
 
   final _controller = StreamController<List<Task>>.broadcast();
   List<Task> _cache = [];
@@ -142,9 +153,7 @@ class TaskRepository {
     for (final t in _cache) {
       final ruleId = t.recurrenceRuleId;
       if (ruleId == null) continue;
-      groups
-          .putIfAbsent('$ruleId|${dateOnly(t.date)}', () => [])
-          .add(t);
+      groups.putIfAbsent('$ruleId|${dateOnly(t.date)}', () => []).add(t);
     }
     final drop = <Task>[];
     for (final g in groups.values) {
@@ -544,6 +553,7 @@ class TaskRepository {
       updatedAt: DateTime.now(),
     );
     await _save();
+    await _syncGoal(cur.goalId);
   }
 
   Future<void> updateActualMinutes(Task task, int minutes) async {
@@ -556,6 +566,7 @@ class TaskRepository {
       updatedAt: DateTime.now(),
     );
     await _save();
+    await _syncGoal(_cache[idx].goalId);
   }
 
   /// Ставит субъективную оценку качества (рефлексия). На статистику не влияет.
@@ -625,30 +636,41 @@ class TaskRepository {
     final existing = tasksForDay(target);
     var order = existing.length;
     for (final src in tasks) {
-      _cache.add(Task(
-        id: _uuid.v4(),
-        title: src.title,
-        description: src.description,
-        date: target,
-        order: order++,
-        createdAt: now,
-        updatedAt: now,
-        // Копируем поля времени, оценку, счётчик и шаблон подзадач, но не
-        // прогресс/статус/серию (подзадачи — свежие, не выполнены).
-        startMinutes: src.startMinutes,
-        endMinutes: src.endMinutes,
-        estimatedMinutes: src.estimatedMinutes,
-        targetCount: src.targetCount,
-        subtasks: [
-          for (final s in src.subtasks) SubTask(id: _uuid.v4(), title: s.title),
-        ],
-        priority: src.priority,
-        tags: src.tags,
-      ));
+      _cache.add(
+        Task(
+          id: _uuid.v4(),
+          title: src.title,
+          description: src.description,
+          date: target,
+          order: order++,
+          createdAt: now,
+          updatedAt: now,
+          // Копируем поля времени, оценку, счётчик и шаблон подзадач, но не
+          // прогресс/статус/серию (подзадачи — свежие, не выполнены).
+          startMinutes: src.startMinutes,
+          endMinutes: src.endMinutes,
+          estimatedMinutes: src.estimatedMinutes,
+          targetCount: src.targetCount,
+          subtasks: [
+            for (final s in src.subtasks)
+              SubTask(id: _uuid.v4(), title: s.title),
+          ],
+          priority: src.priority,
+          tags: src.tags,
+          goalId: _goalOn(src.goalId, target),
+        ),
+      );
     }
     await _save();
     await _statsRepo.recompute(target, tasksForDay(target));
   }
+
+  /// [goalId], если эта цель-счётчик идёт и в день [day], иначе null:
+  /// перенос и копия не теряют цель, но и не тянут её в чужой период.
+  String? _goalOn(String? goalId, DateTime day) => goalId != null &&
+          _goalRepo.counterGoalsForDate(day).any((g) => g.id == goalId)
+      ? goalId
+      : null;
 
   /// Применяет шаблон дня: добавляет его пункты как новые задачи на [date]
   /// (к существующим). Прогресс/выполнение — с нуля.
@@ -708,7 +730,8 @@ class TaskRepository {
     // задачу до обмена, копия на сервере сольётся в одну.
     // Длина постоянная: из 't-' + id задача, которую переносят каждую ночь,
     // за месяц получила бы id длиннее, чем принимают виджет и команды.
-    final stable = 't-${sha1.convert(utf8.encode(task.id)).toString().substring(0, 20)}';
+    final stable =
+        't-${sha1.convert(utf8.encode(task.id)).toString().substring(0, 20)}';
     final copyId = _cache.any((t) => t.id == stable) ? _uuid.v4() : stable;
     final copy = Task(
       id: copyId,
@@ -728,6 +751,7 @@ class TaskRepository {
       ],
       priority: task.priority,
       tags: task.tags,
+      goalId: _goalOn(task.goalId, target),
       transferredFromId: task.id,
       createdAt: now,
       updatedAt: now,

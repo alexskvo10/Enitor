@@ -34,6 +34,8 @@ class _TagAgg {
   double fractionSum = 0; // сумма дробного выполнения
   int completed = 0;
   int onTime = 0;
+  int timedCount = 0; // задачи с отработанным временем (фокус или вручную)
+  int timedMinutes = 0;
 }
 
 /// Статистика в разрезе тегов: сколько задач, % выполнения, % в срок.
@@ -149,6 +151,11 @@ class _TagStatsScreenState extends ConsumerState<TagStatsScreen> {
           agg.completed++;
           if (StatsRepository.taskIsOnTime(t)) agg.onTime++;
         }
+        final spent = t.actualMinutes ?? 0;
+        if (spent > 0) {
+          agg.timedCount++;
+          agg.timedMinutes += spent;
+        }
       }
     }
 
@@ -230,6 +237,13 @@ class _TagRow extends StatelessWidget {
                 context.l10n.completedOfTasks(agg.completed, agg.total),
                 if (onTimeRate != null)
                   context.l10n.onTimePercent((onTimeRate * 100).round()),
+                if (agg.timedCount > 0)
+                  context.l10n.avgTimePerTask(
+                    fmtDuration(
+                      (agg.timedMinutes / agg.timedCount).round(),
+                      context,
+                    ),
+                  ),
               ].join(' · '),
               style: theme.textTheme.bodySmall?.copyWith(color: muted),
             ),
