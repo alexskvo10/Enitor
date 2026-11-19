@@ -93,6 +93,17 @@ class SecretStore {
     return rotateWebhookSecret(id);
   }
 
+  /// Секрет вебхука, если он уже есть, — без создания. Доставка без секрета
+  /// не уходит: подпись новым, которого приёмник не знает, молча ломала бы
+  /// проверку на его стороне.
+  Future<String?> readWebhookSecret(String id) async {
+    final s = await _backend.read(_webhookKey(id));
+    return s == null || s.isEmpty ? null : s;
+  }
+
+  Future<void> setWebhookSecret(String id, String secret) =>
+      _backend.write(_webhookKey(id), secret);
+
   Future<String> rotateWebhookSecret(String id) async {
     final secret = generate();
     await _backend.write(_webhookKey(id), secret);

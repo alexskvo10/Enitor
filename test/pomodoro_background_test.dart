@@ -4,6 +4,7 @@ import 'package:enitor/data/sources/local/local_storage.dart';
 import 'package:enitor/services/notification_service.dart';
 import 'package:enitor/services/pomodoro_controller.dart';
 import 'package:enitor/services/pomodoro_prefs.dart';
+import 'package:enitor/services/sound_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -151,6 +152,34 @@ void main() {
     expect(alarms.focusEnd, isNull);
     expect(alarms.breakEnd, isNull);
   });
+
+  test('отрезок кончился в фоне — при возврате второго сигнала нет', () async {
+    final sound = _Sound();
+    final timer = PomodoroController(
+      container.read(taskRepositoryProvider),
+      container.read(pomodoroPrefsProvider),
+      storage,
+      alarms: _Alarms(),
+      clock: () => now,
+      sound: sound,
+    )..startFocus(task);
+    addTearDown(timer.dispose);
+
+    timer.setForeground(false);
+    now = t0.add(const Duration(minutes: 26)); // фокус кончился в фоне
+    timer.setForeground(true);
+    // Первый настоящий тик после возврата проводит кончившийся фокус.
+    await Future<void>.delayed(const Duration(milliseconds: 1100));
+    expect(timer.phase, PomodoroPhase.breakTime);
+    expect(sound.played, 0);
+  });
+}
+
+class _Sound extends SoundService {
+  int played = 0;
+
+  @override
+  Future<void> playPomodoroDone() async => played++;
 }
 
 class _Alarms extends NotificationService {

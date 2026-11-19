@@ -74,6 +74,22 @@ class TaskRepository {
   /// Пересчитать вклад задач в цель — после смены её единицы в форме.
   Future<void> syncGoal(String goalId) => _syncGoal(goalId);
 
+  /// Цель удалили: задачи и правила повторов больше на неё не ссылаются —
+  /// иначе висячая ссылка тянулась бы в копии повторов и в бэклог.
+  Future<void> unlinkGoal(String goalId) async {
+    final now = DateTime.now();
+    var changed = false;
+    for (var i = 0; i < _cache.length; i++) {
+      if (_cache[i].goalId != goalId) continue;
+      _cache[i] = _cache[i].copyWith(clearGoalId: true, updatedAt: now);
+      changed = true;
+    }
+    if (changed) await _save();
+    for (final r in _recurrenceRepo.all.where((r) => r.goalId == goalId)) {
+      await _recurrenceRepo.update(r.copyWith(clearGoalId: true));
+    }
+  }
+
   final _controller = StreamController<List<Task>>.broadcast();
   List<Task> _cache = [];
 
@@ -156,6 +172,53 @@ class TaskRepository {
     if (added) {
       await _save();
       await _statsRepo.recompute(day, tasksForDay(day));
+    }
+  }
+
+  /// Дозаполняет прошедшие дни экземплярами повторов, которых там нет: день,
+  /// когда приложение не открывали, не должен оставаться «пустым». Задача на
+  /// день была — значит, она не выполнена, и серия рвётся, а не зависит от
+  /// того, заглянул ли человек в этот день потом (раньше открытие прошлого
+  /// дня задним числом меняло его итог). Сегодня не трогает — его создаёт
+  /// [ensureRecurrencesForDay]. Правило не тянется в дни до своего создания:
+  /// импорт со старой датой начала не задним числом проваливает месяцы.
+  Future<void> backfillPastRecurrences({required DateTime now}) async {
+    final today = effectiveDay(now);
+    final have = <String>{
+      for (final t in _cache)
+        if (t.recurrenceRuleId != null)
+          '${t.recurrenceRuleId}|${dateOnly(t.date)}',
+    };
+    final orderOf = <DateTime, int>{};
+    for (final t in _cache) {
+      final d = dateOnly(t.date);
+      orderOf[d] = (orderOf[d] ?? 0) + 1;
+    }
+    final days = <DateTime>{};
+    for (final rule in _recurrenceRepo.all) {
+      final created = dateOnly(rule.createdAt);
+      final start = dateOnly(rule.startDate);
+      var day = start.isAfter(created) ? start : created;
+      for (; day.isBefore(today); day = addDays(day, 1)) {
+        if (!rule.occursOn(day) || have.contains('${rule.id}|$day')) continue;
+        final order = orderOf[day] ?? 0;
+        orderOf[day] = order + 1;
+        _cache.add(
+          taskFromRule(
+            rule,
+            day,
+            order: order,
+            now: now,
+            goalOn: (id) => _goalOn(id, day) != null,
+          ),
+        );
+        days.add(day);
+      }
+    }
+    if (days.isEmpty) return;
+    await _save();
+    for (final d in days) {
+      await _statsRepo.recompute(d, tasksForDay(d));
     }
   }
 
@@ -353,7 +416,7 @@ class TaskRepository {
     return count;
   }
 
-  /// Невыполненные задачи с временем начала на ближайшие [days] дней — без
+  /// Невыполненные задачи со временем начала или конца на ближайшие [days] дней — без
   /// фильтра «старт ещё впереди» (нужны не только напоминания к началу, но и
   /// к концу / «требует внимания» / «просрочена», которые должны сработать и
   /// для уже начавшейся задачи). Каждый конкретный момент проверяется на
@@ -365,13 +428,16 @@ class TaskRepository {
       final day = dateOnly(addDays(now, d));
       for (final t in tasksForDay(day)) {
         if (t.isCompleted || t.isTransferred) continue;
-        if (t.startMinutes == null) continue;
+        // Достаточно одного «От» или «До»: у задачи «сделать до 18:00»
+        // есть и напоминание к концу, и «требует внимания», и «просрочена».
+        if (t.startMinutes == null && t.endMinutes == null) continue;
         result.add(t);
       }
     }
+    int at(Task t) => t.startMinutes ?? t.endMinutes!;
     result.sort((a, b) {
       final byDate = dateOnly(a.date).compareTo(dateOnly(b.date));
-      return byDate != 0 ? byDate : a.startMinutes!.compareTo(b.startMinutes!);
+      return byDate != 0 ? byDate : at(a).compareTo(at(b));
     });
     return result;
   }
@@ -410,7 +476,10 @@ class TaskRepository {
     await _syncGoal(task.goalId);
   }
 
+  /// [id] — сохранить происхождение (задача из бэклога берёт его id, чтобы
+  /// повторный импорт её узнал); занятый id заменяется новым.
   Future<Task> createAndAdd({
+    String? id,
     required String title,
     required DateTime date,
     String? description,
@@ -422,10 +491,11 @@ class TaskRepository {
     List<String> subtaskTitles = const [],
     TaskPriority priority = TaskPriority.none,
     List<String> tags = const [],
+    int progressCount = 0,
   }) async {
     final now = DateTime.now();
     final task = Task(
-      id: _uuid.v4(),
+      id: id != null && taskById(id) == null ? id : _uuid.v4(),
       title: title,
       description: description,
       date: dateOnly(date),
@@ -444,6 +514,12 @@ class TaskRepository {
       tags: tags,
     );
     await addTask(task);
+    // Счётчик из бэклога возвращается с набранным: через общий путь, чтобы
+    // пересчитались выполнение и вклад в цель.
+    if (progressCount > 0 && task.isCounter) {
+      await setCounterProgress(task, progressCount);
+      return taskById(task.id) ?? task;
+    }
     return task;
   }
 
@@ -537,8 +613,10 @@ class TaskRepository {
       clearCompleted: cur.isCompleted,
       updatedAt: now,
     );
+    // Состояние до await: за время записи задачу могли переключить снова.
+    final after = _cache[idx];
     await _save();
-    if (!cur.isCompleted) _completed.add(_cache[idx]);
+    if (!cur.isCompleted) _completed.add(after);
     await _statsRepo.recompute(cur.date, tasksForDay(cur.date));
     await _syncGoal(cur.goalId);
   }
@@ -619,6 +697,7 @@ class TaskRepository {
         subtaskTitles: task.subtasks.map((s) => s.title).toList(),
         priority: task.priority,
         tags: task.tags,
+        goalId: task.goalId,
       ));
     }
 
@@ -741,6 +820,9 @@ class TaskRepository {
   /// • помечает оригинал как [isTransferred] = true
   /// • статистика исходного дня НЕ пересчитывается (история неизменна)
   Future<void> transferTask(Task task, {required DateTime targetDate}) async {
+    // Второй тап по «Перенести», пока первый ещё пишет, видит уже
+    // помеченный оригинал (флаг ставится до первого await) — второй копии нет.
+    if (_cache.any((x) => x.id == task.id && x.isTransferred)) return;
     final now = DateTime.now();
     final target = dateOnly(targetDate);
     // Предсказуемый id: если оба синхронизуемых устройства успели перенести
@@ -884,6 +966,7 @@ class TaskRepository {
       subtaskTitles: task.subtasks.map((s) => s.title).toList(),
       priority: task.priority,
       tags: task.tags,
+      goalId: task.goalId,
     ));
     final idx = _cache.indexWhere((t) => t.id == task.id);
     if (idx != -1) {

@@ -117,4 +117,60 @@ void main() {
       expect(a, matches(RegExp(r'^[0-9a-f]{16}$')));
     });
   });
+
+  group('мелочи разбора', () {
+    String one(String body) => 'BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\n'
+        '${body}END:VEVENT\r\nEND:VCALENDAR\r\n';
+
+    test('огромная DURATION не роняет разбор', () {
+      final cal = parseIcs(
+        one('UID:d\r\nDTSTART:20261103T090000\r\n'
+            'DURATION:PT99999999999999999999H\r\n'),
+        local: moscow,
+      );
+      expect(cal.events.single.end, isNull);
+      expect(cal.warnings.single, contains('DURATION'));
+    });
+
+    test('COUNT=0 — не бесконечная серия', () {
+      final cal = parseIcs(
+        one('UID:c\r\nDTSTART:20261103T090000\r\n'
+            'RRULE:FREQ=DAILY;COUNT=0\r\n'),
+        local: moscow,
+      );
+      expect(cal.events.single.rule?.count, 1);
+      expect(cal.warnings, isNotEmpty);
+    });
+
+    test('UNTIL без времени — конец дня по местному времени', () {
+      final ny = tz.getLocation('America/New_York');
+      final cal = parseIcs(
+        one('UID:u\r\nDTSTART:20261103T230000Z\r\n'
+            'RRULE:FREQ=DAILY;UNTIL=20261110\r\n'),
+        local: ny,
+      );
+      expect(cal.events.single.rule?.until, DateTime(2026, 11, 10, 23, 59, 59));
+    });
+
+    test('предупреждения по-английски для английского интерфейса', () {
+      final cal = parseIcs(
+        one('UID:e\r\nSUMMARY:x\r\n'),
+        local: moscow,
+        ru: false,
+      );
+      expect(cal.warnings.single, 'Event "x" skipped: no DTSTART');
+    });
+
+    test('событие без UID: id не зависит от пояса устройства', () {
+      const text = 'BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\n'
+          'SUMMARY:x\r\nDTSTART:20261103T090000Z\r\n'
+          'END:VEVENT\r\nEND:VCALENDAR\r\n';
+      final a = parseIcs(text, local: moscow).events.single.uid;
+      final b = parseIcs(text, local: tz.getLocation('Asia/Tokyo'))
+          .events
+          .single
+          .uid;
+      expect(a, b);
+    });
+  });
 }

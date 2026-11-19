@@ -1,4 +1,6 @@
+import 'package:enitor/data/models/backlog_item.dart';
 import 'package:enitor/data/models/recurrence_rule.dart';
+import 'package:enitor/data/models/task.dart';
 import 'package:enitor/data/repositories/backlog_repository.dart';
 import 'package:enitor/data/repositories/recurrence_repository.dart';
 import 'package:enitor/data/repositories/schedule_repository.dart';
@@ -110,7 +112,10 @@ void main() {
 
     // Неделя 1 (26.10): физика пн и ср, история пт, консультация ср.
     expect(titlesOn(DateTime(2026, 10, 26)), ['Физика']);
-    expect(titlesOn(DateTime(2026, 10, 28)), containsAll(['Физика', 'Консультация']));
+    expect(
+      titlesOn(DateTime(2026, 10, 28)),
+      containsAll(['Физика', 'Консультация']),
+    );
     expect(titlesOn(DateTime(2026, 10, 30)), ['История']);
     // Неделя 2 (2.11): «через неделю» — физики нет.
     expect(titlesOn(DateTime(2026, 11, 2)), isEmpty);
@@ -168,7 +173,12 @@ END:VCALENDAR''');
     await importIcs(_uni);
     final before = {
       for (final i in schedule().all)
-        i.title: (i.startMinutes, i.endMinutes, '${i.weekdays}', i.weekInterval),
+        i.title: (
+          i.startMinutes,
+          i.endMinutes,
+          '${i.weekdays}',
+          i.weekInterval
+        ),
     };
     final text = writeIcs(
       buildIcsExport(
@@ -199,7 +209,12 @@ END:VCALENDAR''');
     }
     final after = {
       for (final i in fresh.read(scheduleRepositoryProvider).all)
-        i.title: (i.startMinutes, i.endMinutes, '${i.weekdays}', i.weekInterval),
+        i.title: (
+          i.startMinutes,
+          i.endMinutes,
+          '${i.weekdays}',
+          i.weekInterval
+        ),
     };
     expect(after, before);
     final phys = fresh
@@ -207,6 +222,26 @@ END:VCALENDAR''');
         .all
         .firstWhere((i) => i.title == 'Физика');
     expect(phys.exceptDates, [DateTime(2026, 11, 9)]);
+  });
+
+  test('экспорт: задача через полночь кончается на следующий день', () {
+    final t = Task(
+      id: 'n1',
+      title: 'Ночная смена',
+      date: DateTime(2026, 10, 25),
+      startMinutes: 23 * 60,
+      endMinutes: 60,
+      createdAt: _now,
+      updatedAt: _now,
+    );
+    final e = buildIcsExport(
+      schedule: const [],
+      rules: const [],
+      tasks: [t],
+      now: _now,
+    ).single;
+    expect(e.start, DateTime(2026, 10, 25, 23));
+    expect(e.end, DateTime(2026, 10, 26, 1));
   });
 
   group('задачи из других приложений', () {
@@ -251,6 +286,31 @@ END:VCALENDAR''');
       expect(container.read(backlogRepositoryProvider).all.length, 1);
     });
 
+    test('задача, сходившая в бэклог и вернувшаяся, не импортируется заново',
+        () async {
+      const csv = 'TYPE,CONTENT,DESCRIPTION,PRIORITY,INDENT,AUTHOR,'
+          'RESPONSIBLE,DATE,DATE_LANG,TIMEZONE\n'
+          'task,Отчёт,,1,1,,,2026-10-27,en,\n';
+      await run(plan(parseTodoistCsv(csv)));
+      final tasks = container.read(taskRepositoryProvider);
+      final backlog = container.read(backlogRepositoryProvider);
+      final t = tasks.tasksForDay(DateTime(2026, 10, 27)).single;
+      // Так её кладёт в бэклог ночной перенос — с id «b-<id задачи>».
+      await tasks.deleteTask(t);
+      final item = BacklogItem(
+        id: 'b-${t.id}',
+        title: t.title,
+        originalDate: t.date,
+        addedAt: _now,
+      );
+      await backlog.add(item);
+      expect(plan(parseTodoistCsv(csv)).single.skip, PlanSkip.alreadyImported);
+      // «Выполнить» из бэклога.
+      await tasks.createAndAdd(id: item.id, title: item.title, date: _now);
+      await backlog.remove(item.id);
+      expect(plan(parseTodoistCsv(csv)).single.skip, PlanSkip.alreadyImported);
+    });
+
     test('Google Задачи и TickTick разбираются в план', () async {
       const google = '{"kind":"tasks#taskLists","items":[{"kind":'
           '"tasks#taskList","id":"l1","title":"Личное","items":[{"kind":'
@@ -277,6 +337,63 @@ END:VCALENDAR''');
           '"tt1",""\n';
       final t = await run(plan(parseTickTickCsv(tick)));
       expect(t.where((e) => e.action == PlanAction.create).length, 1);
+    });
+  });
+
+  group('подписка на календарь не затирает правки в Enitor', () {
+    String cal(String title) => '''BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:pair@uni
+SUMMARY:$title
+DTSTART;TZID=Europe/Moscow:20261027T100000
+DTEND;TZID=Europe/Moscow:20261027T113000
+RRULE:FREQ=WEEKLY
+END:VEVENT
+END:VCALENDAR
+''';
+
+    Future<List<PlanEntry>> refresh(String text) async {
+      final seen = IcsSeen(container.read(localStorageProvider));
+      final plan = planIcsImport(
+        parseIcs(text, local: moscow),
+        schedule: schedule(),
+        now: _now,
+        seen: seen,
+      );
+      await seen.save();
+      for (final e in plan) {
+        await e.apply?.call();
+      }
+      return plan;
+    }
+
+    test('правка и удаление дня остаются, удалённое не возвращается', () async {
+      await refresh(cal('Физика'));
+      final id = schedule().all.single.id;
+      final edited = schedule().byId(id)!.copyWith(
+        startMinutes: 10 * 60 + 15,
+        colorIndex: 3,
+        exceptDates: [DateTime(2026, 11, 3)],
+      );
+      await schedule().update(edited);
+
+      final again = await refresh(cal('Физика'));
+      expect(again.single.skip, PlanSkip.unchanged);
+      expect(schedule().byId(id)!.startMinutes, 10 * 60 + 15);
+
+      // Событие поменяли в самом календаре — берём его, но цвет и
+      // удалённый день остаются.
+      await refresh(cal('Физика (лекция)'));
+      final now = schedule().byId(id)!;
+      expect(now.title, 'Физика (лекция)');
+      expect(now.colorIndex, 3);
+      expect(now.exceptDates, contains(DateTime(2026, 11, 3)));
+
+      await schedule().delete(id);
+      final after = await refresh(cal('Физика (лекция)'));
+      expect(after.single.skip, PlanSkip.removedHere);
+      expect(schedule().byId(id), isNull);
     });
   });
 }

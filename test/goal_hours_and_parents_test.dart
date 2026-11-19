@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:enitor/data/models/goal.dart';
 import 'package:enitor/data/models/recurrence_rule.dart';
 import 'package:enitor/data/repositories/goal_repository.dart';
+import 'package:enitor/data/repositories/recurrence_repository.dart';
 import 'package:enitor/data/repositories/task_repository.dart';
 import 'package:enitor/data/sources/local/local_storage.dart';
 
@@ -260,6 +261,35 @@ void main() {
     expect(goalOn(today), m.id);
     expect(goalOn(inMonth), m.id);
     expect(goalOn(nextMonth), isNull);
+  });
+
+  test('прошлые дни получают повторы, даже если их не открывали', () async {
+    final created = today.subtract(const Duration(days: 5));
+    await c.read(recurrenceRepositoryProvider).add(
+          RecurrenceRule(
+            id: 'r1',
+            taskTitle: 'Зарядка',
+            kind: RecurrenceKind.interval,
+            startDate: today.subtract(const Duration(days: 30)),
+            createdAt: created,
+            updatedAt: created,
+          ),
+        );
+    await tasks.backfillPastRecurrences(now: DateTime.now());
+    final past =
+        tasks.allTasks.where((t) => t.recurrenceRuleId == 'r1').toList();
+    // С дня создания правила по вчера; до создания — не тянем.
+    final days = past.map((t) => t.date).toSet();
+    expect(days.length, inInclusiveRange(4, 5));
+    final createdDay = DateTime(created.year, created.month, created.day);
+    expect(days.every((d) => !d.isBefore(createdDay)), isTrue);
+    expect(days.contains(today), isFalse);
+    // Повторный вызов не дублирует.
+    await tasks.backfillPastRecurrences(now: DateTime.now());
+    expect(
+      tasks.allTasks.where((t) => t.recurrenceRuleId == 'r1').length,
+      past.length,
+    );
   });
 
   test('единица и родитель переживают JSON', () {

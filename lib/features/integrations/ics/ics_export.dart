@@ -26,9 +26,7 @@ List<IcsOutEvent> buildIcsExport({
         description: i.note,
         location: i.location,
         start: _at(_firstDay(i.date, i.occursOn), i.startMinutes),
-        end: i.endMinutes == null
-            ? null
-            : _at(_firstDay(i.date, i.occursOn), i.endMinutes!),
+        end: _end(_firstDay(i.date, i.occursOn), i.startMinutes, i.endMinutes),
         rule: i.repeat == null
             ? null
             : _rule(
@@ -50,9 +48,11 @@ List<IcsOutEvent> buildIcsExport({
           summary: r.taskTitle,
           description: r.taskDescription,
           start: _at(_firstDay(r.startDate, r.occursOn), r.startMinutes!),
-          end: r.endMinutes == null
-              ? null
-              : _at(_firstDay(r.startDate, r.occursOn), r.endMinutes!),
+          end: _end(
+            _firstDay(r.startDate, r.occursOn),
+            r.startMinutes!,
+            r.endMinutes,
+          ),
           rule: _rule(
             r.kind,
             weekdays: r.weekdays,
@@ -71,7 +71,7 @@ List<IcsOutEvent> buildIcsExport({
           summary: t.title,
           description: t.description,
           start: _at(t.date, t.startMinutes!),
-          end: t.endMinutes == null ? null : _at(t.date, t.endMinutes!),
+          end: _end(t.date, t.startMinutes!, t.endMinutes),
         ),
   ];
 }
@@ -89,6 +89,12 @@ DateTime _firstDay(DateTime start, bool Function(DateTime) occurs) {
 
 DateTime _at(DateTime day, int minutes) =>
     DateTime(day.year, day.month, day.day, minutes ~/ 60, minutes % 60);
+
+/// Конец раньше начала — значит, через полночь (23:00–01:00): конец на
+/// следующий день, иначе календарь получил бы DTEND раньше DTSTART.
+DateTime? _end(DateTime day, int start, int? end) => end == null
+    ? null
+    : _at(end < start ? addDays(day, 1) : day, end);
 
 IcsRule _rule(
   RecurrenceKind kind, {

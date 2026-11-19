@@ -24,6 +24,8 @@ class SyncRoundResult {
     required this.received,
     required this.rejected,
     required this.collections,
+    this.skipped = false,
+    this.refused = 0,
   });
 
   final int sent;
@@ -34,6 +36,13 @@ class SyncRoundResult {
 
   /// Коллекции, в которые записаны чужие правки.
   final Set<String> collections;
+
+  /// Обмен брошен до записи (замена данных, открылось приложение).
+  final bool skipped;
+
+  /// Свои записи, которые сервер не принял (`errors` ответа): чаще всего
+  /// сервер старше приложения. Они уйдут снова в следующий обмен.
+  final int refused;
 }
 
 class _BaseEntry {
@@ -56,7 +65,12 @@ class SyncEngine {
     this.deviceName,
     this.baseKey = kSyncBaseKey,
     this.cursorKey = kSyncCursorKey,
+    this.canWrite,
   });
+
+  /// Проверяется перед записью ответа; false — обмен бросается, как при
+  /// замене данных (фоновый обмен, когда открылось приложение).
+  final bool Function()? canWrite;
 
   /// Где лежат база и курсор: у каждого собеседника (сервер, соседи по
   /// сети) свои — обмен с одним не сбивает обмен с другим.
@@ -81,8 +95,13 @@ class SyncEngine {
 
   static int _generation = 0;
   static int _replacing = 0;
-  static const _skipped =
-      SyncRoundResult(sent: 0, received: 0, rejected: 0, collections: {});
+  static const _skipped = SyncRoundResult(
+    sent: 0,
+    received: 0,
+    rejected: 0,
+    collections: {},
+    skipped: true,
+  );
 
   /// Заменить данные устройства ([f]: восстановление бэкапа, «взять данные
   /// сервера»). Пока идёт [f], обмены не начинаются, а начатые раньше не
@@ -146,7 +165,11 @@ class SyncEngine {
       if (epoch != null) 'epoch': epoch,
       'changes': changes,
     });
-    if (_replacing > 0 || generation != _generation) return _skipped;
+    if (_replacing > 0 ||
+        generation != _generation ||
+        !(canWrite?.call() ?? true)) {
+      return _skipped;
+    }
 
     // Копию сервера создали заново (восстановление на соседе, битый файл):
     // она прислала всё с начала, а записей прежней базы, которых в ответе
@@ -173,19 +196,31 @@ class SyncEngine {
     }
 
     var received = 0, rejected = 0;
+    // Самая ранняя ревизия, которую не смогли принять (запись новой версии
+    // приложения, незнакомая коллекция). Курсор дальше неё не уходит: иначе
+    // запись пропала бы навсегда — сервер её больше не пришлёт, а после
+    // обновления приложения она бы прочиталась.
+    int? firstRejected;
+    void reject(int? rev) {
+      rejected++;
+      if (rev != null && (firstRejected == null || rev < firstRejected!)) {
+        firstRejected = rev;
+      }
+    }
+
     for (final r in (result['changes'] as List? ?? const [])) {
       final m = r as Map<String, dynamic>;
       final c = syncCollection(m['coll'] as String? ?? '');
       final id = m['id'] as String?;
       final rev = m['rev'] as int?;
       if (c == null || id == null || rev == null) {
-        rejected++;
+        reject(rev);
         continue;
       }
       final deleted = m['deleted'] == true;
       final data = deleted ? null : m['data'];
       if (!deleted && validateRecord(c, data) != null) {
-        rejected++;
+        reject(rev);
         continue;
       }
       confirmed.add('${c.name}/$id');
@@ -250,7 +285,11 @@ class SyncEngine {
       ..add(_writeBase(base))
       ..add(
         _storage.writeMap(cursorKey, {
-          'rev': result['cursor'] as int? ?? cursor,
+          'rev': _nextCursor(
+            result['cursor'] as int? ?? cursor,
+            firstRejected,
+            storeChanged ? 0 : cursor,
+          ),
           if ((newEpoch ?? epoch) != null) 'epoch': newEpoch ?? epoch,
         }),
       );
@@ -265,7 +304,17 @@ class SyncEngine {
       received: received,
       rejected: rejected,
       collections: touched,
+      refused: (result['errors'] as List?)?.length ?? 0,
     );
+  }
+
+  /// Курсор после обмена: ответ сервера, но не дальше ревизии перед первой
+  /// отвергнутой записью (и не назад от [floor] — того, что уже было).
+  static int _nextCursor(int fromServer, int? firstRejected, int floor) {
+    if (firstRejected == null) return fromServer;
+    final held = firstRejected - 1;
+    if (held < floor) return floor;
+    return held < fromServer ? held : fromServer;
   }
 
   /// Забыть базу и курсор: следующий обмен отправит все записи как новые

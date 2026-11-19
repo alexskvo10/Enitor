@@ -52,7 +52,7 @@ DateTime? weekGoalsGraceEnd(DateTime weekStart) {
     weekStart: weekStart,
   );
   final end = addDays(ref.endInclusive, ref.graceDays);
-  return today().isAfter(end) ? null : end;
+  return effectiveDay(DateTime.now()).isAfter(end) ? null : end;
 }
 
 /// Считает сводку недели, начинающейся в [weekStart] (понедельник).
@@ -70,7 +70,7 @@ WeekStats computeWeekStats(
   bool inWeek(DateTime d) =>
       !dateOnly(d).isBefore(weekStart) && !dateOnly(d).isAfter(weekEnd);
 
-  final todayDate = today();
+  final todayDate = effectiveDay(DateTime.now());
   var prodSum = 0.0;
   var onTimeSum = 0.0;
   var onTimeDays = 0;

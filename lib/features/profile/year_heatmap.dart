@@ -234,7 +234,9 @@ Color cellColor(DayStats? s, ThemeData theme) {
   final p = s.productivity ?? 0.0;
   final t = s.timeliness ?? 1.0;
   final score = p * (0.7 + 0.3 * t); // 0..1
-  final level = score <= 0 ? 1 : (score * 4).ceil().clamp(1, 4);
+  // Ничего не сделано — без зелёного, как пустой день.
+  if (score <= 0) return dark ? _emptyDark : _emptyLight;
+  final level = (score * 4).ceil().clamp(1, 4);
   return (dark ? _greensDark : _greensLight)[level - 1];
 }
 

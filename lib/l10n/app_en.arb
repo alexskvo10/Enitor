@@ -99,7 +99,7 @@
   "exportSubtitle": "Save a copy of all data",
   "importTitle": "Import from file",
   "importSubtitle": "Replace data from a backup",
-  "backupNote": "The app keeps a fresh copy automatically and restores it on a clean reinstall. File export is for moving between devices or in case the app is removed.",
+  "backupNote": "The app keeps an automatic copy and restores it if the app's data goes missing. On Android that copy is deleted together with the app or its data, so for moving between devices and real safekeeping use the file export.",
 
   "helpFaqTitle": "Help / FAQ",
   "aboutTitle": "About the app",
@@ -111,6 +111,9 @@
   "importConfirmTitle": "Import?",
   "importConfirmContent": "Current data will be completely replaced with data from the file. This action cannot be undone.",
   "replace": "Replace",
+  "importConfirmSyncedContent": "This device’s data will be replaced with the file. Sync is on — what about your other devices?\n\nEverywhere: every device goes back to the backup, and records the backup doesn’t have are deleted on them too.\n\nOnly here: the file goes to this device only, and newer records from other devices come back at the next sync.",
+  "importEverywhere": "On all devices",
+  "importOnlyHere": "Only here",
   "importDoneTitle": "Done",
   "importDoneContent": "Data restored. Restart the app for the changes to apply on every screen.",
   "importFailedToast": "Import error: {error}",
@@ -152,6 +155,16 @@
   "copiedToast": "Copied to {date}",
   "@copiedToast": { "placeholders": { "date": { "type": "String" } } },
   "deleteAllConfirmTitle": "Delete all tasks?",
+  "deleteBacklogTaskTitle": "Delete the task from the backlog?",
+  "deleteBacklogGoalTitle": "Delete the goal from the backlog?",
+  "deleteTemplateTitle": "Delete template \"{name}\"?",
+  "@deleteTemplateTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
 
   "estimateWithActual": "{est} → {actual} actual",
   "@estimateWithActual": { "placeholders": { "est": { "type": "String" }, "actual": { "type": "String" } } },
@@ -225,6 +238,8 @@
   "counterSwitchTitle": "Counter",
   "counterSwitchSubtitle": "Progress toward a number (e.g. 5 glasses of water), with a “+” button",
   "counterTargetLabel": "Target:",
+  "counterTargetCountError": "At least 2",
+  "counterTargetHoursError": "Hours above zero, e.g. 1.5",
   "counterTargetExample": "e.g. 2500",
   "prioritySectionLabel": "Priority",
   "priorityNone": "None",
@@ -402,7 +417,7 @@
   "weekdayShortWed": "We",
   "weekdayShortFri": "Fr",
   "noTasksNote": "no tasks",
-  "heatmapTooltip": "{done} of {total} tasks · {pct}%\non time: {onTime}",
+  "heatmapTooltip": "{done} of {total, plural, one{{total} task} other{{total} tasks}} · {pct}%\non time: {onTime}",
   "@heatmapTooltip": { "placeholders": { "done": { "type": "int" }, "total": { "type": "int" }, "pct": { "type": "int" }, "onTime": { "type": "String" } } },
   "lessLabel": "less",
   "moreLabel": "more",
@@ -423,6 +438,13 @@
   "searchTasksHint": "Search tasks",
   "searchGoalsHint": "Search goals",
   "searchTasksEmptyHint": "Enter a title, description, or #tag",
+  "searchTooMany": "Showing {shown} of {total} — refine the search",
+  "@searchTooMany": {
+    "placeholders": {
+      "shown": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
   "searchNothingFound": "Nothing found",
   "searchGoalsEmptyHint": "Enter a goal's title or description",
 
@@ -472,7 +494,7 @@
   "searchTagTooltip": "Search tag",
   "noTagsInPeriod": "No tags in this period.\nAdd #tags to tasks in the form.",
   "noTagsFound": "No tags found.",
-  "completedOfTasks": "{done} of {total} tasks",
+  "completedOfTasks": "{done} of {total, plural, one{{total} task} other{{total} tasks}}",
   "@completedOfTasks": { "placeholders": { "done": { "type": "int" }, "total": { "type": "int" } } },
   "onTimePercent": "on time {pct}%",
   "@onTimePercent": { "placeholders": { "pct": { "type": "int" } } },
@@ -488,7 +510,7 @@
   "goalTagStatsButtonLabel": "Goal tag stats",
   "goalTagStatsTitle": "Goal tag stats",
   "noTagsInPeriodGoals": "No tags in this period.\nAdd #tags to goals in the form.",
-  "completedOfGoals": "{done} of {total} goals",
+  "completedOfGoals": "{done} of {total, plural, one{{total} goal} other{{total} goals}}",
   "@completedOfGoals": { "placeholders": { "done": { "type": "int" }, "total": { "type": "int" } } },
   "goalCompletionLegendLabel": "Completion",
   "goalChartEmptyNote": "Data will build up\nas you achieve goals",
@@ -507,7 +529,7 @@
   "deadlineVerdictOnTime": "You meet your deadlines 🎯",
   "deadlineLateLead": "You overrun the deadline by ",
   "deadlineEarlyLead": "You finish early by ",
-  "deadlineMedianOfPairs": "Median over {pairs} completed goals",
+  "deadlineMedianOfPairs": "Median over {pairs, plural, one{{pairs} completed goal} other{{pairs} completed goals}}",
   "@deadlineMedianOfPairs": { "placeholders": { "pairs": { "type": "int" } } },
   "deadlineFooterNote": "Only completed goals are counted: the completion date is compared with the deadline (or the end of the period, if no deadline is set).",
 
@@ -532,7 +554,7 @@
   "overestimatingBy": "You overestimate by ",
   "estimateExample": "Estimate 60 min → usually takes ~{actual} min",
   "@estimateExample": { "placeholders": { "actual": { "type": "int" } } },
-  "medianOfPairs": "Median over {pairs} “estimate → actual” pairs",
+  "medianOfPairs": "Median over {pairs, plural, one{{pairs} “estimate → actual” pair} other{{pairs} “estimate → actual” pairs}}",
   "@medianOfPairs": { "placeholders": { "pairs": { "type": "int" } } },
   "lowDataNote": "Not much data yet — the picture will get clearer as you fill in more actuals.",
   "bySizeLabel": "By estimate size",
@@ -550,7 +572,7 @@
   "@saveDayAsTemplate": { "placeholders": { "count": { "type": "int" } } },
   "applyLabel": "Apply",
   "noTemplatesYet": "No templates yet.\nSave a day to create your first one.",
-  "tasksCountShort": "{count} tasks",
+  "tasksCountShort": "{count, plural, one{{count} task} other{{count} tasks}}",
   "@tasksCountShort": { "placeholders": { "count": { "type": "int" } } },
   "renameMenuItem": "Rename",
   "pastDayNoApplyNote": "Past day — can't apply, only save.",
@@ -742,6 +764,7 @@
   "updateDownloadingTitle": "Downloading update…",
   "updateNoBuildError": "No build found for this platform in the latest release",
   "updateInstallFailedToast": "Couldn't install the update: {error}",
+  "updateApplyFailedToast": "The update couldn't replace the app files, so the old version is running. Close other Enitor windows and try again.",
 
   "scheduleTab": "Schedule",
   "addScheduleFabLabel": "Event",
@@ -913,11 +936,13 @@
   "calHttpContinue": "Load anyway",
   "calAutoTitle": "Update once a day when Enitor opens",
   "calAutoSubtitle": "The calendar’s server sees each request: your address and time",
+  "calRefreshNow": "Update now",
+  "calRefreshNothing": "Nothing changed in the calendar",
   "calExport": "Export to a calendar (.ics)",
   "calExportSubtitle": "Schedule and timed tasks — for Google Calendar, Outlook, Apple",
   "calExportedToast": "Calendar saved",
   "calPreviewTitle": "Calendar import",
-  "calNote": "Importing the same calendar again updates its items instead of duplicating them.",
+  "calNote": "Importing the same calendar again updates its items instead of duplicating them. Your edits and deletions in Enitor stay: an item changes only when the event changed in the calendar itself.",
   "appImportTitle": "Move in from another app",
   "appImportSubtitle": "Todoist, Google Tasks, TickTick — from their export file",
   "appImportTodoistHint": "Project → ⋯ → Export as a template (CSV)",
@@ -939,6 +964,7 @@
   "@importCountSkip": {"placeholders": {"count": {"type": "int"}}},
   "importSectionWill": "Will be imported",
   "importSectionSkipped": "Skipped",
+  "importSectionNotes": "Couldn't read from the file",
   "importSelectAll": "Select all",
   "importSelectNone": "Clear all",
   "importRepeats": "repeats",
@@ -954,6 +980,7 @@
   "importSkipNoTitle": "no title",
   "importSkipDoneNoDate": "done, without a date",
   "importSkipBroken": "couldn’t read this line",
+  "importSkipRemovedHere": "deleted in Enitor",
 
   "hookSectionTitle": "Webhooks",
   "hookAdd": "Add an address",
@@ -1027,6 +1054,12 @@
   "serverErrHttp": "The server replied with an error {status}",
   "@serverErrHttp": {"placeholders": {"status": {"type": "int"}}},
   "serverErrBadResponse": "This address is not an Enitor server",
+  "serverErrRefused": "The server refused {count, plural, one{{count} record} other{{count} records}} — it may need an update",
+  "@serverErrRefused": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "serverErrUnknown": "Could not connect. Try again",
   "serverPushOff": "Without a push app, changes arrive in the background every 15 minutes. Install ntfy to get them in seconds.",
   "@serverPushOff": {"description": "Android: no UnifiedPush distributor, background sync every 15 minutes"},
@@ -1099,7 +1132,7 @@
   "lanPairDone": "“{name}” added",
   "@lanPairDone": {"placeholders": {"name": {"type": "String"}}},
   "lanJoinHint": "The code is on the other device: Settings → Sync → “Add a device”.",
-  "lanJoinFromQr": "Code from the QR code. Connect to that device?",
+  "lanJoinFromQr": "Code from a link or QR code. Connect only if you scanned the code on your own device yourself: a website can open such a link too, and your tasks would go to someone else's device.",
   "lanCodeLabel": "Code",
   "lanJoinButton": "Connect",
   "lanJoinWaiting": "Looking for the device and waiting for it to confirm…",

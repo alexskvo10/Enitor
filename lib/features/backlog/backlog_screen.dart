@@ -12,6 +12,7 @@ import '../../data/repositories/goal_repository.dart';
 import '../../data/repositories/task_repository.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../../widgets/error_view.dart';
+import '../../widgets/fancy_dialog.dart';
 
 // ─── Экран «Невыполненные задачи» ────────────────────────────────────────────
 
@@ -42,7 +43,12 @@ class TaskBacklogScreen extends ConsumerWidget {
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: items.length,
-            itemBuilder: (ctx, i) => _BacklogTaskTile(item: items[i]),
+            itemBuilder: (ctx, i) => _BacklogTaskTile(
+              // Ключ по id: после переноса плитка остаётся «занятой», и без
+              // ключа её состояние досталось бы следующему пункту списка.
+              key: ValueKey(items[i].id),
+              item: items[i],
+            ),
           );
         },
       ),
@@ -50,12 +56,22 @@ class TaskBacklogScreen extends ConsumerWidget {
   }
 }
 
-class _BacklogTaskTile extends ConsumerWidget {
-  const _BacklogTaskTile({required this.item});
+class _BacklogTaskTile extends ConsumerStatefulWidget {
+  const _BacklogTaskTile({super.key, required this.item});
   final BacklogItem item;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_BacklogTaskTile> createState() => _BacklogTaskTileState();
+}
+
+class _BacklogTaskTileState extends ConsumerState<_BacklogTaskTile> {
+  /// Перенос идёт в два шага (создать задачу, убрать из бэклога): пока первый
+  /// не закончился, второй тап не должен создать вторую задачу.
+  bool _busy = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final item = widget.item;
     final theme = Theme.of(context);
     final l10n = context.l10n;
     final dateStr =
@@ -84,7 +100,9 @@ class _BacklogTaskTile extends ConsumerWidget {
                   if (item.isCounter)
                     Text(
                       l10n.progressLabel(
-                          '${item.progressCount}', '${item.targetCount}'),
+                        '${item.progressCount}',
+                        '${item.targetCount}',
+                      ),
                       style: theme.textTheme.bodySmall,
                     ),
                 ],
@@ -98,15 +116,14 @@ class _BacklogTaskTile extends ConsumerWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               ),
-              onPressed: () => _scheduleToday(ref),
+              onPressed: _busy ? null : _scheduleToday,
               child: Text(l10n.doItBtn),
             ),
             // Кнопка «Удалить»
             IconButton(
               visualDensity: VisualDensity.compact,
               icon: const Icon(Icons.delete_outline, color: AppColors.danger),
-              onPressed: () =>
-                  ref.read(backlogRepositoryProvider).remove(item.id),
+              onPressed: _busy ? null : _confirmDelete,
             ),
           ],
         ),
@@ -114,24 +131,57 @@ class _BacklogTaskTile extends ConsumerWidget {
     );
   }
 
-  Future<void> _scheduleToday(WidgetRef ref) async {
-    final taskRepo = ref.read(taskRepositoryProvider);
-    final backlogRepo = ref.read(backlogRepositoryProvider);
-    // Используем календарный сегодня (не effective today):
-    // в 2:10 на 6-е задача должна уйти на 6-е, а не на 5-е.
-    await taskRepo.createAndAdd(
-      title: item.title,
-      description: item.description,
-      date: dateOnly(DateTime.now()),
-      startMinutes: item.startMinutes,
-      endMinutes: item.endMinutes,
-      estimatedMinutes: item.estimatedMinutes,
-      targetCount: item.targetCount,
-      subtaskTitles: item.subtaskTitles,
-      priority: item.priority,
-      tags: item.tags,
+  Future<void> _scheduleToday() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final taskRepo = ref.read(taskRepositoryProvider);
+      final backlogRepo = ref.read(backlogRepositoryProvider);
+      final item = widget.item;
+      // Используем календарный сегодня (не effective today):
+      // в 2:10 на 6-е задача должна уйти на 6-е, а не на 5-е.
+      final day = dateOnly(DateTime.now());
+      // Цель — только если она ещё идёт в этот день: иначе вклад задачи
+      // ушёл бы в закончившийся период.
+      final goalId = item.goalId != null &&
+              ref
+                  .read(goalRepositoryProvider)
+                  .counterGoalsForDate(day)
+                  .any((g) => g.id == item.goalId)
+          ? item.goalId
+          : null;
+      await taskRepo.createAndAdd(
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        date: day,
+        startMinutes: item.startMinutes,
+        endMinutes: item.endMinutes,
+        estimatedMinutes: item.estimatedMinutes,
+        targetCount: item.targetCount,
+        subtaskTitles: item.subtaskTitles,
+        priority: item.priority,
+        tags: item.tags,
+        goalId: goalId,
+        progressCount: item.progressCount,
+      );
+      await backlogRepo.remove(item.id);
+    } catch (_) {
+      // Не вышло — кнопки снова нужны. После успеха флаг не снимаем: плитка
+      // сейчас уйдёт из списка, а до перерисовки тап по ней не должен работать.
+      if (mounted) setState(() => _busy = false);
+      rethrow;
+    }
+  }
+
+  Future<void> _confirmDelete() async {
+    final confirmed = await _confirmBacklogDelete(
+      context,
+      context.l10n.deleteBacklogTaskTitle,
     );
-    await backlogRepo.remove(item.id);
+    if (confirmed && context.mounted) {
+      await ref.read(backlogRepositoryProvider).remove(widget.item.id);
+    }
   }
 }
 
@@ -164,7 +214,10 @@ class GoalBacklogScreen extends ConsumerWidget {
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: items.length,
-            itemBuilder: (ctx, i) => _BacklogGoalTile(item: items[i]),
+            itemBuilder: (ctx, i) => _BacklogGoalTile(
+              key: ValueKey(items[i].id),
+              item: items[i],
+            ),
           );
         },
       ),
@@ -172,12 +225,21 @@ class GoalBacklogScreen extends ConsumerWidget {
   }
 }
 
-class _BacklogGoalTile extends ConsumerWidget {
-  const _BacklogGoalTile({required this.item});
+class _BacklogGoalTile extends ConsumerStatefulWidget {
+  const _BacklogGoalTile({super.key, required this.item});
   final GoalBacklogItem item;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_BacklogGoalTile> createState() => _BacklogGoalTileState();
+}
+
+class _BacklogGoalTileState extends ConsumerState<_BacklogGoalTile> {
+  /// Так же, как у задач: повторный тап, пока цель переносится, ничего не делает.
+  bool _busy = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final item = widget.item;
     final theme = Theme.of(context);
     final l10n = context.l10n;
     final periodLabel = item.originalRef
@@ -207,9 +269,12 @@ class _BacklogGoalTile extends ConsumerWidget {
                       item.unit == GoalUnit.minutes
                           ? l10n.progressLabel(
                               fmtDuration(item.progressCount, context),
-                              fmtDuration(item.targetCount!, context))
-                          : l10n.progressLabel('${item.progressCount}',
-                              '${item.targetCount}'),
+                              fmtDuration(item.targetCount!, context),
+                            )
+                          : l10n.progressLabel(
+                              '${item.progressCount}',
+                              '${item.targetCount}',
+                            ),
                       style: theme.textTheme.bodySmall,
                     ),
                 ],
@@ -223,14 +288,13 @@ class _BacklogGoalTile extends ConsumerWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               ),
-              onPressed: () => _achieveNow(ref),
+              onPressed: _busy ? null : _achieveNow,
               child: Text(l10n.achieveNowBtn),
             ),
             IconButton(
               visualDensity: VisualDensity.compact,
               icon: const Icon(Icons.delete_outline, color: AppColors.danger),
-              onPressed: () =>
-                  ref.read(goalBacklogRepositoryProvider).remove(item.id),
+              onPressed: _busy ? null : _confirmDelete,
             ),
           ],
         ),
@@ -238,23 +302,72 @@ class _BacklogGoalTile extends ConsumerWidget {
     );
   }
 
-  Future<void> _achieveNow(WidgetRef ref) async {
-    final goalRepo = ref.read(goalRepositoryProvider);
-    final backlogRepo = ref.read(goalBacklogRepositoryProvider);
-    final now = DateTime.now();
-    final currentRef = GoalPeriodRef.current(item.period, now);
-    await goalRepo.addGoal(
-      title: item.title,
-      description: item.description,
-      period: currentRef.period,
-      year: currentRef.year,
-      month: currentRef.month,
-      season: currentRef.season,
-      weekStart: currentRef.weekStart,
-      targetCount: item.targetCount,
-      subtaskTitles: item.subtaskTitles,
-      unit: item.unit,
-    );
-    await backlogRepo.remove(item.id);
+  Future<void> _achieveNow() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final goalRepo = ref.read(goalRepositoryProvider);
+      final backlogRepo = ref.read(goalBacklogRepositoryProvider);
+      final item = widget.item;
+      final now = DateTime.now();
+      final currentRef = GoalPeriodRef.current(item.period, now);
+      await goalRepo.addGoal(
+        title: item.title,
+        description: item.description,
+        period: currentRef.period,
+        year: currentRef.year,
+        month: currentRef.month,
+        season: currentRef.season,
+        weekStart: currentRef.weekStart,
+        targetCount: item.targetCount,
+        subtaskTitles: item.subtaskTitles,
+        unit: item.unit,
+        priority: item.priority,
+        tags: item.tags,
+        manualProgress: item.progressCount,
+      );
+      await backlogRepo.remove(item.id);
+    } catch (_) {
+      // Не вышло — кнопки снова нужны. После успеха флаг не снимаем: плитка
+      // сейчас уйдёт из списка, а до перерисовки тап по ней не должен работать.
+      if (mounted) setState(() => _busy = false);
+      rethrow;
+    }
   }
+
+  Future<void> _confirmDelete() async {
+    final confirmed = await _confirmBacklogDelete(
+      context,
+      context.l10n.deleteBacklogGoalTitle,
+    );
+    if (confirmed && context.mounted) {
+      await ref.read(goalBacklogRepositoryProvider).remove(widget.item.id);
+    }
+  }
+}
+
+/// Диалог подтверждения удаления пункта бэклога. true — пользователь подтвердил.
+Future<bool> _confirmBacklogDelete(BuildContext context, String title) async {
+  final l10n = context.l10n;
+  final confirmed = await showFancyDialog<bool>(
+    context: context,
+    icon: Icons.delete_outline,
+    iconColor: AppColors.danger,
+    title: title,
+    content: l10n.cannotUndo,
+    actions: (ctx) => [
+      TextButton(
+        onPressed: () => Navigator.pop(ctx, false),
+        child: Text(l10n.cancel),
+      ),
+      const SizedBox(width: 8),
+      FilledButton(
+        autofocus: true,
+        style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+        onPressed: () => Navigator.pop(ctx, true),
+        child: Text(l10n.delete),
+      ),
+    ],
+  );
+  return confirmed == true;
 }

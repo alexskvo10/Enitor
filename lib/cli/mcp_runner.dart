@@ -47,7 +47,18 @@ Future<void> runMcp({CliTransport? transport}) async {
 /// `not_ready` (Enitor ещё стартует) — как «не запущен»: подождём.
 Future<String> _sendReady(CliTransport t, String envelope) async {
   final raw = await t.send(envelope);
-  if (raw.contains('"not_ready"')) throw const EnitorNotRunning();
+  // По коду ошибки, а не по подстроке: «not_ready» в названии задачи — это
+  // данные, а не ответ «ещё стартую».
+  Object? error;
+  try {
+    final decoded = jsonDecode(raw);
+    error = decoded is Map ? decoded['error'] : null;
+  } on FormatException {
+    error = null;
+  }
+  if (error is Map && error['code'] == 'not_ready') {
+    throw const EnitorNotRunning();
+  }
   return raw;
 }
 

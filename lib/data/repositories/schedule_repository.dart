@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/utils/date_utils.dart';
 import '../models/recurrence_rule.dart';
 import '../models/schedule_item.dart';
+import '../models/schedule_template.dart';
 import '../sources/local/local_storage.dart';
 import 'task_repository.dart';
 
@@ -93,7 +94,18 @@ class ScheduleRepository {
   Future<void> update(ScheduleItem item) async {
     final idx = _cache.indexWhere((i) => i.id == item.id);
     if (idx == -1) return;
-    _cache[idx] = item.copyWith(updatedAt: DateTime.now());
+    // Исключения серии — вместе с теми, что уже в хранилище: день, удалённый,
+    // пока форма была открыта (или пришедший с другого устройства), иначе
+    // вернулся бы из её снимка. Вернуть удалённый день нечем — и не нужно.
+    final except = {
+      for (final d in [..._cache[idx].exceptDates, ...item.exceptDates])
+        dateOnly(d),
+    }.toList()
+      ..sort();
+    _cache[idx] = item.copyWith(
+      exceptDates: except,
+      updatedAt: DateTime.now(),
+    );
     await _save();
   }
 
@@ -140,9 +152,52 @@ class ScheduleRepository {
   /// Убирает из серии один день; у разового пункта — удаляет его целиком.
   Future<void> deleteOccurrence(ScheduleItem item, DateTime day) async {
     if (!item.isSeries) return delete(item.id);
-    await update(
-      item.copyWith(exceptDates: [...item.exceptDates, dateOnly(day)]),
+    // Из хранилища, не из снимка: два удалённых подряд дня не затирают
+    // друг друга, и правки серии с тех пор не откатываются.
+    final idx = _cache.indexWhere((i) => i.id == item.id);
+    if (idx == -1) return;
+    final cur = _cache[idx];
+    _cache[idx] = cur.copyWith(
+      exceptDates: [...cur.exceptDates, dateOnly(day)],
+      updatedAt: DateTime.now(),
     );
+    await _save();
+  }
+
+  /// Кладёт пункты шаблона на [date] разовыми пунктами. Пункт, который в этот
+  /// день уже есть (то же название и время), второй раз не добавляется —
+  /// повторное применение не плодит накладки. Возвращает, сколько добавлено.
+  Future<int> applyTemplate(
+    List<ScheduleTemplateItem> items,
+    DateTime date,
+  ) async {
+    final day = dateOnly(date);
+    final now = DateTime.now();
+    final present = {
+      for (final i in forDay(day)) (i.title, i.startMinutes, i.endMinutes),
+    };
+    var added = 0;
+    for (final it in items) {
+      if (!present.add((it.title, it.startMinutes, it.endMinutes))) continue;
+      _cache.add(
+        ScheduleItem(
+          id: _uuid.v4(),
+          title: it.title,
+          date: day,
+          startMinutes: it.startMinutes,
+          endMinutes: it.endMinutes,
+          note: it.note,
+          location: it.location,
+          colorIndex: it.colorIndex,
+          reminderMinutes: it.reminderMinutes,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      added++;
+    }
+    if (added > 0) await _save();
+    return added;
   }
 
   void dispose() => _controller.close();

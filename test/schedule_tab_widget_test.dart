@@ -16,8 +16,8 @@ import 'package:enitor/services/notification_service.dart';
 void main() {
   late ProviderContainer container;
 
-  Future<void> pumpToday(WidgetTester tester) async {
-    tester.view.physicalSize = const Size(420, 1600);
+  Future<void> pumpToday(WidgetTester tester, {double width = 420}) async {
+    tester.view.physicalSize = Size(width, 1600);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
@@ -209,5 +209,31 @@ void main() {
     // Сводка дня: пункт без конца времени не занимает.
     expect(find.text('1 пункт'), findsOneWidget);
     expect(find.text('Неделя'), findsOneWidget);
+  });
+
+  testWidgets('шапка дня с «Шаблонами» влезает в телефон в любой день',
+      (tester) async {
+    await pumpToday(tester, width: 360);
+    await tester.tap(find.text('Расписание'));
+    await tester.pumpAndSettle();
+    for (final name in [
+      'Понедельник',
+      'Вторник',
+      'Среда',
+      'Четверг',
+      'Пятница',
+      'Суббота',
+      'Воскресенье',
+    ]) {
+      await tester.tap(find.text('Неделя'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining(RegExp('^$name')));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: name);
+      expect(find.byTooltip('Шаблоны'), findsOneWidget);
+    }
+    await tester.tap(find.byTooltip('Шаблоны'));
+    await tester.pumpAndSettle();
+    expect(find.text('Шаблоны дня'), findsOneWidget);
   });
 }

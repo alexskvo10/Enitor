@@ -96,6 +96,13 @@ class EnitorServer {
       _send(res, 200, {'ok': true, 'result': result});
     } on StoreError catch (e) {
       _send(res, e.status, {'ok': false, 'error': e.toJson()});
+    } on TypeError catch (e) {
+      // Поле не того типа (`"date": 5`, `"title": []`): ошибка запроса, а не
+      // сервера — клиенту нужно 400, чтобы не повторять тот же запрос.
+      _send(res, 400, {
+        'ok': false,
+        'error': {'code': 'bad_request', 'message': 'Wrong field type: $e'},
+      });
     } catch (e) {
       _send(res, 500, {
         'ok': false,

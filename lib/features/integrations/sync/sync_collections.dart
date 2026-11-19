@@ -8,6 +8,7 @@ import '../../../data/models/day_template.dart';
 import '../../../data/models/goal.dart';
 import '../../../data/models/recurrence_rule.dart';
 import '../../../data/models/schedule_item.dart';
+import '../../../data/models/schedule_template.dart';
 import '../../../data/models/task.dart';
 
 // Чистый Dart: файл подключает и приложение, и `enitor-server`.
@@ -52,6 +53,8 @@ const kSyncCollections = <SyncCollection>[
   SyncCollection('recurrence', 'recurrence_rules',
       validate: RecurrenceRule.fromJson,),
   SyncCollection('templates', 'day_templates', validate: DayTemplate.fromJson),
+  SyncCollection('scheduleTemplates', 'schedule_templates',
+      validate: ScheduleTemplate.fromJson,),
   SyncCollection('taskBacklog', 'task_backlog', validate: BacklogItem.fromJson),
   SyncCollection('goalBacklog', 'goal_backlog',
       validate: GoalBacklogItem.fromJson,),

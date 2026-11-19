@@ -32,10 +32,13 @@ class _RetrospectiveScreenState extends ConsumerState<RetrospectiveScreen> {
   @override
   void initState() {
     super.initState();
-    _weekStart = addDays(startOfWeek(today()), -7);
+    // День начинается в 4:00, как и везде: в ночь на понедельник неделя
+    // ещё идёт, и разбор открывается на прошлой завершённой.
+    _weekStart = addDays(startOfWeek(effectiveDay(DateTime.now())), -7);
   }
 
-  bool get _isCurrentWeek => _weekStart == startOfWeek(today());
+  bool get _isCurrentWeek =>
+      _weekStart == startOfWeek(effectiveDay(DateTime.now()));
 
   @override
   Widget build(BuildContext context) {

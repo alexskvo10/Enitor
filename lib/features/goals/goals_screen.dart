@@ -809,6 +809,18 @@ String _trimHours(double h) => h == h.roundToDouble()
     ? h.round().toString()
     : h.toStringAsFixed(2).replaceFirst(RegExp(r'0$'), '');
 
+/// Удалить цель и отвязать от неё задачи.
+Future<void> _deleteGoal(
+  BuildContext context,
+  GoalRepository repo,
+  String id,
+) async {
+  final tasks = ProviderScope.containerOf(context, listen: false)
+      .read(taskRepositoryProvider);
+  await repo.deleteGoal(id);
+  await tasks.unlinkGoal(id);
+}
+
 class _GoalTile extends StatelessWidget {
   const _GoalTile({
     required this.goal,
@@ -964,7 +976,7 @@ class _GoalTile extends StatelessWidget {
                     } else if (action == _GoalAction.transfer) {
                       _handleTransferEarly();
                     } else {
-                      repo.deleteGoal(goal.id);
+                      _deleteGoal(context, repo, goal.id);
                     }
                   },
                   itemBuilder: (_) => [
@@ -1103,7 +1115,7 @@ class _GoalTile extends StatelessWidget {
         color: AppColors.danger.withValues(alpha: 0.12),
         child: const Icon(Icons.delete_outline, color: AppColors.danger),
       ),
-      onDismissed: (_) => repo.deleteGoal(goal.id),
+      onDismissed: (_) => _deleteGoal(context, repo, goal.id),
       child: maybeFaded,
     );
   }
@@ -1492,7 +1504,20 @@ class _GoalTile extends StatelessWidget {
   /// Переключение выполнения через чекбокс + опрос качества при завершении.
   /// navContext берём ДО переключения: плитка переедет в «Выполненные» и
   /// будет уничтожена, её context станет невалиден к моменту показа диалога.
+  /// Цели, чья галочка сейчас обрабатывается: второй тап за время анимации
+  /// и вопроса иначе снял бы отметку и открыл второй диалог.
+  static final _toggling = <String>{};
+
   Future<void> _onToggle(BuildContext context) async {
+    if (!_toggling.add(goal.id)) return;
+    try {
+      await _toggleAndAsk(context);
+    } finally {
+      _toggling.remove(goal.id);
+    }
+  }
+
+  Future<void> _toggleAndAsk(BuildContext context) async {
     final navContext = Navigator.of(context, rootNavigator: true).context;
     final wasIncomplete = !goal.completed;
     // Даём галочке прочертиться до того, как цель уедет в «Выполненные».
@@ -1705,7 +1730,10 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
   bool _isCounter = false;
 
   /// Число в поле «Цель:» — в разах или, у цели во времени, в часах.
-  int _targetCount = 10;
+  /// Текст поля «Цель»: число раз или часы (можно дробные — «1,5»).
+  /// Разбирается при сохранении по выбранной единице.
+  String _targetText = '10';
+  String? _targetError;
   bool _isTime = false;
   String? _parentId;
 
@@ -1762,8 +1790,10 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
     _deadline = widget.existingGoal?.deadline;
     _isCounter = widget.existingGoal?.isCounter ?? false;
     _isTime = widget.existingGoal?.isTime ?? false;
-    _targetCount = widget.existingGoal?.targetCount ?? 10;
-    if (_isTime) _targetCount = (_targetCount / 60).round().clamp(1, 1 << 20);
+    final target = widget.existingGoal?.targetCount ?? 10;
+    // Часы — как есть, с дробью: 90 минут — «1.5», а не округлённые «2»,
+    // которые при сохранении превратились бы в 120 минут.
+    _targetText = _isTime ? _hoursText(target) : '$target';
     _parentId = widget.existingGoal?.parentId;
     _priority = widget.existingGoal?.priority ?? TaskPriority.none;
     _tags.addAll(widget.existingGoal?.tags ?? const []);
@@ -1803,6 +1833,26 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
         for (final c in _subtaskCtrls)
           if (c.text.trim().isNotEmpty) c.text.trim(),
       ];
+
+  static String _hoursText(int minutes) {
+    final h = minutes / 60;
+    return h == h.roundToDouble()
+        ? '${h.round()}'
+        : h.toStringAsFixed(2).replaceFirst(RegExp(r'0+$'), '');
+  }
+
+  /// Цель счётчика из поля: раз (от 2) или минуты из часов; null — неверно.
+  int? _parseTarget(bool time) {
+    final v = _targetText.trim().replaceAll(',', '.');
+    if (time) {
+      final h = double.tryParse(v);
+      if (h == null || h <= 0 || h > 100000) return null;
+      final minutes = (h * 60).round();
+      return minutes < 1 ? null : minutes;
+    }
+    final n = int.tryParse(v);
+    return n == null || n < 2 || n > 1 << 30 ? null : n;
+  }
 
   List<SubTask> _subtasksForEdit() {
     final result = <SubTask>[];
@@ -2137,19 +2187,22 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
                     SizedBox(
                       width: 110,
                       child: TextFormField(
-                        initialValue: '$_targetCount',
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(
-                              vertical: 10, horizontal: 10),
+                        initialValue: _targetText,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
                         ),
-                        onChanged: (v) {
-                          final n = int.tryParse(v.trim());
-                          // Час — уже 60 минут, так что «1» у времени можно.
-                          if (n != null && n >= 1) _targetCount = n;
-                        },
+                        decoration: InputDecoration(
+                          border: const OutlineInputBorder(),
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                              vertical: 10, horizontal: 10),
+                          errorText: _targetError,
+                          errorMaxLines: 2,
+                        ),
+                        onChanged: (v) => setState(() {
+                          _targetText = v;
+                          _targetError = null;
+                        }),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -2303,8 +2356,16 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
     final description = descText.isEmpty ? null : descText;
     final time = _isCounter && _isTime;
     final unit = time ? GoalUnit.minutes : GoalUnit.count;
-    // У «раз» счётчик — от 2; у времени поле в часах, храним минуты.
-    final target = time ? _targetCount * 60 : _targetCount.clamp(2, 1 << 30);
+    // Что в поле, то и сохраняем: у «раз» — от 2, у времени — часы больше
+    // нуля (храним минуты). Иначе — ошибка у поля, а не молча другое число.
+    final target = _parseTarget(time);
+    if (target == null) {
+      final error = time
+          ? context.l10n.counterTargetHoursError
+          : context.l10n.counterTargetCountError;
+      setState(() => _targetError = error);
+      return;
+    }
     // Родитель мог выпасть из списка (сменили «Раз/Часы») — не сохраняем его.
     final parentId = repo
             .parentCandidatesFor(widget.periodRef,
@@ -2314,9 +2375,20 @@ class _GoalFormSheetState extends ConsumerState<_GoalFormSheet> {
         : null;
 
     if (widget.isEditing) {
-      final existing = widget.existingGoal!;
+      // Свежая цель из хранилища, а не снимок на момент открытия формы:
+      // прогресс, отметки подзадач и выполнение могли смениться, пока форма
+      // была открыта (вклад задач, другое устройство) — снимок их откатил бы.
+      final existing = repo.goalById(widget.existingGoal!.id) ??
+          widget.existingGoal!;
       final now = DateTime.now();
-      final subs = _subtasksForEdit();
+      final subs = [
+        for (final s in _subtasksForEdit())
+          existing.subtasks
+                  .where((x) => x.id == s.id)
+                  .firstOrNull
+                  ?.copyWith(title: s.title) ??
+              s,
+      ];
       final unitChanged = existing.unit != unit;
       var updated = existing.copyWith(
         title: title,

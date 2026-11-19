@@ -70,6 +70,13 @@ enitor_server.exe --data C:\enitor-data --show-token
 The data folder holds two files: `enitor-data.json` (all your data, as plain
 JSON) and `token`. Back up the folder regularly.
 
+The server counts "today" (for tasks created over REST without a date) and the
+time of records in the time zone of the machine it runs on. On a VPS that is
+usually UTC — set your zone with the `TZ` variable, for example
+`TZ=Europe/Moscow enitor_server --data /srv/enitor-data`, or
+`Environment=TZ=Europe/Moscow` in a systemd unit. The server prints its zone on
+start.
+
 ### 3. Connect Enitor
 
 On each device open **Settings → Sync → Own server**, press
@@ -124,7 +131,7 @@ Synced, with the collection names used in the protocol:
 - goals (`goals`);
 - schedule items and series (`schedule`);
 - repeat rules (`recurrence`);
-- day templates (`templates`);
+- day templates (`templates`) and schedule templates (`scheduleTemplates`);
 - the backlogs of tasks and goals (`taskBacklog`, `goalBacklog`);
 - day statistics (`dayStats`);
 - day and period ratings (`dayRatings`, `periodRatings`).
@@ -519,8 +526,8 @@ The device sends its changes and asks for the others:
 
 - `cursor`: the last revision this device has seen. Use `0` the first time.
 - `changes[].coll`: one of `tasks`, `goals`, `schedule`, `recurrence`,
-  `templates`, `taskBacklog`, `goalBacklog`, `dayStats`, `dayRatings`,
-  `periodRatings`.
+  `templates`, `scheduleTemplates`, `taskBacklog`, `goalBacklog`, `dayStats`,
+  `dayRatings`, `periodRatings`.
 - `changes[].id`: the record id. For `dayStats`, `dayRatings` and
   `periodRatings` it is the key of the day or period, for example
   `2026-10-28T00:00:00.000`.
@@ -593,7 +600,9 @@ data: {"rev":124}
 ```
 
 A comment line `: ping` is sent every 25 seconds, so proxies keep the
-connection open. A device that sees a revision above its cursor calls
+connection open. If the stream stays silent for more than 75 seconds, the
+device treats it as dropped and reconnects — your own server should send
+something more often. A device that sees a revision above its cursor calls
 `/v1/sync`. The stream is only a hint: a device that misses it still syncs
 every five minutes.
 

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/appearance.dart';
 import '../../core/utils/date_utils.dart';
+import '../../core/utils/format_utils.dart';
 import '../../data/models/goal.dart';
 import '../../data/models/task.dart';
 import '../../l10n/app_localizations.dart';
@@ -40,9 +41,9 @@ class GlobalSearchDelegate extends SearchDelegate<DateTime?> {
   Widget buildSuggestions(BuildContext context) => _buildList(context);
 
   bool _matches(Task t, String q) =>
-      t.title.toLowerCase().contains(q) ||
-      (t.description?.toLowerCase().contains(q) ?? false) ||
-      t.tags.any((tag) => tag.toLowerCase().contains(q));
+      searchNorm(t.title).contains(q) ||
+      searchNorm(t.description ?? '').contains(q) ||
+      t.tags.any((tag) => searchNorm(tag).contains(q));
 
   /// Подзаголовок результата: дата · время · теги (время локализовано).
   String _subtitle(Task t, DateFormat df, AppLocalizations l10n) {
@@ -57,7 +58,7 @@ class GlobalSearchDelegate extends SearchDelegate<DateTime?> {
 
   Widget _buildList(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final q = query.trim().toLowerCase();
+    final q = searchNorm(query.trim());
     if (q.isEmpty) {
       return Center(
         child: NotebookEmptyState(
@@ -94,6 +95,8 @@ class GlobalSearchDelegate extends SearchDelegate<DateTime?> {
             subtitle: Text(_subtitle(t, df, l10n)),
             onTap: () => close(context, dateOnly(t.date)),
           ),
+        if (found.length > _maxResults)
+          _MoreHint(shown: _maxResults, total: found.length),
       ],
     );
   }
@@ -131,13 +134,13 @@ class GoalSearchDelegate extends SearchDelegate<Goal?> {
   Widget buildSuggestions(BuildContext context) => _buildList(context);
 
   bool _matches(Goal g, String q) =>
-      g.title.toLowerCase().contains(q) ||
-      (g.description?.toLowerCase().contains(q) ?? false) ||
-      g.tags.any((tag) => tag.toLowerCase().contains(q));
+      searchNorm(g.title).contains(q) ||
+      searchNorm(g.description ?? '').contains(q) ||
+      g.tags.any((tag) => searchNorm(tag).contains(q));
 
   Widget _buildList(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final q = query.trim().toLowerCase();
+    final q = searchNorm(query.trim());
     if (q.isEmpty) {
       return Center(
         child: NotebookEmptyState(
@@ -147,7 +150,9 @@ class GoalSearchDelegate extends SearchDelegate<Goal?> {
       );
     }
 
-    final found = goals.where((g) => _matches(g, q)).toList();
+    // Свежие периоды первыми, как у задач.
+    final found = goals.where((g) => _matches(g, q)).toList()
+      ..sort((a, b) => b.ref.start.compareTo(a.ref.start));
     if (found.isEmpty) {
       return Center(
         child: NotebookEmptyState(
@@ -170,7 +175,26 @@ class GoalSearchDelegate extends SearchDelegate<Goal?> {
                 Localizations.localeOf(context).languageCode == 'ru')),
             onTap: () => close(context, g),
           ),
+        if (found.length > _maxResults)
+          _MoreHint(shown: _maxResults, total: found.length),
       ],
     );
   }
+}
+
+/// Под списком, когда найдено больше, чем показано.
+class _MoreHint extends StatelessWidget {
+  const _MoreHint({required this.shown, required this.total});
+
+  final int shown;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: Text(
+          AppLocalizations.of(context).searchTooMany(shown, total),
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      );
 }

@@ -64,6 +64,11 @@
           "type": "array",
           "items": { "$ref": "#/$defs/DayTemplate" }
         },
+        "scheduleTemplates": {
+          "type": "array",
+          "description": "Added after format v1 was published; older exports don't have it.",
+          "items": { "$ref": "#/$defs/ScheduleTemplate" }
+        },
         "taskBacklog": {
           "type": "array",
           "items": { "$ref": "#/$defs/BacklogItem" }
@@ -512,6 +517,44 @@
         }
       }
     },
+    "ScheduleTemplateItem": {
+      "type": "object",
+      "description": "One event of a schedule template, without a date or repeat. Model: ScheduleTemplateItem.toJson.",
+      "required": [
+        "title",
+        "startMinutes",
+        "endMinutes",
+        "note",
+        "location",
+        "colorIndex",
+        "reminderMinutes"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string" },
+        "startMinutes": { "type": "integer" },
+        "endMinutes": { "$ref": "#/$defs/nullableInt" },
+        "note": { "$ref": "#/$defs/nullableString" },
+        "location": { "$ref": "#/$defs/nullableString" },
+        "colorIndex": { "$ref": "#/$defs/nullableInt" },
+        "reminderMinutes": { "$ref": "#/$defs/nullableInt" }
+      }
+    },
+    "ScheduleTemplate": {
+      "type": "object",
+      "description": "A named set of schedule events placed on a day as one-off events. Model: ScheduleTemplate.toJson.",
+      "required": ["id", "name", "createdAt", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "createdAt": { "$ref": "#/$defs/dateTime" },
+        "items": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ScheduleTemplateItem" }
+        }
+      }
+    },
     "BacklogItem": {
       "type": "object",
       "description": "A task without a day, kept after a moved copy was deleted from its target day. Model: BacklogItem.toJson.",
@@ -550,7 +593,11 @@
         },
         "subtaskTitles": { "$ref": "#/$defs/stringList" },
         "priority": { "$ref": "#/$defs/priority" },
-        "tags": { "$ref": "#/$defs/stringList" }
+        "tags": { "$ref": "#/$defs/stringList" },
+        "goalId": {
+          "$ref": "#/$defs/nullableString",
+          "description": "Counter goal the task counted toward. Missing in older backups."
+        }
       }
     },
     "GoalPeriodRef": {
@@ -600,6 +647,14 @@
         "unit": {
           "enum": ["count", "minutes"],
           "description": "Unit of the goal's counter; missing means count."
+        },
+        "priority": {
+          "$ref": "#/$defs/priority",
+          "description": "Missing in older backups: none."
+        },
+        "tags": {
+          "$ref": "#/$defs/stringList",
+          "description": "Missing in older backups: no tags."
         }
       }
     }

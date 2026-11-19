@@ -45,7 +45,7 @@ const kLanOnlineWindow = Duration(seconds: 75);
 const kLanPreferredPort = 48789;
 
 /// Больше стольких входящих соединений сразу не держим: каждое может прислать
-/// сообщение до [kLanMaxFrame], а прислать его может кто угодно в сети.
+/// заголовок до [kLanMaxUnsigned], а прислать его может кто угодно в сети.
 const kLanMaxIncoming = 4;
 
 /// Пропавших соседей (поиск их не находит) сам перебором ищем не чаще этого;
@@ -110,6 +110,11 @@ class LanPeer {
   DateTime? lastSync;
   String? error;
   DateTime? lastAttempt;
+
+  /// Новый адрес из объявления по UDP. Объявление может прислать кто угодно
+  /// в той же сети, поэтому адрес меняется, только когда по нему ответил
+  /// сосед со своим сертификатом (см. [LanNode.syncPeer]).
+  (String, int)? unverified;
 
   bool online(DateTime now) => [lastSeen, lastSync]
       .any((t) => t != null && now.difference(t) < kLanOnlineWindow);
@@ -178,6 +183,10 @@ class LanNode {
   bool _running = false;
   bool _leaving = false;
   int _incoming = 0;
+
+  /// Входящие обмены, которые ещё идут: [stop] ждёт их, иначе запрос,
+  /// дочитанный после остановки, писал бы в уже закрытую копию сервера.
+  final _serving = <Future<void>>{};
 
   /// Хранилище пишет обмен — эти правки не свои, по ним обмен не запускать.
   bool get writing =>
@@ -262,9 +271,24 @@ class LanNode {
     return false;
   }
 
-  void _notePeer(String id, String address, Object? port) {
+  void _notePeer(
+    String id,
+    String address,
+    Object? port, {
+    bool verified = true,
+  }) {
     if (port is! int || port <= 0 || port > 65535) return;
     final p = _peers[id];
+    if (p != null && !verified) {
+      if (p.address == address && p.port == port) {
+        p
+          ..unverified = null
+          ..lastSeen = _clock();
+      } else {
+        p.unverified = (address, port);
+      }
+      return;
+    }
     if (p == null) {
       _peers[id] = LanPeer(address: address, port: port)..lastSeen = _clock();
       unawaited(_savePeers());
@@ -273,6 +297,7 @@ class LanNode {
       p
         ..address = address
         ..port = port
+        ..unverified = null
         ..lastSeen = _clock();
       if (moved) unawaited(_savePeers());
     }
@@ -340,7 +365,12 @@ class LanNode {
       (s) {
         if (_incoming >= kLanMaxIncoming) return s.destroy();
         _incoming++;
-        unawaited(_serve(s).whenComplete(() => _incoming--));
+        late final Future<void> serving;
+        serving = _serve(s).whenComplete(() {
+          _incoming--;
+          _serving.remove(serving);
+        });
+        _serving.add(serving);
       },
       onError: (_) {},
     );
@@ -385,6 +415,10 @@ class LanNode {
     _discovery = null;
     await _server?.close();
     _server = null;
+    // Начатые входящие — доответить (сокет с таймаутом чтения не повиснет
+    // надолго, но и вечно ждать не будем).
+    await Future.wait(_serving.toList())
+        .timeout(const Duration(seconds: 15), onTimeout: () => const []);
     // Идущий обмен дописывает копию сервера — закрывать её после него.
     await _tail;
     _local = null;
@@ -458,11 +492,14 @@ class LanNode {
     }
   }
 
+  /// Объявление соседа, будто пришло по UDP — только для тестов.
+  void debugFound(LanAnnounce a) => _onFound(a);
+
   void _onFound(LanAnnounce a) {
     if (a.pairing) _pairingSeen[a.address] = a;
     final m = _members[a.id];
     if (m == null || m.revoked) return;
-    _notePeer(a.id, a.address, a.port);
+    _notePeer(a.id, a.address, a.port, verified: false);
     final p = _peers[a.id]!;
     final last = p.lastAttempt;
     if (last == null ||
@@ -513,8 +550,30 @@ class LanNode {
           baseKey: lanPeerBaseKey(id),
           cursorKey: lanPeerCursorKey(id),
           send: (body) async {
-            final r =
-                await _request(p, m.fingerprint, {'t': 'sync', 'body': body});
+            final msg = {'t': 'sync', 'body': body};
+            Map<String, dynamic>? r;
+            // Сначала новый адрес из объявления: запрос проверяет сертификат
+            // соседа, так что ответ по нему — подтверждение. Не ответил —
+            // подделка или устарело, работаем по прежнему.
+            final next = p.unverified;
+            if (next != null) {
+              p.unverified = null;
+              try {
+                r = await _request(
+                  LanPeer(address: next.$1, port: next.$2),
+                  m.fingerprint,
+                  msg,
+                );
+                p
+                  ..address = next.$1
+                  ..port = next.$2
+                  ..lastSeen = _clock();
+                unawaited(_savePeers());
+              } on LanException {
+                r = null;
+              }
+            }
+            r ??= await _request(p, m.fingerprint, msg);
             return (r['result'] as Map? ?? const {}).cast<String, dynamic>();
           },
         )..onApplied = (c) => onApplied?.call(c);
@@ -556,14 +615,17 @@ class LanNode {
       r = await lanRequest(
         p.address,
         p.port,
-        (serverFp) => {
+        (_) => {
           ...msg,
           'v': 1,
+          'port': port,
+          'group': _groupWire(),
+        },
+        header: (serverFp) => {
+          't': 'auth',
           'from': deviceId,
           'cert': identity.certPem,
           'sig': lanAuthSign(identity, serverFp),
-          'port': port,
-          'group': _groupWire(),
         },
         pin: pin,
       );
@@ -582,13 +644,7 @@ class LanNode {
   Future<void> _serve(SecureSocket s) async {
     Map<String, dynamic> reply;
     try {
-      final req = await readLanFrame(s).timeout(const Duration(seconds: 30));
-      final from = s.remoteAddress.address;
-      reply = switch (req['t']) {
-        'sync' || 'group' => await _handleSync(req, from),
-        'pair' => await _handlePair(req, from),
-        _ => {'ok': false, 'error': 'unknown'},
-      };
+      reply = await _answer(LanFrameReader(s), s.remoteAddress.address);
     } on StoreError catch (e) {
       reply = {'ok': false, 'error': e.code};
     } catch (_) {
@@ -599,6 +655,34 @@ class LanNode {
       await s.flush();
     } catch (_) {}
     s.destroy();
+  }
+
+  /// Первое сообщение — не больше [kLanMaxUnsigned]: подписанный заголовок
+  /// `auth`, знакомство или запрос прежней версии без заголовка. Тело после
+  /// заголовка читается, только если подпись своя.
+  Future<Map<String, dynamic>> _answer(
+    LanFrameReader reader,
+    String from,
+  ) async {
+    const wait = Duration(seconds: 30);
+    var req = await reader.next(maxFrame: kLanMaxUnsigned).timeout(wait);
+    if (req['t'] == 'auth') {
+      if (!_running || _signer(req) == null) {
+        return {'ok': false, 'error': 'unauthorized'};
+      }
+      final body = await reader.next().timeout(wait);
+      req = {
+        ...body,
+        'from': req['from'],
+        'cert': req['cert'],
+        'sig': req['sig'],
+      };
+    }
+    return switch (req['t']) {
+      'sync' || 'group' => await _handleSync(req, from),
+      'pair' => await _handlePair(req, from),
+      _ => {'ok': false, 'error': 'unknown'},
+    };
   }
 
   /// Устройство группы (может быть и отключённое), подписавшее запрос

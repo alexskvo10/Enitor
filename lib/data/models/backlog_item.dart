@@ -18,11 +18,16 @@ class BacklogItem {
     this.subtaskTitles = const [],
     this.priority = TaskPriority.none,
     this.tags = const [],
+    this.goalId,
   });
 
   final String id;
   final String title;
   final String? description;
+
+  /// Цель-счётчик, к которой была привязана задача: вернётся вместе с ней,
+  /// если цель ещё идёт.
+  final String? goalId;
 
   /// Дата, когда задача была изначально запланирована (до переноса).
   final DateTime originalDate;
@@ -58,6 +63,7 @@ class BacklogItem {
         'subtaskTitles': subtaskTitles,
         'priority': priority.index,
         'tags': tags,
+        'goalId': goalId,
       };
 
   factory BacklogItem.fromJson(Map<String, dynamic> j) => BacklogItem(
@@ -78,6 +84,7 @@ class BacklogItem {
             .clamp(0, TaskPriority.values.length - 1)],
         tags: (j['tags'] as List?)?.map((e) => e as String).toList() ??
             const [],
+        goalId: j['goalId'] as String?,
       );
 }
 
@@ -95,7 +102,12 @@ class GoalBacklogItem {
     this.progressCount = 0,
     this.subtaskTitles = const [],
     this.unit = GoalUnit.count,
+    this.priority = TaskPriority.none,
+    this.tags = const [],
   });
+
+  final TaskPriority priority;
+  final List<String> tags;
 
   final String id;
   final String title;
@@ -128,6 +140,8 @@ class GoalBacklogItem {
         'progressCount': progressCount,
         'subtaskTitles': subtaskTitles,
         'unit': unit.name,
+        'priority': priority.index,
+        'tags': tags,
       };
 
   factory GoalBacklogItem.fromJson(Map<String, dynamic> j) => GoalBacklogItem(
@@ -143,6 +157,10 @@ class GoalBacklogItem {
             (j['subtaskTitles'] as List?)?.map((e) => e as String).toList() ??
                 const [],
         unit: j['unit'] == 'minutes' ? GoalUnit.minutes : GoalUnit.count,
+        priority: TaskPriority.values[(j['priority'] as int? ?? 0)
+            .clamp(0, TaskPriority.values.length - 1)],
+        tags: (j['tags'] as List?)?.map((e) => e as String).toList() ??
+            const [],
       );
 
   static Map<String, dynamic> _refToJson(GoalPeriodRef r) => {

@@ -27,6 +27,7 @@ import 'core/utils/date_utils.dart';
 import 'services/backup_service.dart';
 import 'services/notification_service.dart';
 import 'services/pomodoro_controller.dart';
+import 'services/update_service.dart';
 
 /// Вычисляет следующий момент 4:00 утра (сегодня или завтра).
 DateTime _nextFourAm() {
@@ -46,15 +47,20 @@ DateTime _nextFourAm() {
 void _scheduleNightlyTransfer(ProviderContainer container) {
   final delay = _nextFourAm().difference(DateTime.now());
   Timer(delay, () async {
-    final now = DateTime.now();
-    await container
-        .read(taskRepositoryProvider)
-        .demoteStaleTransferredCopies(now: now);
-    await container
-        .read(goalRepositoryProvider)
-        .demoteStaleTransferredCopies(now: now);
-    // Перепланируем на следующий день.
-    _scheduleNightlyTransfer(container);
+    try {
+      final now = DateTime.now();
+      final tasks = container.read(taskRepositoryProvider);
+      await tasks.demoteStaleTransferredCopies(now: now);
+      await container
+          .read(goalRepositoryProvider)
+          .demoteStaleTransferredCopies(now: now);
+      // Вчерашний день закрылся: повторы, которых в нём нет, — в статистику.
+      await tasks.backfillPastRecurrences(now: now);
+    } finally {
+      // Перепланируем на следующий день — даже если что-то упало, иначе
+      // ночное списание молча перестало бы работать до перезапуска.
+      _scheduleNightlyTransfer(container);
+    }
   });
 }
 
@@ -83,7 +89,10 @@ Future<void> main(List<String> args) async {
   // Сигнал UnifiedPush, когда приложение закрыто: система запускает движок
   // без окна — только обмен с сервером, без интерфейса.
   if (args.contains('--unifiedpush-bg')) return runPushBackground();
+  updateFailedOnLaunch = args.contains(kUpdateFailedArg);
   WidgetsFlutterBinding.ensureInitialized();
+  // До чтения хранилища: см. claimForegroundSync.
+  claimForegroundSync();
 
   final prefs = await _initPrefs();
   final storage = LocalStorage(prefs);
@@ -142,6 +151,10 @@ Future<void> main(List<String> args) async {
         .read(goalRepositoryProvider)
         .demoteStaleTransferredCopies(now: now);
   }
+  // Прошедшие дни, когда приложение не открывали: их повторы — в статистику.
+  unawaited(
+    container.read(taskRepositoryProvider).backfillPastRecurrences(now: now),
+  );
 
   // Само планирование уведомлений (запрос разрешений + расписание) запускается
   // ПОСЛЕ старта UI — из корневого виджета, чтобы не блокировать запуск и не

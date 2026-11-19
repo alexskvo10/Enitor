@@ -14,6 +14,7 @@ import '../../../data/repositories/recurrence_repository.dart';
 import '../../../data/repositories/schedule_repository.dart';
 import '../../../data/repositories/stats_repository.dart';
 import '../../../data/repositories/task_repository.dart';
+import '../../../data/repositories/schedule_template_repository.dart';
 import '../../../data/repositories/template_repository.dart';
 import '../../../data/sources/local/local_storage.dart';
 import '../../../services/backup_service.dart';
@@ -341,6 +342,29 @@ class SyncService {
     try {
       final r = await engine.run();
       await finishPending();
+      if (r.refused > 0) {
+        // Обмен прошёл, но часть своих записей сервер не взял — молчать
+        // нельзя: они так и не дойдут до других устройств. Число — в status
+        // журнала и в тексте ошибки настроек (там status не хранится).
+        await _addLog(
+          SyncLogEntry(
+            at: now,
+            sent: r.sent,
+            received: r.received,
+            code: 'refused',
+            status: r.refused,
+            error: '${r.refused}',
+          ),
+        );
+        await _saveSettings(
+          settings.copyWith(
+            lastSyncAt: now,
+            lastErrorCode: 'refused',
+            lastError: '${r.refused}',
+          ),
+        );
+        return;
+      }
       await _addLog(SyncLogEntry(at: now, sent: r.sent, received: r.received));
       await _saveSettings(settings.copyWith(lastSyncAt: now, clearError: true));
     } on SyncException catch (e) {
@@ -371,6 +395,8 @@ class SyncService {
           _ref.read(recurrenceRepositoryProvider).reload();
         case 'templates':
           _ref.read(templateRepositoryProvider).reload();
+        case 'scheduleTemplates':
+          _ref.read(scheduleTemplateRepositoryProvider).reload();
         case 'taskBacklog':
           _ref.read(backlogRepositoryProvider).reload();
         case 'goalBacklog':

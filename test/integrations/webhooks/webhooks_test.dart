@@ -80,10 +80,18 @@ void main() {
       WebhookEvent.dayClosed,
       WebhookEvent.goalAchieved,
     },
-  }) =>
-      hooks().saveEndpoints([
-        WebhookEndpoint(id: 'w1', url: url(), events: events),
-      ]);
+    bool secret = true,
+  }) async {
+    // Секрет пишет форма при сохранении — как и здесь.
+    if (secret) {
+      await container
+          .read(secretStoreProvider)
+          .setWebhookSecret('w1', SecretStore.generate());
+    }
+    await hooks().saveEndpoints([
+      WebhookEndpoint(id: 'w1', url: url(), events: events),
+    ]);
+  }
 
   Future<void> settle() async {
     for (var i = 0; i < 20; i++) {
@@ -113,6 +121,21 @@ void main() {
     expect(json['v'], 1);
     expect((json['data']! as Map)['task'], containsPair('title', 'Отчёт'));
     expect(json['id'], webhookEventId(a.id, WebhookEvent.taskCompleted));
+  });
+
+  test('без секрета доставка не уходит — новый молча не создаётся', () async {
+    await addEndpoint(events: {WebhookEvent.taskCompleted}, secret: false);
+    hooks().listen();
+    final tasks = container.read(taskRepositoryProvider);
+    final a = await tasks.createAndAdd(title: 'Отчёт', date: now);
+    await tasks.toggleCompleted(a);
+    await settle();
+
+    expect(received, isEmpty);
+    expect(
+      await container.read(secretStoreProvider).readWebhookSecret('w1'),
+      isNull,
+    );
   });
 
   test('удалённый адрес уносит свои неудачи — пометка «не доставлено» гаснет',
@@ -266,6 +289,9 @@ void main() {
         return http.Response('', 200);
       }),
     );
+    await container
+        .read(secretStoreProvider)
+        .setWebhookSecret('w1', SecretStore.generate());
     await service.saveEndpoints([
       WebhookEndpoint(
         id: 'w1',
@@ -314,6 +340,9 @@ void main() {
       clock: () => now,
       client: () => MockClient((_) async => throw TimeoutException('slow')),
     );
+    await container
+        .read(secretStoreProvider)
+        .setWebhookSecret('w1', SecretStore.generate());
     await service.saveEndpoints([
       WebhookEndpoint(
         id: 'w1',
@@ -339,6 +368,9 @@ void main() {
         return http.Response('', 200);
       }),
     );
+    await container
+        .read(secretStoreProvider)
+        .setWebhookSecret('w1', SecretStore.generate());
     await service.saveEndpoints([
       WebhookEndpoint(
         id: 'w1',

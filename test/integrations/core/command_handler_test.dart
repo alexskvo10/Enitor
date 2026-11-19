@@ -168,6 +168,17 @@ void main() {
       expect(tasks().allTasks.length, 1);
     });
 
+    test('два одновременных повтора с одним ключом — одна задача', () async {
+      await allow(CommandSource.cli);
+      final replies = await Future.wait([
+        handler().execute(cmd(keyed, CommandSource.cli)),
+        handler().execute(cmd(keyed, CommandSource.cli)),
+      ]);
+      expect(replies.every((r) => r.ok), isTrue);
+      expect(replies[1].result, replies[0].result);
+      expect(tasks().allTasks.length, 1);
+    });
+
     test('без ключа повтор создаёт вторую задачу — так задумано', () async {
       await allow(CommandSource.cli);
       await handler().execute(cmd(addTask, CommandSource.cli));

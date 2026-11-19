@@ -88,11 +88,9 @@ class LocalStorage {
   /// (полная замена, а не слияние). Ключи «устройство» не трогает ни при
   /// очистке, ни при записи.
   Future<void> restore(Map<String, Object?> data, {bool clear = true}) async {
-    if (clear) {
-      for (final k in _prefs.getKeys().toList()) {
-        if (!k.startsWith(kDeviceKeyPrefix)) await _prefs.remove(k);
-      }
-    }
+    // Сначала пишем копию, лишние ключи убираем потом: прерванное
+    // восстановление (вылет, выключили) оставит смесь, но не пустое
+    // хранилище, которое на старте сочлось бы «нет данных».
     for (final entry in data.entries) {
       if (entry.key.startsWith(kDeviceKeyPrefix)) continue;
       final v = entry.value;
@@ -107,6 +105,12 @@ class LocalStorage {
       } else if (v is List) {
         await _prefs.setStringList(
             entry.key, v.map((e) => e.toString()).toList());
+      }
+    }
+    if (clear) {
+      for (final k in _prefs.getKeys().toList()) {
+        if (k.startsWith(kDeviceKeyPrefix) || data.containsKey(k)) continue;
+        await _prefs.remove(k);
       }
     }
   }

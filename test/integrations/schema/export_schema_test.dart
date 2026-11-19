@@ -5,11 +5,13 @@ import 'package:enitor/data/models/backlog_item.dart';
 import 'package:enitor/data/models/day_template.dart';
 import 'package:enitor/data/models/goal.dart';
 import 'package:enitor/data/models/recurrence_rule.dart';
+import 'package:enitor/data/models/schedule_template.dart';
 import 'package:enitor/data/models/task.dart';
 import 'package:enitor/data/repositories/backlog_repository.dart';
 import 'package:enitor/data/repositories/goal_repository.dart';
 import 'package:enitor/data/repositories/rating_repository.dart';
 import 'package:enitor/data/repositories/schedule_repository.dart';
+import 'package:enitor/data/repositories/schedule_template_repository.dart';
 import 'package:enitor/data/repositories/task_repository.dart';
 import 'package:enitor/data/repositories/template_repository.dart';
 import 'package:enitor/data/sources/local/local_storage.dart';
@@ -111,6 +113,13 @@ Future<Map<String, Map<String, dynamic>>> _seed(ProviderContainer c) async {
   ]);
   final template = (await templates.watchTemplates().first).single;
 
+  final scheduleTemplates = c.read(scheduleTemplateRepositoryProvider);
+  await scheduleTemplates.add('Учебный день', [
+    ScheduleTemplateItem.fromItem(item),
+  ]);
+  final scheduleTemplate =
+      (await scheduleTemplates.watchTemplates().first).single;
+
   final backlogItem = BacklogItem(
     id: 'backlog-1',
     title: 'Вернуться к задаче',
@@ -152,6 +161,8 @@ Future<Map<String, Map<String, dynamic>>> _seed(ProviderContainer c) async {
     'RecurrenceRule': rule.toJson(),
     'DayTemplate': template.toJson(),
     'TemplateItem': template.items.first.toJson(),
+    'ScheduleTemplate': scheduleTemplate.toJson(),
+    'ScheduleTemplateItem': scheduleTemplate.items.first.toJson(),
     'BacklogItem': backlogItem.toJson(),
     'GoalBacklogItem': goalBacklogItem.toJson(),
     'GoalPeriodRef': goalBacklogItem.toJson()['originalRef'] as Map<String, dynamic>,
@@ -188,6 +199,7 @@ void main() {
       'schedule',
       'recurrence',
       'templates',
+      'scheduleTemplates',
       'taskBacklog',
       'goalBacklog',
       'dayRatings',

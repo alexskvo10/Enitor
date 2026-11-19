@@ -8,7 +8,9 @@ import '../imported_task.dart';
 /// Разбор CSV-шаблона Todoist. TYPE: task / section / note / meta.
 /// PRIORITY: 1 = p1 … 4 = p4. INDENT: 2 и больше — подзадача.
 /// Повторы распознаются по DATE (английские и русские фразы).
-ImportResult parseTodoistCsv(String text) {
+/// [project] — имя файла: Todoist выгружает по проекту на файл, и без него
+/// одинаковые задачи из двух проектов получили бы один id.
+ImportResult parseTodoistCsv(String text, {String project = ''}) {
   final rows = parseCsv(text);
   if (rows.isEmpty || !_isHeader(rows.first)) {
     return importFileError(
@@ -116,7 +118,9 @@ ImportResult parseTodoistCsv(String text) {
       warnings.add(ImportWarning(content, problem, '$where: $dateRaw'));
     }
 
-    final key = '${list ?? ''}\u0000$content';
+    final key = project.isEmpty
+        ? '${list ?? ''}\u0000$content'
+        : '$project\u0000${list ?? ''}\u0000$content';
     final n = seen.update(key, (v) => v + 1, ifAbsent: () => 0);
     final description = cell(iDescription);
     final (title, labels) = _splitLabels(content);

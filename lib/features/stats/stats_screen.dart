@@ -369,16 +369,19 @@ enum _TfKind {
   /// кадр → loading навсегда.
   (DateTime, DateTime) resolve(DateTime? startedAt) {
     final d = today();
+    // Обе границы входят в период: неделя — сегодня и шесть дней до него,
+    // месяц — со дня, следующего за этим числом месяц назад.
+    DateTime months(int n) => addDays(subtractMonths(d, n), 1);
     return switch (this) {
-      _TfKind.week => (addDays(d, -7), d),
-      _TfKind.month => (subtractMonths(d, 1), d),
-      _TfKind.months3 => (subtractMonths(d, 3), d),
-      _TfKind.months6 => (subtractMonths(d, 6), d),
-      _TfKind.year => (subtractMonths(d, 12), d),
-      _TfKind.months18 => (subtractMonths(d, 18), d),
-      _TfKind.years2 => (subtractMonths(d, 24), d),
-      _TfKind.years3 => (subtractMonths(d, 36), d),
-      _TfKind.years5 => (subtractMonths(d, 60), d),
+      _TfKind.week => (addDays(d, -6), d),
+      _TfKind.month => (months(1), d),
+      _TfKind.months3 => (months(3), d),
+      _TfKind.months6 => (months(6), d),
+      _TfKind.year => (months(12), d),
+      _TfKind.months18 => (months(18), d),
+      _TfKind.years2 => (months(24), d),
+      _TfKind.years3 => (months(36), d),
+      _TfKind.years5 => (months(60), d),
       _TfKind.allTime => (startedAt == null ? d : dateOnly(startedAt), d),
     };
   }

@@ -325,11 +325,15 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
             calendarFormat: _format,
             selectedDayPredicate: (d) => isSameDay(d, _selected),
             onDaySelected: (sel, foc) {
+              // table_calendar отдаёт полночь UTC: западнее Гринвича она
+              // ещё вчерашний вечер по местному, и сегодня считалось бы
+              // прошлым днём. Берём только дату.
+              final day = dateOnly(sel);
               setState(() {
-                _selected = sel;
+                _selected = day;
                 _focused = foc;
               });
-              unawaited(taskRepo.ensureRecurrencesForDay(sel));
+              unawaited(taskRepo.ensureRecurrencesForDay(day));
             },
             onFormatChanged: (fmt) {
               setState(() => _format = fmt);
@@ -857,10 +861,12 @@ String _recDurationLabel(BuildContext context, _RecDuration d) {
 DateTime? _recEndDate(DateTime start, _RecDuration d) {
   final s = dateOnly(start);
   return switch (d) {
-    _RecDuration.month => DateTime(s.year, s.month + 1, s.day),
-    _RecDuration.months3 => DateTime(s.year, s.month + 3, s.day),
-    _RecDuration.months6 => DateTime(s.year, s.month + 6, s.day),
-    _RecDuration.year => DateTime(s.year + 1, s.month, s.day),
+    // День зажимается по длине месяца: с 31 января — до 28/29 февраля,
+    // а не до 3 марта.
+    _RecDuration.month => subtractMonths(s, -1),
+    _RecDuration.months3 => subtractMonths(s, -3),
+    _RecDuration.months6 => subtractMonths(s, -6),
+    _RecDuration.year => subtractMonths(s, -12),
     _RecDuration.forever => null,
   };
 }
@@ -1662,7 +1668,21 @@ class _TaskTile extends ConsumerWidget {
     );
   }
 
+  /// Задачи, чья галочка сейчас обрабатывается. Второй тап за время
+  /// анимации и вопросов иначе переключил бы задачу обратно и открыл
+  /// вторые диалоги. Статик: плитка пересоздаётся, когда задача переезжает.
+  static final _toggling = <String>{};
+
   Future<void> _onCheckbox(BuildContext context, WidgetRef ref) async {
+    if (!_toggling.add(task.id)) return;
+    try {
+      await _toggleAndAsk(context, ref);
+    } finally {
+      _toggling.remove(task.id);
+    }
+  }
+
+  Future<void> _toggleAndAsk(BuildContext context, WidgetRef ref) async {
     // Захватываем живой repo и стабильный navigator-контекст ДО переключения:
     // после выполнения плитка переезжает в «Выполненные» и уничтожается,
     // поэтому ref/context этой плитки станут невалидны к моменту сохранения.
@@ -2473,9 +2493,20 @@ class _TaskFormSheetState extends ConsumerState<_TaskFormSheet> {
         goalId: _goalId,
       );
     } else if (widget.isEditing) {
-      final existing = widget.existingTask!;
+      // Свежая задача из хранилища, а не снимок на момент открытия формы:
+      // минуты таймера, счётчик и отметки подзадач могли смениться, пока
+      // форма была открыта, — снимок их откатил бы.
+      final existing = repo.taskById(widget.existingTask!.id) ??
+          widget.existingTask!;
       final now = DateTime.now();
-      final subs = _subtasksForEdit();
+      final subs = [
+        for (final s in _subtasksForEdit())
+          existing.subtasks
+                  .where((x) => x.id == s.id)
+                  .firstOrNull
+                  ?.copyWith(title: s.title) ??
+              s,
+      ];
       var updated = existing.copyWith(
         title: text,
         description: description,
@@ -3016,12 +3047,22 @@ class _DayMasthead extends StatelessWidget {
     required this.actionIcon,
     required this.actionLabel,
     required this.onAction,
+    this.extraIcon,
+    this.extraLabel,
+    this.onExtra,
   });
   final DateTime date;
   final String? title;
   final IconData actionIcon;
   final String actionLabel;
   final VoidCallback onAction;
+
+  /// Вторая кнопка слева от основной (у расписания — «Шаблоны»). Только
+  /// значок с подсказкой [extraLabel]: две подписи и длинный день недели
+  /// («ВОСКРЕСЕНЬЕ») в строку телефона не влезают.
+  final IconData? extraIcon;
+  final String? extraLabel;
+  final VoidCallback? onExtra;
 
   @override
   Widget build(BuildContext context) {
@@ -3030,6 +3071,38 @@ class _DayMasthead extends StatelessWidget {
     final heading =
         (title ?? DateFormat('EEEE', locale).format(date)).toUpperCase();
     final muted = theme.colorScheme.onSurface.withValues(alpha: 0.7);
+    Widget chip(IconData icon, String? label, VoidCallback onTap) =>
+        Material(
+          color: theme.colorScheme.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(color: theme.dividerColor),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 16, color: muted),
+                  if (label != null) ...[
+                    const SizedBox(width: 6),
+                    Text(
+                      label,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: muted,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        );
     return Padding(
       padding: const EdgeInsets.fromLTRB(2, 8, 2, 6),
       child: Row(
@@ -3043,39 +3116,30 @@ class _DayMasthead extends StatelessWidget {
               fontSize: 11.5,
             ),
           ),
-          const SizedBox(width: 12),
-          // Линейка укорачивается (Expanded), чтобы не залезать под карточку.
-          Expanded(child: Container(height: 1, color: theme.dividerColor)),
-          const SizedBox(width: 12),
-          Material(
-            color: theme.colorScheme.surface,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-              side: BorderSide(color: theme.dividerColor),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              onTap: onAction,
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(actionIcon, size: 16, color: muted),
-                    const SizedBox(width: 6),
-                    Text(
-                      actionLabel,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: muted,
-                        fontWeight: FontWeight.w600,
-                      ),
+          // Линейка укорачивается (Expanded), чтобы не залезать под карточку;
+          // на узком экране исчезает вместе с отступами — место кнопкам.
+          Expanded(
+            child: LayoutBuilder(
+              builder: (_, c) => c.maxWidth < 32
+                  ? const SizedBox.shrink()
+                  : Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Container(height: 1, color: theme.dividerColor),
                     ),
-                  ],
-                ),
-              ),
             ),
           ),
+          if (onExtra != null) ...[
+            Tooltip(
+              message: extraLabel,
+              child: Semantics(
+                label: extraLabel,
+                button: true,
+                child: chip(extraIcon!, null, onExtra!),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          chip(actionIcon, actionLabel, onAction),
         ],
       ),
     );

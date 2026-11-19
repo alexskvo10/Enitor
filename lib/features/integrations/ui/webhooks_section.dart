@@ -188,8 +188,11 @@ class _EndpointScreenState extends ConsumerState<_EndpointScreen> {
   @override
   void initState() {
     super.initState();
-    ref.read(secretStoreProvider).webhookSecret(_id).then((s) {
-      if (mounted) setState(() => _secret = s);
+    // Новый секрет пишется только при сохранении: открыть форму и выйти —
+    // не повод его заводить. Пропавший у старого адреса тоже покажется
+    // новым здесь, на виду, а не подменится молча при отправке.
+    ref.read(secretStoreProvider).readWebhookSecret(_id).then((s) {
+      if (mounted) setState(() => _secret = s ?? SecretStore.generate());
     });
   }
 
@@ -244,6 +247,11 @@ class _EndpointScreenState extends ConsumerState<_EndpointScreen> {
     } else {
       list[idx] = ep;
     }
+    final secret = _secret;
+    final store = ref.read(secretStoreProvider);
+    if (secret != null && await store.readWebhookSecret(_id) != secret) {
+      await store.setWebhookSecret(_id, secret);
+    }
     await service.saveEndpoints(list);
     return true;
   }
@@ -283,6 +291,11 @@ class _EndpointScreenState extends ConsumerState<_EndpointScreen> {
       ],
     );
     if (ok != true) return;
+    // Ещё не сохранённый адрес — новый секрет только в форме, до «Сохранить».
+    if (widget.existing == null) {
+      setState(() => _secret = SecretStore.generate());
+      return;
+    }
     final s = await ref.read(secretStoreProvider).rotateWebhookSecret(_id);
     if (mounted) setState(() => _secret = s);
   }

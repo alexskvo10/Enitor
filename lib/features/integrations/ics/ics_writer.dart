@@ -39,7 +39,11 @@ String writeIcs(
     'VERSION:2.0',
     'PRODID:$prodId',
     'CALSCALE:GREGORIAN',
-    ..._vtimezone(zone, now),
+    ..._vtimezone(
+      zone,
+      now,
+      events.fold(now.year, (y, e) => e.start.year < y ? e.start.year : y),
+    ),
   ];
   for (final e in events) {
     lines.add('BEGIN:VEVENT');
@@ -158,13 +162,26 @@ String _rule(IcsRule r, tz.Location zone) {
   return parts.join(';');
 }
 
-/// VTIMEZONE: компоненты по переходам года [now]; без переходов — один STANDARD.
-List<String> _vtimezone(tz.Location zone, DateTime now) {
-  final from = DateTime.utc(now.year).millisecondsSinceEpoch;
+/// VTIMEZONE: смещение на начало года [fromYear] и все переходы с него по
+/// год [now] включительно. Правило «каждый год» — только у переходов года
+/// [now]: прошлые годы могли идти по другим правилам, поэтому они записаны
+/// разовыми, и старые события читаются со своим смещением.
+List<String> _vtimezone(tz.Location zone, DateTime now, int fromYear) {
+  final from = DateTime.utc(fromYear).millisecondsSinceEpoch;
+  final thisYear = DateTime.utc(now.year).millisecondsSinceEpoch;
   final to = DateTime.utc(now.year + 1).millisecondsSinceEpoch;
-  final lines = ['BEGIN:VTIMEZONE', 'TZID:${zone.name}'];
   var prev = zone.timeZone(from);
-  var found = false;
+  final base = prev.isDst ? 'DAYLIGHT' : 'STANDARD';
+  final lines = [
+    'BEGIN:VTIMEZONE',
+    'TZID:${zone.name}',
+    'BEGIN:$base',
+    'DTSTART:19700101T000000',
+    'TZOFFSETFROM:${_offset(prev.offset)}',
+    'TZOFFSETTO:${_offset(prev.offset)}',
+    'TZNAME:${prev.abbreviation}',
+    'END:$base',
+  ];
   for (var i = 0; i < zone.transitionAt.length; i++) {
     final at = zone.transitionAt[i];
     if (at < from || at >= to) {
@@ -172,28 +189,21 @@ List<String> _vtimezone(tz.Location zone, DateTime now) {
     }
     final next = zone.zones[zone.transitionZone[i]];
     if (next.offset != prev.offset || next.isDst != prev.isDst) {
-      lines.addAll(_component(at, prev, next));
-      found = true;
+      lines.addAll(_component(at, prev, next, yearly: at >= thisYear));
     }
     prev = next;
-  }
-  if (!found) {
-    final cur = zone.timeZone(now.millisecondsSinceEpoch);
-    lines.addAll([
-      'BEGIN:STANDARD',
-      'DTSTART:19700101T000000',
-      'TZOFFSETFROM:${_offset(cur.offset)}',
-      'TZOFFSETTO:${_offset(cur.offset)}',
-      'TZNAME:${cur.abbreviation}',
-      'END:STANDARD',
-    ]);
   }
   lines.add('END:VTIMEZONE');
   return lines;
 }
 
 /// Один переход: DTSTART в локальном времени до перехода, правило по году.
-List<String> _component(int atMs, tz.TimeZone from, tz.TimeZone to) {
+List<String> _component(
+  int atMs,
+  tz.TimeZone from,
+  tz.TimeZone to, {
+  required bool yearly,
+}) {
   final w = DateTime.fromMillisecondsSinceEpoch(atMs + from.offset, isUtc: true);
   final daysInMonth = DateTime.utc(w.year, w.month + 1, 0).day;
   // Ординал недели в месяце; -1 — последняя такая неделя.
@@ -205,7 +215,8 @@ List<String> _component(int atMs, tz.TimeZone from, tz.TimeZone to) {
     'TZOFFSETFROM:${_offset(from.offset)}',
     'TZOFFSETTO:${_offset(to.offset)}',
     'TZNAME:${to.abbreviation}',
-    'RRULE:FREQ=YEARLY;BYMONTH=${w.month};BYDAY=$ord${_dayCodes[w.weekday - 1]}',
+    if (yearly)
+      'RRULE:FREQ=YEARLY;BYMONTH=${w.month};BYDAY=$ord${_dayCodes[w.weekday - 1]}',
     'END:$name',
   ];
 }

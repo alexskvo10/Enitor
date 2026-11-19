@@ -82,8 +82,9 @@ class IcsCalendar {
 
 /// Разбирает текст .ics. Даты переводятся в «настенное» время зоны [local]
 /// (по умолчанию tz.local). База часовых поясов должна быть инициализирована.
-IcsCalendar parseIcs(String text, {tz.Location? local}) {
-  final c = _Ctx(local ?? tz.local);
+/// [ru] — язык предупреждений: их показывают пользователю.
+IcsCalendar parseIcs(String text, {tz.Location? local, bool ru = true}) {
+  final c = _Ctx(local ?? tz.local, ru);
   final events = <IcsEvent>[];
   final stack = <String>[];
   List<_Prop>? eventProps;
@@ -134,9 +135,13 @@ IcsCalendar parseIcs(String text, {tz.Location? local}) {
   }
 
   if (!sawCalendar) {
-    return const IcsCalendar(
-      events: [],
-      warnings: ['Нет BEGIN:VCALENDAR: файл не разобран'],
+    return IcsCalendar(
+      events: const [],
+      warnings: [
+        ru
+            ? 'Нет BEGIN:VCALENDAR: файл не разобран'
+            : 'No BEGIN:VCALENDAR: the file was not read',
+      ],
     );
   }
   for (final ev in events) {
@@ -148,10 +153,13 @@ IcsCalendar parseIcs(String text, {tz.Location? local}) {
 
 /// Контекст одного разбора: локальная зона и накопленные предупреждения.
 class _Ctx {
-  _Ctx(this.local);
+  _Ctx(this.local, this.ru);
 
   final tz.Location local;
+  final bool ru;
   final List<String> warnings = [];
+
+  void warn(String textRu, String textEn) => warnings.add(ru ? textRu : textEn);
 
   /// UID серии → дни, изменённые или отменённые отдельными VEVENT
   /// (RECURRENCE-ID): в серии они становятся исключениями.
@@ -387,7 +395,10 @@ _Time? _timeFromValue(String value, String? tzid, _Ctx c) {
   }
   final zone = _zoneByName(tzid);
   if (zone == null && c.warnedZones.add(tzid)) {
-    c.warnings.add('Неизвестная зона "$tzid": время считано как локальное');
+    c.warn(
+      'Неизвестная зона "$tzid": время считано как локальное',
+      'Unknown time zone "$tzid": times read as local',
+    );
   }
   return _parseTime(value, zone: zone);
 }
@@ -401,13 +412,16 @@ Duration? _parseDuration(String raw) {
   if (m.groups([2, 3, 4, 5, 6]).every((g) => g == null)) {
     return null;
   }
-  int n(String? s) => s == null ? 0 : int.parse(s);
-  final d = Duration(
-    days: n(m[2]) * 7 + n(m[3]),
-    hours: n(m[4]),
-    minutes: n(m[5]),
-    seconds: n(m[6]),
-  );
+  // Огромные числа не влезают в int: такая длительность — не разобрана.
+  int? n(String? s) => s == null ? 0 : int.tryParse(s);
+  final parts = [
+    for (final i in [2, 3, 4, 5, 6]) n(m[i]),
+  ];
+  if (parts.any((v) => v == null || v > 1000000)) {
+    return null;
+  }
+  final [w, days, h, mi, sec] = parts.cast<int>();
+  final d = Duration(days: w * 7 + days, hours: h, minutes: mi, seconds: sec);
   return m[1] == '-' ? Duration.zero - d : d;
 }
 
@@ -436,7 +450,10 @@ IcsRule? _parseRule(String raw, _Time start, _Ctx c) {
   }
   final freq = _freqs[parts['FREQ']];
   if (freq == null) {
-    c.warnings.add('RRULE без допустимого FREQ пропущен: $raw');
+    c.warn(
+      'RRULE без допустимого FREQ пропущен: $raw',
+      'RRULE without a valid FREQ skipped: $raw',
+    );
     return null;
   }
 
@@ -447,7 +464,7 @@ IcsRule? _parseRule(String raw, _Time start, _Ctx c) {
     }
     final m = _byDayRe.firstMatch(v.trim().toUpperCase());
     if (m == null) {
-      c.warnings.add('BYDAY "$v" не разобран');
+      c.warn('BYDAY "$v" не разобран', 'Could not read BYDAY "$v"');
       continue;
     }
     final ord = m[1] == null ? null : int.parse(m[1]!);
@@ -459,17 +476,25 @@ IcsRule? _parseRule(String raw, _Time start, _Ctx c) {
   if (u != null) {
     final t = _parseTime(u, zone: start.zone, utc: start.utc);
     if (t == null) {
-      c.warnings.add('UNTIL "$u" не разобран');
+      c.warn('UNTIL "$u" не разобран', 'Could not read UNTIL "$u"');
+    } else if (t.dateOnly) {
+      // Дата без времени — конец этого дня там, где смотрят календарь: в UTC
+      // западнее Гринвича серия теряла бы последний вечер.
+      final w = t.wall;
+      until = DateTime(w.year, w.month, w.day, 23, 59, 59);
     } else {
-      final end = t.dateOnly
-          ? _Time(
-              DateTime.utc(t.wall.year, t.wall.month, t.wall.day, 23, 59, 59),
-              zone: t.zone,
-              utc: t.utc,
-            )
-          : t;
-      until = end.toLocal(c.local);
+      until = t.toLocal(c.local);
     }
+  }
+
+  var count = int.tryParse(parts['COUNT'] ?? '');
+  if (count != null && count < 1) {
+    // COUNT=0 стандарт не допускает; без этого серия стала бы бесконечной.
+    c.warn(
+      'COUNT "${parts['COUNT']}" неверный: только первое событие',
+      'Invalid COUNT "${parts['COUNT']}": only the first event is kept',
+    );
+    count = 1;
   }
 
   return IcsRule(
@@ -481,7 +506,7 @@ IcsRule? _parseRule(String raw, _Time start, _Ctx c) {
     byMonth: _ints(parts['BYMONTH']),
     bySetPos: _ints(parts['BYSETPOS']),
     until: until,
-    count: int.tryParse(parts['COUNT'] ?? ''),
+    count: count,
     raw: raw,
   );
 }
@@ -518,7 +543,10 @@ IcsEvent? _buildEvent(List<_Prop> props, _Ctx c) {
 
   final startProp = _first(props, 'DTSTART');
   if (startProp == null) {
-    c.warnings.add('VEVENT "$summary" без DTSTART пропущен');
+    c.warn(
+      'VEVENT "$summary" без DTSTART пропущен',
+      'Event "$summary" skipped: no DTSTART',
+    );
     return null;
   }
   final start = _timeFromValue(
@@ -527,8 +555,9 @@ IcsEvent? _buildEvent(List<_Prop> props, _Ctx c) {
     c,
   );
   if (start == null) {
-    c.warnings.add(
+    c.warn(
       'Событие "$summary" пропущено: неверная дата "${startProp.value}"',
+      'Event "$summary" skipped: invalid date "${startProp.value}"',
     );
     return null;
   }
@@ -538,8 +567,9 @@ IcsEvent? _buildEvent(List<_Prop> props, _Ctx c) {
   if (endProp != null) {
     end = _timeFromValue(endProp.value, endProp.params['TZID'], c);
     if (end == null) {
-      c.warnings.add(
+      c.warn(
         'Событие "$summary" пропущено: неверная дата DTEND "${endProp.value}"',
+        'Event "$summary" skipped: invalid DTEND "${endProp.value}"',
       );
       return null;
     }
@@ -548,7 +578,10 @@ IcsEvent? _buildEvent(List<_Prop> props, _Ctx c) {
     if (durProp != null) {
       final dur = _parseDuration(durProp.value);
       if (dur == null) {
-        c.warnings.add('Событие "$summary": DURATION "${durProp.value}" не разобран');
+        c.warn(
+          'Событие "$summary": DURATION "${durProp.value}" не разобран',
+          'Event "$summary": could not read DURATION "${durProp.value}"',
+        );
       } else {
         end = start.plus(dur);
       }
@@ -569,7 +602,7 @@ IcsEvent? _buildEvent(List<_Prop> props, _Ctx c) {
     for (final v in p.value.split(',')) {
       final t = _timeFromValue(v.trim(), p.params['TZID'], c);
       if (t == null) {
-        c.warnings.add('EXDATE "$v" не разобран');
+        c.warn('EXDATE "$v" не разобран', 'Could not read EXDATE "$v"');
         continue;
       }
       exDates.add(t.toLocal(c.local));
@@ -578,7 +611,9 @@ IcsEvent? _buildEvent(List<_Prop> props, _Ctx c) {
 
   final startLocal = start.toLocal(c.local);
   final uid = uidRaw == null || uidRaw.isEmpty
-      ? _fnvHex('$summary|$startLocal')
+      // Из строки файла, а не из местного времени: при смене пояса id тот же.
+      ? _fnvHex('$summary|${startProp.params['TZID'] ?? ''}|'
+          '${startProp.value.trim()}')
       : rid != null
           ? '$uidRaw#${ridProp!.value.trim()}'
           : uidRaw;

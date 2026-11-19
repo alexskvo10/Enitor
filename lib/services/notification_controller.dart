@@ -44,12 +44,17 @@ class NotificationController extends ChangeNotifier {
 
   Timer? _debounce;
 
+  /// Ожидание ближайшего пересчёта — общее для всех вызовов, которые
+  /// склеил дебаунс: отменённый таймер не оставляет их ждать вечно.
+  Completer<void>? _pending;
+
   /// Пересобирает расписание под текущие настройки и список задач.
   /// Дебаунс — частые изменения задач не дёргают планировщик подряд.
   Future<void> reschedule() async {
     _debounce?.cancel();
-    final completer = Completer<void>();
+    final completer = _pending ??= Completer<void>();
     _debounce = Timer(const Duration(milliseconds: 400), () async {
+      _pending = null;
       try {
         final now = DateTime.now();
         await _service.applySchedule(

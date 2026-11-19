@@ -140,6 +140,21 @@ Future<void> _downloadAndInstall(
   // где бы он ни оказался в стеке — removeRoute не требует, чтобы route был
   // текущим верхним.
   Route<void>? progressRoute;
+  // Скачивание может кончиться (или упасть) раньше, чем диалог построится:
+  // тогда закрыть его нечем, а «Назад» он не пускает — завис бы навсегда.
+  var closed = false;
+
+  void closeNow() {
+    final route = progressRoute;
+    if (route != null && route.isActive) {
+      route.navigator?.removeRoute(route);
+    }
+  }
+
+  void closeProgressDialog() {
+    closed = true;
+    closeNow();
+  }
 
   unawaited(showFancyRawDialog<void>(
     context: context,
@@ -147,6 +162,9 @@ Future<void> _downloadAndInstall(
     barrierLabel: l10n.updateDownloadingTitle,
     builder: (ctx) {
       progressRoute = ModalRoute.of(ctx);
+      if (closed) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => closeNow());
+      }
       return PopScope(
         canPop: false,
         child: FancyDialogCard(
@@ -176,14 +194,7 @@ Future<void> _downloadAndInstall(
         ),
       );
     },
-  ));
-
-  void closeProgressDialog() {
-    final route = progressRoute;
-    if (route != null && route.isActive) {
-      route.navigator?.removeRoute(route);
-    }
-  }
+  ).whenComplete(progress.dispose));
 
   try {
     final path = await service.downloadAsset(
@@ -204,7 +215,5 @@ Future<void> _downloadAndInstall(
     if (!context.mounted) return;
     showFancyToast(context,
         message: l10n.updateInstallFailedToast('$e'), tone: ToastTone.error);
-  } finally {
-    progress.dispose();
   }
 }

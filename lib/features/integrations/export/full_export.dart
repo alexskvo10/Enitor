@@ -15,6 +15,7 @@ const kExportSections = <String, String>{
   'schedule': 'schedule_items',
   'recurrence': 'recurrence_rules',
   'templates': 'day_templates',
+  'scheduleTemplates': 'schedule_templates',
   'taskBacklog': 'task_backlog',
   'goalBacklog': 'goal_backlog',
 };

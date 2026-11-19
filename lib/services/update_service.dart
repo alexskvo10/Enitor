@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:open_filex/open_filex.dart';
@@ -17,12 +18,25 @@ class ReleaseAsset {
     required this.name,
     required this.downloadUrl,
     required this.size,
+    this.digest,
   });
 
   final String name;
   final String downloadUrl;
   final int size;
+
+  /// Хеш файла от GitHub (`sha256:…`); у старых релизов его может не быть.
+  final String? digest;
 }
+
+/// Запуск после неудачной замены файлов на Windows: скрипт обновления
+/// передаёт этот аргумент старой версии, чтобы она сказала об этом, а не
+/// делала вид, что обновилась.
+const kUpdateFailedArg = '--update-failed';
+
+/// Выставляется в main по [kUpdateFailedArg]; стартовые окна показывают
+/// сообщение один раз.
+bool updateFailedOnLaunch = false;
 
 /// Последний релиз репозитория (ответ GitHub API `releases/latest`).
 class ReleaseInfo {
@@ -162,6 +176,7 @@ class UpdateService {
               name: a['name'] as String,
               downloadUrl: a['browser_download_url'] as String,
               size: (a['size'] as num?)?.toInt() ?? 0,
+              digest: a['digest'] as String?,
             ))
         .toList();
     return ReleaseInfo(
@@ -191,13 +206,15 @@ class UpdateService {
       }
       info = await PackageInfo.fromPlatform();
       final release = await fetchLatestRelease();
-      await _storage.writeMap(_prefsKey, {
-        'lastCheckMs': DateTime.now().millisecondsSinceEpoch,
-      });
       if (release == null) {
+        // Ответ без релиза (лимит GitHub, сбой) — не проверка: отметку не
+        // ставим, иначе следующие сутки проверка молчала бы.
         return UpdateCheckResult(UpdateCheckStatus.error,
             currentVersion: info.version, error: 'no release found');
       }
+      await _storage.writeMap(_prefsKey, {
+        'lastCheckMs': DateTime.now().millisecondsSinceEpoch,
+      });
       if (isNewerVersion(release.version, info.version)) {
         return UpdateCheckResult(UpdateCheckStatus.available,
             release: release, currentVersion: info.version);
@@ -217,23 +234,53 @@ class UpdateService {
   }) async {
     final dir = await getTemporaryDirectory();
     final destPath = p.join(dir.path, asset.name);
+    final file = File(destPath);
     final client = http.Client();
     try {
       final req = http.Request('GET', Uri.parse(asset.downloadUrl));
       final res = await client.send(req);
+      // Страница ошибки GitHub/прокси иначе записалась бы как «APK».
+      if (res.statusCode != 200) {
+        throw http.ClientException(
+          'HTTP ${res.statusCode}',
+          Uri.parse(asset.downloadUrl),
+        );
+      }
       final total = res.contentLength ?? asset.size;
-      final file = File(destPath);
       final sink = file.openWrite();
       var received = 0;
-      await for (final chunk in res.stream) {
-        sink.add(chunk);
-        received += chunk.length;
-        if (total > 0) onProgress?.call(received / total);
+      try {
+        await for (final chunk in res.stream) {
+          sink.add(chunk);
+          received += chunk.length;
+          if (total > 0) onProgress?.call(received / total);
+        }
+      } finally {
+        await sink.close();
       }
-      await sink.close();
+      await verifyDownload(file, asset);
       return destPath;
+    } catch (_) {
+      // Оборванный или подменённый файл не должен дожить до установки.
+      if (await file.exists()) await file.delete();
+      rethrow;
     } finally {
       client.close();
+    }
+  }
+
+  /// Размер и (если GitHub его дал) sha256 скачанного файла совпадают с
+  /// релизом — иначе исключение.
+  static Future<void> verifyDownload(File file, ReleaseAsset asset) async {
+    final length = await file.length();
+    if (asset.size > 0 && length != asset.size) {
+      throw Exception('Download incomplete: $length of ${asset.size} bytes');
+    }
+    final digest = asset.digest;
+    if (digest == null || !digest.startsWith('sha256:')) return;
+    final actual = (await sha256.bind(file.openRead()).first).toString();
+    if (actual != digest.substring(7).toLowerCase()) {
+      throw Exception('Download checksum mismatch');
     }
   }
 
@@ -293,25 +340,54 @@ class UpdateService {
     }
 
     final batPath = p.join(tempDir.path, 'enitor_update.bat');
-    final batContent = '''
-@echo off
-:waitloop
-tasklist /FI "IMAGENAME eq $exeName" 2>NUL | find /I "$exeName" >NUL
-if "%ERRORLEVEL%"=="0" (
-  timeout /t 1 /nobreak >NUL
-  goto waitloop
-)
-xcopy "${sourceDir.path}" "${installDir.path}" /E /H /Y /I >NUL
-start "" "${p.join(installDir.path, exeName)}"
-rmdir /S /Q "${tempDir.path}"
-''';
-    await File(batPath).writeAsString(batContent);
-    await Process.start('cmd', ['/c', batPath],
-        mode: ProcessStartMode.detached);
+    await File(batPath).writeAsString(windowsUpdateScript);
+    // Пути — аргументами, а не текстом скрипта: cmd читает .bat в кодировке
+    // OEM, и кириллица в пути (C:\Users\Иван\…) превращалась в мусор.
+    // Командная строка процесса — UTF-16, %~1 приходит целым.
+    await Process.start(
+      'cmd',
+      [
+        '/c',
+        batPath,
+        exeName,
+        sourceDir.path,
+        installDir.path,
+        tempDir.path,
+      ],
+      mode: ProcessStartMode.detached,
+    );
     // Освобождаем файлы exe/dll, чтобы xcopy выше мог их перезаписать.
     exit(0);
   }
 }
+
+/// Скрипт замены файлов: %1 — имя exe, %2 — откуда, %3 — куда, %4 —
+/// временная папка. Ждёт закрытия приложения, копирует (с повторами:
+/// антивирус может ненадолго держать exe) и запускает новую версию; если
+/// скопировать так и не вышло — запускает старую с [kUpdateFailedArg].
+const windowsUpdateScript = r'''
+@echo off
+:waitloop
+tasklist /FI "IMAGENAME eq %~1" 2>NUL | find /I "%~1" >NUL
+if not errorlevel 1 (
+  timeout /t 1 /nobreak >NUL
+  goto waitloop
+)
+set tries=0
+:copy
+xcopy "%~2" "%~3" /E /H /Y /I >NUL
+if not errorlevel 1 goto ok
+set /a tries+=1
+if %tries% geq 5 goto failed
+timeout /t 2 /nobreak >NUL
+goto copy
+:failed
+start "" "%~3\%~1" --update-failed
+exit /b 1
+:ok
+start "" "%~3\%~1"
+rmdir /S /Q "%~4"
+''';
 
 final updateServiceProvider = Provider<UpdateService>(
   (ref) => UpdateService(ref.read(localStorageProvider)),

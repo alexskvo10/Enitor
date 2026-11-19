@@ -63,6 +63,63 @@ void main() {
     expect(task.repeat?.weekdays, [1, 3]);
   });
 
+  test('RRULE DAILY с BYDAY (будние дни) переводится в повтор по дням недели',
+      () {
+    final csv = [
+      _header,
+      'Входящие,Зарядка,TEXT,,,,,,"RRULE:FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR",0,0,,,t6,',
+    ].join('\n');
+
+    final result = parseTickTickCsv(csv);
+
+    expect(result.warnings, isEmpty);
+    expect(result.tasks.single.repeat?.kind, RecurrenceKind.weekly);
+    expect(result.tasks.single.repeat?.weekdays, [1, 2, 3, 4, 5]);
+  });
+
+  test('RRULE DAILY без BYDAY остаётся повтором через N дней', () {
+    final csv = [
+      _header,
+      'Входящие,Вода,TEXT,,,,,,"RRULE:FREQ=DAILY;INTERVAL=3",0,0,,,t7,',
+    ].join('\n');
+
+    final repeat = parseTickTickCsv(csv).tasks.single.repeat;
+
+    expect(repeat?.kind, RecurrenceKind.interval);
+    expect(repeat?.intervalDays, 3);
+  });
+
+  test('RRULE DAILY с BYDAY и INTERVAL больше 1 не переводится', () {
+    final csv = [
+      _header,
+      'Входящие,Редко,TEXT,,,,,,"RRULE:FREQ=DAILY;INTERVAL=2;BYDAY=MO,WE",0,0,,,t8,',
+    ].join('\n');
+
+    final result = parseTickTickCsv(csv);
+
+    expect(result.tasks.single.repeat, isNull);
+    expect(result.warnings.single.reason, ImportSkipReason.unsupportedRepeat);
+  });
+
+  test('BYMONTHDAY при DAILY и WEEKLY, BYDAY при MONTHLY не переводятся', () {
+    const rules = [
+      'RRULE:FREQ=DAILY;BYMONTHDAY=5',
+      'RRULE:FREQ=WEEKLY;BYMONTHDAY=5;BYDAY=MO',
+      'RRULE:FREQ=MONTHLY;BYMONTHDAY=5;BYDAY=MO',
+    ];
+    for (final rule in rules) {
+      final csv = [
+        _header,
+        'Входящие,Повтор,TEXT,,,,,,"$rule",0,0,,,t9,',
+      ].join('\n');
+
+      final result = parseTickTickCsv(csv);
+
+      expect(result.tasks.single.repeat, isNull, reason: rule);
+      expect(result.warnings, hasLength(1), reason: rule);
+    }
+  });
+
   test('неподдерживаемый RRULE даёт предупреждение, задача остаётся', () {
     final csv = [
       _header,

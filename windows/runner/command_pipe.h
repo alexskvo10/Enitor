@@ -47,6 +47,7 @@ class CommandPipe {
 
   void Serve();
   void ServeClient(HANDLE pipe);
+  void Reply(HANDLE pipe, const std::string& reply);
 
   HWND window_;
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> channel_;

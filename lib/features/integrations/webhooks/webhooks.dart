@@ -459,7 +459,14 @@ class WebhookService {
   Future<int> _post(WebhookEndpoint ep, WebhookDelivery d) async {
     final client = _client();
     try {
-      final secret = await _ref.read(secretStoreProvider).webhookSecret(ep.id);
+      final secret =
+          await _ref.read(secretStoreProvider).readWebhookSecret(ep.id);
+      if (secret == null) {
+        // Секрет пропал (переустановка, чужое хранилище ключей): открой адрес
+        // в настройках — там будет новый, его надо вписать в приёмник.
+        debugPrint('webhook ${ep.id}: no secret, not sent');
+        return 0;
+      }
       final ts = _clock().millisecondsSinceEpoch ~/ 1000;
       final r = await client
           .post(

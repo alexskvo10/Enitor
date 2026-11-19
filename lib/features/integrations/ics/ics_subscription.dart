@@ -91,35 +91,49 @@ Future<String> fetchIcs(String url, {http.Client? client}) async {
   }
 }
 
-/// Обновление по ссылке при открытии приложения — только если включено и
-/// прошли сутки. Новые и изменённые пункты записываются без предпросмотра:
-/// человек сам включил «обновлять».
-Future<void> refreshIcsSubscription(
+/// Обновление по ссылке: при открытии приложения — только если включено и
+/// прошли сутки, по кнопке «Обновить сейчас» ([force]) — сразу. Новые и
+/// изменённые в календаре пункты записываются без предпросмотра: человек
+/// сам подписался. Правки и удаления, сделанные в Enitor, не трогаются
+/// (см. [IcsSeen]). Возвращает, сколько пунктов записано; null — не
+/// обновляли или не вышло (нет сети).
+Future<int?> refreshIcsSubscription(
   ProviderContainer container, {
   DateTime Function()? clock,
   http.Client? client,
+  bool force = false,
 }) async {
   final sub = container.read(icsSubscriptionProvider);
   final now = (clock ?? DateTime.now)();
-  if (sub == null || !sub.auto) return;
-  if (sub.lastAt != null && now.difference(sub.lastAt!) < const Duration(days: 1)) {
-    return;
+  if (sub == null || (!force && !sub.auto)) return null;
+  if (!force &&
+      sub.lastAt != null &&
+      now.difference(sub.lastAt!) < const Duration(days: 1)) {
+    return null;
   }
   try {
     final text = await fetchIcs(sub.url, client: client);
+    final seen = IcsSeen(container.read(localStorageProvider));
     final plan = planIcsImport(
       parseIcs(text, local: tz.local),
       schedule: container.read(scheduleRepositoryProvider),
       now: now,
+      seen: seen,
     );
+    await seen.save();
+    var applied = 0;
     for (final e in plan) {
-      await e.apply?.call();
+      if (e.apply == null) continue;
+      await e.apply!();
+      applied++;
     }
     await container
         .read(icsSubscriptionProvider.notifier)
         .set(sub.copyWith(lastAt: now));
+    return applied;
   } catch (e) {
     // Нет сети — попробуем при следующем открытии.
     debugPrint('refreshIcsSubscription: $e');
+    return null;
   }
 }

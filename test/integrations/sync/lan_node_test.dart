@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:enitor/data/models/task.dart';
 import 'package:enitor/features/integrations/sync/lan/lan_crypto.dart';
+import 'package:enitor/features/integrations/sync/lan/lan_discovery.dart';
 import 'package:enitor/features/integrations/sync/lan/lan_group.dart';
 import 'package:enitor/features/integrations/sync/lan/lan_node.dart';
 import 'package:enitor/features/integrations/sync/lan/lan_wire.dart';
@@ -72,6 +73,40 @@ void main() {
     _dir = await Directory.systemTemp.createTemp('enitor-lan-');
   });
 
+  group('чтение сообщений', () {
+    final f1 = encodeLanFrame({'n': 1});
+    final f2 = encodeLanFrame({'n': 2, 'pad': 'x' * 3000});
+
+    test('два сообщения одним куском и одно, порезанное на части', () async {
+      final r = LanFrameReader(
+        Stream.fromIterable([
+          [...f1, ...f2.sublist(0, 10)],
+          f2.sublist(10, 2000),
+          f2.sublist(2000),
+        ]),
+      );
+      expect((await r.next())['n'], 1);
+      expect((await r.next())['n'], 2);
+      await expectLater(r.next(), throwsA(isA<LanWireException>()));
+    });
+
+    test('три сообщения одним куском — читаются все', () async {
+      final r = LanFrameReader(Stream.value([...f1, ...f2, ...f1]));
+      expect((await r.next())['n'], 1);
+      expect((await r.next())['n'], 2);
+      expect((await r.next())['n'], 1);
+    });
+
+    test('слишком длинное отвергается по заголовку длины', () async {
+      // Только 4 байта длины: тело не нужно, чтобы отказать.
+      final head = Stream<List<int>>.value(f2.sublist(0, 4));
+      await expectLater(
+        readLanFrame(head, maxFrame: 1000),
+        throwsA(isA<LanWireException>()),
+      );
+    });
+  });
+
   tearDown(() async {
     for (final d in _all) {
       await d.node.stop();
@@ -115,9 +150,27 @@ void main() {
     expect(b.node.peer(a.id)?.error, isNull);
   });
 
-  test(
-      'код вводят с ошибками в регистре и дефисах — всё равно подходит',
-      () {
+  test('поддельное объявление по UDP не уводит адрес соседа', () async {
+    final a = await _device('Windows');
+    final b = await _device('Android');
+    final stranger = await _device('Чужой');
+    await _pair(a, b);
+    await b.node.syncPeer(a.id);
+
+    // Кто-то в сети объявляет себя соседом «a» со своего порта.
+    b.node.debugFound(
+      LanAnnounce(id: a.id, port: stranger.node.port, address: '127.0.0.1'),
+    );
+    await a.setTasks([_task('x', 'Купить хлеб')]);
+    await a.node.localRound();
+    await b.node.syncPeer(a.id);
+
+    expect(b.task('x')?['title'], 'Купить хлеб');
+    expect(b.node.peer(a.id)?.port, a.node.port);
+    expect(b.node.peer(a.id)?.error, isNull);
+  });
+
+  test('код вводят с ошибками в регистре и дефисах — всё равно подходит', () {
     expect(normalizePairCode('k7qf 3mzp-x2ra'), 'K7QF3MZPX2RA');
     expect(normalizePairCode('K7QF-3MZP-X2RO'), 'K7QF3MZPX2R0');
     expect(normalizePairCode('K7QF-3MZP-X2R'), isNull);
@@ -126,9 +179,7 @@ void main() {
     expect(generatePairCode(), hasLength(kPairCodeLength));
   });
 
-  test(
-      'неверный код: отказ, после пяти ошибок код меняется',
-      () async {
+  test('неверный код: отказ, после пяти ошибок код меняется', () async {
     final a = await _device('A');
     final b = await _device('B');
     final p = a.node.openPairing();
@@ -144,8 +195,7 @@ void main() {
     expect(a.member(b.id), isNull);
   });
 
-  test(
-      'на устройстве с кодом нажали «Нет» — никто ни к кому не добавлен',
+  test('на устройстве с кодом нажали «Нет» — никто ни к кому не добавлен',
       () async {
     final a = await _device('A');
     final b = await _device('B');
@@ -174,8 +224,7 @@ void main() {
     expect(host.id, a.id);
   });
 
-  test(
-      'чужой сертификат вместо запомненного (из QR) — соединение рвётся',
+  test('чужой сертификат вместо запомненного (из QR) — соединение рвётся',
       () async {
     final a = await _device('A');
     final b = await _device('B');
@@ -193,8 +242,7 @@ void main() {
     expect(a.member(b.id), isNull);
   });
 
-  test(
-      'по цепочке: правка с ноутбука доходит до планшета через телефон',
+  test('по цепочке: правка с ноутбука доходит до планшета через телефон',
       () async {
     final laptop = await _device('Windows');
     final phone = await _device('Android');
@@ -210,8 +258,7 @@ void main() {
     expect(tablet.member(laptop.id)?.name, 'Windows');
   });
 
-  test(
-      'встречный обмен в одно время не зависает, правки обеих сторон доходят',
+  test('встречный обмен в одно время не зависает, правки обеих сторон доходят',
       () async {
     final a = await _device('A');
     final b = await _device('B');
@@ -226,8 +273,7 @@ void main() {
     expect(b.task('a')?['title'], 'С ноутбука');
   });
 
-  test(
-      'отключённое устройство больше не получает данные и узнаёт об этом',
+  test('отключённое устройство больше не получает данные и узнаёт об этом',
       () async {
     final a = await _device('A');
     final b = await _device('B');
@@ -244,8 +290,7 @@ void main() {
     expect(b.node.inGroup, isFalse);
   });
 
-  test(
-      'до соседа не достучаться, но он сам обменялся с нами — это не ошибка',
+  test('до соседа не достучаться, но он сам обменялся с нами — это не ошибка',
       () async {
     final a = await _device('A');
     final b = await _device('B');
@@ -263,8 +308,7 @@ void main() {
     expect(p.error, 'connect');
   });
 
-  test(
-      'сосед сменил адрес, поиск его не видит — находится перебором',
+  test('сосед сменил адрес, поиск его не видит — находится перебором',
       () async {
     final a = await _device('A');
     final b = await _device('B');
@@ -287,9 +331,7 @@ void main() {
     expect(await lanProbe('127.0.0.1', stranger.node.port, {fp}), isNull);
   });
 
-  test(
-      'подпись запроса годится только для того соседа, кому она сделана',
-      () {
+  test('подпись запроса годится только для того соседа, кому она сделана', () {
     final me = LanIdentity.generate();
     final other = LanIdentity.generate();
     final sig = lanAuthSign(me, 'ab' * 32);
@@ -299,9 +341,7 @@ void main() {
     expect(lanAuthVerify('мусор', 'ab' * 32, sig), isFalse);
   });
 
-  test(
-      'адреса из ссылки знакомства — только домашние',
-      () {
+  test('адреса из ссылки знакомства — только домашние', () {
     for (final ip in ['192.168.1.5', '10.0.0.2', '172.20.1.1', '127.0.0.1']) {
       expect(isPrivateLanAddress(ip), isTrue, reason: ip);
     }
@@ -310,9 +350,7 @@ void main() {
     }
   });
 
-  test(
-      'битая копия сервера на диске — узел всё равно запускается',
-      () async {
+  test('битая копия сервера на диске — узел всё равно запускается', () async {
     final a = await _device('A');
     final file = a.node.storeFile;
     await a.node.stop();
@@ -337,8 +375,7 @@ void main() {
     expect(c.member(b.id)?.revoked, isTrue);
   });
 
-  test(
-      '«Выйти из группы»: соседи в сети узнают, своё про группу стёрто',
+  test('«Выйти из группы»: соседи в сети узнают, своё про группу стёрто',
       () async {
     final a = await _device('A');
     final b = await _device('B');
@@ -348,6 +385,71 @@ void main() {
     expect(a.member(b.id)?.revoked, isTrue);
     expect(b.storage.readMap(kLanGroupKey), isNull);
     expect(b.node.inGroup, isFalse);
+  });
+
+  group('тело запроса — только после подписи', () {
+    Future<Map<String, dynamic>> send(
+      _Device to,
+      Map<String, dynamic> body, {
+      Map<String, dynamic> Function(String fp)? header,
+    }) async {
+      try {
+        return await lanRequest(
+          '127.0.0.1',
+          to.node.port,
+          (_) => body,
+          header: header,
+          pin: to.node.identity.fingerprint,
+        );
+      } on LanWireException catch (e) {
+        // Сервер мог закрыть соединение, не дочитав отправленное.
+        return {'ok': false, 'error': e.code};
+      }
+    }
+
+    test('чужой с поддельным заголовком получает отказ', () async {
+      final a = await _device('A');
+      final stranger = LanIdentity.generate();
+      final r = await send(
+        a,
+        {'t': 'sync', 'pad': 'x' * 200000},
+        header: (fp) => {
+          't': 'auth',
+          'from': 'stranger',
+          'cert': stranger.certPem,
+          'sig': lanAuthSign(stranger, fp),
+        },
+      );
+      // Отказ приходит раньше, чем чужой допишет тело, — он видит либо
+      // его, либо обрыв.
+      expect(r['error'], isIn(['unauthorized', 'connect']));
+      expect(r.containsKey('group'), isFalse);
+    });
+
+    test('без заголовка большое не читается вовсе', () async {
+      final a = await _device('A');
+      final r = await send(a, {'t': 'sync', 'pad': 'x' * 200000});
+      expect(r['ok'], isNot(true));
+    });
+
+    test('свой по-старому (одним маленьким сообщением) — принят', () async {
+      final a = await _device('A');
+      final b = await _device('B');
+      await _pair(a, b);
+      final r = await lanRequest(
+        '127.0.0.1',
+        a.node.port,
+        (fp) => {
+          't': 'group',
+          'v': 1,
+          'from': b.id,
+          'cert': b.node.identity.certPem,
+          'sig': lanAuthSign(b.node.identity, fp),
+        },
+        pin: a.node.identity.fingerprint,
+      );
+      expect(r['ok'], isTrue);
+    });
   });
 
   group('слияние списка группы', () {
@@ -367,18 +469,14 @@ void main() {
           revoked: revoked,
         );
 
-    test(
-        'отключение побеждает более позднюю запись',
-        () {
+    test('отключение побеждает более позднюю запись', () {
       final out =
           mergeLanGroups({'a': m(revoked: true)}, [m(name: 'B', at: t1)]);
       expect(out['a']!.revoked, isTrue);
       expect(out['a']!.name, 'B');
     });
 
-    test(
-        'тот же id с другими ключами не принимается',
-        () {
+    test('тот же id с другими ключами не принимается', () {
       final out = mergeLanGroups({'a': m()}, [m(fp: 'other', at: t1)]);
       expect(out['a']!.fingerprint, 'f');
     });

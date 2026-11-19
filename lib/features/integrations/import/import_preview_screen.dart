@@ -19,6 +19,7 @@ class ImportPreviewScreen extends StatefulWidget {
     required this.title,
     required this.entries,
     this.warningsCount = 0,
+    this.notes = const [],
   });
 
   final String title;
@@ -26,6 +27,10 @@ class ImportPreviewScreen extends StatefulWidget {
 
   /// Строки файла, которые не удалось прочитать совсем.
   final int warningsCount;
+
+  /// Что разбор файла не понял — показываем как есть, чтобы было видно,
+  /// почему чего-то нет.
+  final List<String> notes;
 
   @override
   State<ImportPreviewScreen> createState() => _ImportPreviewScreenState();
@@ -38,18 +43,26 @@ class _ImportPreviewScreenState extends State<ImportPreviewScreen> {
   };
   bool _busy = false;
 
+  /// Уже записанные строки — повтор после ошибки их не трогает.
+  final Set<int> _applied = {};
+
   Future<void> _import() async {
     final l10n = context.l10n;
     setState(() => _busy = true);
     var done = 0;
     try {
       for (final i in _selected.toList()..sort()) {
+        if (_applied.contains(i)) continue;
         await widget.entries[i].apply?.call();
+        _applied.add(i);
+        // Записанное снимаем с отметки: повтор после ошибки продолжит с
+        // оставшихся, а не добавит те же задачи второй раз.
+        _selected.remove(i);
         done++;
       }
     } catch (e) {
-      // Записанное остаётся (повтор обновит те же записи, а не задвоит):
-      // экран не висит, человек видит причину и может повторить.
+      // Записанное остаётся: экран не висит, человек видит причину и может
+      // повторить.
       if (!mounted) return;
       setState(() => _busy = false);
       showFancyToast(
@@ -71,7 +84,7 @@ class _ImportPreviewScreenState extends State<ImportPreviewScreen> {
     final count = _selected.length;
     final importable = [
       for (var i = 0; i < entries.length; i++)
-        if (entries[i].action != PlanAction.skip) i,
+        if (entries[i].action != PlanAction.skip && !_applied.contains(i)) i,
     ];
     final skipped = [
       for (final e in entries)
@@ -81,7 +94,7 @@ class _ImportPreviewScreenState extends State<ImportPreviewScreen> {
     final allOn = count == importable.length;
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
-      body: entries.isEmpty
+      body: entries.isEmpty && widget.notes.isEmpty
           ? Center(
               child: NotebookEmptyState(
                 text: widget.warningsCount > 0
@@ -179,6 +192,22 @@ class _ImportPreviewScreenState extends State<ImportPreviewScreen> {
                     ],
                   ),
                   SectionNote(l10n.importSkippedNote),
+                ],
+                if (widget.notes.isNotEmpty) ...[
+                  SectionTitle(l10n.importSectionNotes),
+                  SectionCard(
+                    children: [
+                      for (final n in widget.notes)
+                        ListTile(
+                          dense: true,
+                          leading: const Icon(Icons.info_outline_rounded),
+                          title: Text(
+                            n,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                    ],
+                  ),
                 ],
               ],
             ),
@@ -358,4 +387,5 @@ String planSkipText(PlanSkip s, AppLocalizations l10n) => switch (s) {
       PlanSkip.noTitle => l10n.importSkipNoTitle,
       PlanSkip.completedWithoutDate => l10n.importSkipDoneNoDate,
       PlanSkip.brokenRow => l10n.importSkipBroken,
+      PlanSkip.removedHere => l10n.importSkipRemovedHere,
     };

@@ -407,7 +407,7 @@ class _TourOverlay extends StatefulWidget {
 }
 
 class _TourOverlayState extends State<_TourOverlay>
-    with TickerProviderStateMixin, WidgetsBindingObserver {
+    with TickerProviderStateMixin {
   int _index = 0;
   Rect? _from;
   Rect? _to;
@@ -437,22 +437,28 @@ class _TourOverlayState extends State<_TourOverlay>
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
+    // «Назад» системы — шаг назад, а не уход с экрана под экскурсией. Роутер
+    // спрашивают первым (наблюдатели идут по порядку добавления), поэтому
+    // перехватываем у него самого: дочерний диспетчер с приоритетом.
+    _backDispatcher = widget.router.backButtonDispatcher
+        .createChildBackButtonDispatcher()
+      ..addCallback(_onSystemBack)
+      ..takePriority();
     // После кадра: первый шаг трогает провайдеры, а слой строится в build.
     WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(_goTo(0)));
   }
 
-  /// «Назад» системы — шаг назад, а не уход с экрана под экскурсией.
-  /// Наш наблюдатель добавлен позже роутера, поэтому спрашивают его первым.
-  @override
-  Future<bool> didPopRoute() async {
+  late final ChildBackButtonDispatcher _backDispatcher;
+
+  Future<bool> _onSystemBack() async {
     _back();
     return true;
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
+    _backDispatcher.removeCallback(_onSystemBack);
+    widget.router.backButtonDispatcher.forget(_backDispatcher);
     _move.dispose();
     _fade.dispose();
     _pulse.dispose();

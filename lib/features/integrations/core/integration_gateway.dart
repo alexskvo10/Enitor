@@ -158,7 +158,8 @@ class IntegrationGateway {
   }
 
   void receiveLink(String url, {CommandSource source = CommandSource.link}) {
-    // `enitor://pair?…` из QR-кода — не команда, а знакомство устройств:
+    // `enitor://pair?…` (QR-код или любая ссылка — открыть её может и
+    // сайт) — не команда, а знакомство устройств:
     // экран синхронизации спросит, подключаться ли.
     final uri = Uri.tryParse(url.trim());
     if (uri != null &&

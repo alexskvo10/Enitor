@@ -20,9 +20,10 @@ std::string ErrorReply(const char* code, const char* message) {
          "\",\"message\":\"" + message + "\"},\"warnings\":[]}";
 }
 
-std::wstring CurrentUserSid() {
+// SID пользователя, от имени которого идёт процесс; пусто — не узнать.
+std::wstring ProcessUserSid(HANDLE process) {
   HANDLE token = nullptr;
-  if (!::OpenProcessToken(::GetCurrentProcess(), TOKEN_QUERY, &token)) {
+  if (!::OpenProcessToken(process, TOKEN_QUERY, &token)) {
     return L"";
   }
   DWORD size = 0;
@@ -40,6 +41,23 @@ std::wstring CurrentUserSid() {
   }
   ::CloseHandle(token);
   return result;
+}
+
+std::wstring CurrentUserSid() { return ProcessUserSid(::GetCurrentProcess()); }
+
+// Канал держит процесс того же пользователя. Имя канала может занять кто
+// угодно на этом компьютере раньше Enitor — тогда ссылка с данными ушла бы
+// ему. Не узнали владельца — считаем чужим.
+bool PipeServerIsCurrentUser(HANDLE pipe) {
+  ULONG pid = 0;
+  if (!::GetNamedPipeServerProcessId(pipe, &pid)) return false;
+  HANDLE process =
+      ::OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+  if (!process) return false;
+  const std::wstring owner = ProcessUserSid(process);
+  ::CloseHandle(process);
+  const std::wstring me = CurrentUserSid();
+  return !owner.empty() && owner == me;
 }
 
 // Читает или пишет ровно n байт по перекрытому вводу-выводу. Ждёт не
@@ -127,6 +145,10 @@ bool SendToRunningInstance(const std::string& json, std::string* reply) {
     if (pipe == INVALID_HANDLE_VALUE) {
       ::Sleep(200);
       continue;
+    }
+    if (!PipeServerIsCurrentUser(pipe)) {
+      ::CloseHandle(pipe);
+      return false;
     }
     std::string answer, error;
     if (!WriteFrame(pipe, json, nullptr)) {
@@ -239,6 +261,8 @@ void CommandPipe::Serve() {
           connected = ::GetOverlappedResult(pipe, &ov, &unused, FALSE) != 0;
         } else {
           ::CancelIoEx(pipe, &ov);
+          DWORD unused = 0;
+          ::GetOverlappedResult(pipe, &ov, &unused, TRUE);
         }
       }
     }
@@ -250,11 +274,22 @@ void CommandPipe::Serve() {
   ::LocalFree(descriptor);
 }
 
+// Записать ответ и дождаться, пока клиент закроет свой конец (чтение
+// вернёт ошибку), но не дольше таймаута. DisconnectNamedPipe выбрасывает
+// непрочитанное: клиент, не успевший прочитать ответ, получал «канал
+// закрыт» (консоль падала, а второй экземпляр слал ссылку повторно —
+// анкета дублировалась).
+void CommandPipe::Reply(HANDLE pipe, const std::string& reply) {
+  if (!WriteFrame(pipe, reply, stop_event_)) return;
+  char probe;
+  IoExact(pipe, false, &probe, 1, stop_event_);
+}
+
 void CommandPipe::ServeClient(HANDLE pipe) {
   std::string json, error;
   if (!ReadFrame(pipe, &json, &error, stop_event_)) return;
   if (!error.empty()) {
-    WriteFrame(pipe, error, stop_event_);
+    Reply(pipe, error);
     return;
   }
   auto request = std::make_shared<Request>();
@@ -265,8 +300,7 @@ void CommandPipe::ServeClient(HANDLE pipe) {
   if (!::PostMessageW(window_, kCommandPipeMessage, 0,
                       reinterpret_cast<LPARAM>(holder))) {
     delete holder;
-    WriteFrame(pipe, ErrorReply("internal", "Enitor window is gone."),
-               stop_event_);
+    Reply(pipe, ErrorReply("internal", "Enitor window is gone."));
     return;
   }
   HANDLE waits[2] = {request->done, stop_event_};
@@ -277,13 +311,7 @@ void CommandPipe::ServeClient(HANDLE pipe) {
   } else {
     reply = ErrorReply("internal", "Enitor did not answer in 5 seconds.");
   }
-  if (!WriteFrame(pipe, reply, stop_event_)) return;
-  // DisconnectNamedPipe выбрасывает непрочитанное: клиент, не успевший
-  // прочитать ответ, получал «канал закрыт» (консоль падала, а второй
-  // экземпляр слал ссылку повторно — анкета дублировалась). Ждём, пока
-  // клиент закроет свой конец (чтение вернёт ошибку), но не дольше таймаута.
-  char probe;
-  IoExact(pipe, false, &probe, 1, stop_event_);
+  Reply(pipe, reply);
 }
 
 void CommandPipe::HandleWindowMessage(LPARAM lparam) {

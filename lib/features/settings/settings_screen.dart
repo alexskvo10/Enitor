@@ -27,6 +27,12 @@ import '../../widgets/summary_bars.dart';
 /// За сколько минут до начала/конца задачи напоминать. 0 — «в момент».
 const _kLeadOptions = <int>[0, 5, 10, 15, 30, 60];
 
+/// Ближайший вариант списка: значение из старого или чужого бэкапа, которого
+/// нет среди вариантов, уронило бы выпадающий список.
+int _leadOption(int v) => _kLeadOptions.reduce(
+      (a, b) => (a - v).abs() <= (b - v).abs() ? a : b,
+    );
+
 /// Настройки: оформление, таймер фокуса, вход в уведомления, данные.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -403,7 +409,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                     _minutesDropdown(
                       context,
                       values: _kLeadOptions,
-                      value: prefs.taskLeadMinutes,
+                      value: _leadOption(prefs.taskLeadMinutes),
                       onChanged: (m) => ref
                           .read(notificationControllerProvider)
                           .setTaskLead(m),
@@ -438,7 +444,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                     _minutesDropdown(
                       context,
                       values: _kLeadOptions,
-                      value: prefs.taskEndLeadMinutes,
+                      value: _leadOption(prefs.taskEndLeadMinutes),
                       onChanged: (m) => ref
                           .read(notificationControllerProvider)
                           .setTaskEndLead(m),
@@ -526,9 +532,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                     _minutesDropdown(
                       context,
                       values: _kLeadOptions,
-                      value: _kLeadOptions.contains(prefs.scheduleLeadMinutes)
-                          ? prefs.scheduleLeadMinutes
-                          : _kLeadOptions.first,
+                      value: _leadOption(prefs.scheduleLeadMinutes),
                       onChanged: (m) => ref
                           .read(notificationControllerProvider)
                           .setScheduleLead(m),
@@ -1311,33 +1315,45 @@ Future<void> _performWipe(BuildContext context, WidgetRef ref) async {
   }
 }
 
+enum _RestoreScope { here, everywhere }
+
 Future<void> _import(BuildContext context, WidgetRef ref) async {
   final l10n = context.l10n;
-  final confirmed = await showFancyDialog<bool>(
+  // С синхронизацией спрашиваем, откатывать ли и остальные устройства.
+  final synced = ref.read(syncServiceProvider).settings.connected ||
+      ref.read(lanSyncServiceProvider).hasGroup;
+  final scope = await showFancyDialog<_RestoreScope>(
     context: context,
     icon: Icons.warning_amber_rounded,
     iconColor: AppColors.warning,
     title: l10n.importConfirmTitle,
-    content: l10n.importConfirmContent,
+    content:
+        synced ? l10n.importConfirmSyncedContent : l10n.importConfirmContent,
     actions: (ctx) => [
       TextButton(
-        onPressed: () => Navigator.pop(ctx, false),
+        onPressed: () => Navigator.pop(ctx),
         child: Text(l10n.cancel),
       ),
-      const SizedBox(width: 8),
+      if (synced)
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, _RestoreScope.here),
+          child: Text(l10n.importOnlyHere),
+        ),
       FilledButton(
         autofocus: true,
-        onPressed: () => Navigator.pop(ctx, true),
-        child: Text(l10n.replace),
+        onPressed: () => Navigator.pop(ctx, _RestoreScope.everywhere),
+        child: Text(synced ? l10n.importEverywhere : l10n.replace),
       ),
     ],
   );
-  if (confirmed != true) return;
+  if (scope == null) return;
   try {
     final backup = ref.read(backupServiceProvider);
-    final done = await ref
-        .read(lanSyncServiceProvider)
-        .replaceData(backup.importFromFile);
+    final done = await ref.read(lanSyncServiceProvider).replaceData(
+          () => backup.importFromFile(
+            everywhere: scope == _RestoreScope.everywhere,
+          ),
+        );
     if (!done || !context.mounted) return;
     await showFancyDialog<void>(
       context: context,
@@ -1403,8 +1419,7 @@ class _SummaryStylePicker extends StatelessWidget {
     final tasksLabel = l10n.tasksRingLabel;
     final onTimeLabel = l10n.onTimeRingLabel;
 
-    Widget ring(double v, String sub, String label, [List<Color>? c]) =>
-        Column(
+    Widget ring(double v, String sub, String label, [List<Color>? c]) => Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ProductivityRing(

@@ -110,6 +110,9 @@ class SyncClient {
     return result is Map<String, dynamic> ? result : <String, dynamic>{};
   }
 
+  /// Сколько поток событий может молчать, прежде чем счесть его оборванным.
+  static const kEventsSilence = Duration(seconds: 75);
+
   /// Поток ревизий из `GET /v1/events` (SSE, событие `changed`). Кончается,
   /// когда сервер закрыл соединение; ошибка — когда не открылось.
   Stream<int> events() async* {
@@ -129,8 +132,14 @@ class SyncClient {
     }
     var event = 'message';
     final data = StringBuffer();
-    await for (final line
-        in res.stream.transform(utf8.decoder).transform(const LineSplitter())) {
+    // Сервер шлёт «: ping» каждые 25 с. Тишина дольше — соединение умерло
+    // без закрытия (сменилась сеть, уснул роутер): ошибка, и подписка
+    // переподключится, а не ждёт вечно.
+    final lines = res.stream
+        .timeout(kEventsSilence)
+        .transform(utf8.decoder)
+        .transform(const LineSplitter());
+    await for (final line in lines) {
       if (line.isEmpty) {
         if (event == 'changed') {
           try {

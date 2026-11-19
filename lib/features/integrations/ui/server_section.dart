@@ -27,6 +27,7 @@ String _serverErrorText(
       'network' => l10n.serverErrNetwork,
       'bad_response' => l10n.serverErrBadResponse,
       'http' when status != null => l10n.serverErrHttp(status),
+      'refused' => l10n.serverErrRefused(status ?? int.tryParse(message ?? '') ?? 0),
       _ => message == null || message.isEmpty ? l10n.serverErrUnknown : message,
     };
 

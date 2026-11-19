@@ -138,6 +138,10 @@ class CommandHandler {
   final IntegrationSettings Function() _settings;
   final DateTime Function() _clock;
 
+  /// Команды с ключом, которые выполняются прямо сейчас: повтор с тем же
+  /// ключом, пришедший до записи ответа, ждёт первый, а не делает второй.
+  final Map<String, Future<CommandReply>> _inFlight = {};
+
   /// Выполняет команду доверенного входа. Недоверенные (ссылка,
   /// «Поделиться») сюда не попадают: им — только анкета.
   Future<CommandReply> execute(IntegrationCommand c) async {
@@ -150,10 +154,20 @@ class CommandHandler {
     final key = c.idempotencyKey == null
         ? null
         : '${c.source.name}:${c.name}:${c.idempotencyKey}';
-    if (key != null) {
-      final prev = _readIdempotent(key);
-      if (prev != null) return prev;
+    if (key == null) return _runOnce(c, null);
+    final prev = _readIdempotent(key);
+    if (prev != null) return prev;
+    final running = _inFlight[key];
+    if (running != null) return running;
+    final future = _inFlight[key] = _runOnce(c, key);
+    try {
+      return await future;
+    } finally {
+      _inFlight.removeWhere((k, _) => k == key);
     }
+  }
+
+  Future<CommandReply> _runOnce(IntegrationCommand c, String? key) async {
     CommandReply reply;
     try {
       reply = await _run(c);

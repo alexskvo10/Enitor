@@ -236,14 +236,20 @@ class SyncStore {
     final errors = <Map<String, dynamic>>[];
     for (final ch in changes) {
       if (ch is! Map) continue;
-      final coll = syncCollection(ch['coll'] as String? ?? '');
+      final rawColl = ch['coll'];
+      final coll = rawColl is String ? syncCollection(rawColl) : null;
       final id = ch['id'];
       if (coll == null || id is! String || id.isEmpty) {
-        errors.add({'coll': ch['coll'], 'id': id, 'message': 'unknown record'});
+        errors.add({'coll': rawColl, 'id': id, 'message': 'unknown record'});
         continue;
       }
       final cur = _records[coll.name]?[id];
-      final baseRev = ch['baseRev'] as int? ?? 0;
+      final rawBase = ch['baseRev'] ?? 0;
+      if (rawBase is! int) {
+        errors.add({'coll': coll.name, 'id': id, 'message': 'bad baseRev'});
+        continue;
+      }
+      final baseRev = rawBase;
       if (baseRev == 0 && cur != null) {
         rejected.add(cur);
         continue;

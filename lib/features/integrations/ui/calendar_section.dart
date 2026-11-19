@@ -70,6 +70,12 @@ class CalendarSection extends ConsumerWidget {
                     .read(icsSubscriptionProvider.notifier)
                     .set(sub.copyWith(auto: v)),
               ),
+            if (sub != null)
+              ListTile(
+                leading: const Icon(Icons.refresh_rounded),
+                title: TileTitle(l10n.calRefreshNow),
+                onTap: () => _refreshNow(context, ref),
+              ),
             tileDivider,
             ListTile(
               leading: const Icon(Icons.ios_share_rounded),
@@ -81,6 +87,25 @@ class CalendarSection extends ConsumerWidget {
         ),
         SectionNote(l10n.calNote),
       ],
+    );
+  }
+
+  /// «Обновить сейчас»: тот же путь, что ежедневное обновление, без ожидания.
+  static Future<void> _refreshNow(BuildContext context, WidgetRef ref) async {
+    final l10n = context.l10n;
+    final n = await refreshIcsSubscription(
+      ProviderScope.containerOf(context),
+      force: true,
+    );
+    if (!context.mounted) return;
+    showFancyToast(
+      context,
+      message: n == null
+          ? l10n.calLinkFailed
+          : n == 0
+              ? l10n.calRefreshNothing
+              : l10n.importDoneToast(n),
+      tone: n == null ? ToastTone.error : ToastTone.success,
     );
   }
 
@@ -96,12 +121,20 @@ class CalendarSection extends ConsumerWidget {
     WidgetRef ref,
     String text,
   ) async {
-    final cal = parseIcs(text, local: tz.local);
+    final cal = parseIcs(
+      text,
+      local: tz.local,
+      ru: Localizations.localeOf(context).languageCode == 'ru',
+    );
+    final seen = IcsSeen(ref.read(localStorageProvider));
     final plan = planIcsImport(
       cal,
       schedule: ref.read(scheduleRepositoryProvider),
       now: DateTime.now(),
+      seen: seen,
     );
+    await seen.save();
+    if (!context.mounted) return;
     // Поверх всего приложения: из пустого «Расписания» (внутри вкладок)
     // иначе под экраном оставалась бы нижняя панель.
     await Navigator.of(context, rootNavigator: true).push<int>(
@@ -110,6 +143,7 @@ class CalendarSection extends ConsumerWidget {
           title: context.l10n.calPreviewTitle,
           entries: plan,
           warningsCount: cal.warnings.length,
+          notes: cal.warnings,
         ),
       ),
     );
@@ -282,13 +316,17 @@ class CalendarSection extends ConsumerWidget {
       ],
     );
     if (source == null || !context.mounted) return;
+    var fileName = '';
     final text = await _pickText(
       context,
       source == ImportSource.googleTasks ? const ['json'] : const ['csv'],
+      onName: (n) => fileName = n,
     );
     if (text == null || !context.mounted) return;
     final result = switch (source) {
-      ImportSource.todoist => parseTodoistCsv(text),
+      // Todoist выгружает по проекту на файл, а имя проекта есть только в
+      // имени файла.
+      ImportSource.todoist => parseTodoistCsv(text, project: fileName),
       ImportSource.googleTasks => parseGoogleTasksJson(text),
       ImportSource.tickTick => parseTickTickCsv(text),
     };
@@ -313,8 +351,9 @@ class CalendarSection extends ConsumerWidget {
   /// Текст выбранного файла; null — отмена. Нечитаемый — тост.
   static Future<String?> _pickText(
     BuildContext context,
-    List<String> ext,
-  ) async {
+    List<String> ext, {
+    void Function(String name)? onName,
+  }) async {
     final l10n = context.l10n;
     try {
       final res = await FilePicker.platform.pickFiles(
@@ -324,6 +363,7 @@ class CalendarSection extends ConsumerWidget {
       );
       if (res == null || res.files.isEmpty) return null;
       final f = res.files.first;
+      onName?.call(f.name);
       final bytes = f.bytes ?? await File(f.path!).readAsBytes();
       return utf8.decode(bytes, allowMalformed: true);
     } catch (_) {

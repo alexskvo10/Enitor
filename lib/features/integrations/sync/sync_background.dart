@@ -29,16 +29,42 @@ const _kTaskName = 'enitor-sync';
 bool get _android => defaultTargetPlatform == TargetPlatform.android;
 
 ReceivePort? _port;
+SyncService? _service;
+bool _poked = false;
+
+/// Первым делом при запуске, ДО чтения хранилища: фоновый обмен, который
+/// уже идёт, увидит живое приложение и не запишет чужие правки поверх
+/// копии, которую приложение вот-вот прочитает (иначе приложение потом
+/// перезаписало бы их своей устаревшей копией). Сигналы до
+/// [attachForegroundSync] запоминаются.
+void claimForegroundSync() {
+  if (!_android || _port != null) return;
+  IsolateNameServer.removePortNameMapping(_syncPortName);
+  final port = _port = ReceivePort();
+  IsolateNameServer.registerPortWithName(port.sendPort, _syncPortName);
+  port.listen((_) {
+    final s = _service;
+    if (s == null) {
+      _poked = true;
+    } else {
+      s.syncNow();
+    }
+  });
+}
 
 /// Приложение на экране или свёрнуто, но живо: обмены идут через [service].
 void attachForegroundSync(SyncService service) {
   if (!_android) return;
-  _port?.close();
-  IsolateNameServer.removePortNameMapping(_syncPortName);
-  final port = _port = ReceivePort();
-  IsolateNameServer.registerPortWithName(port.sendPort, _syncPortName);
-  port.listen((_) => service.syncNow());
+  claimForegroundSync();
+  _service = service;
+  if (_poked) {
+    _poked = false;
+    service.syncNow();
+  }
 }
+
+/// Приложение живо — фоновому обмену писать нельзя, только позвать его.
+bool _appAlive() => IsolateNameServer.lookupPortByName(_syncPortName) != null;
 
 /// Обмен без интерфейса — из WorkManager или фонового движка UnifiedPush.
 /// Чужие правки только записываются в хранилище; дубли повторов и
@@ -66,7 +92,13 @@ Future<bool> runBackgroundSync() async {
       deviceId: settings.deviceId!,
       deviceName: deviceSyncName(storage),
       send: client.sync,
+      // Приложение открыли, пока шёл запрос: обмен — ему.
+      canWrite: () => !_appAlive(),
     ).run();
+    if (r.skipped) {
+      IsolateNameServer.lookupPortByName(_syncPortName)?.send(null);
+      return true;
+    }
     await storage.writeMap(
       kSyncSettingsKey,
       settings.copyWith(lastSyncAt: now, clearError: true).toJson(),

@@ -40,8 +40,10 @@ class PomodoroController extends ChangeNotifier {
     this._storage, {
     NotificationService? alarms,
     DateTime Function()? clock,
+    SoundService? sound,
   })  : _alarms = alarms,
-        _now = clock ?? DateTime.now {
+        _now = clock ?? DateTime.now,
+        _sound = sound ?? SoundService() {
     _restore();
     // Следим за задачами: если отслеживаемая выполнена/удалена — выключаемся
     // (с фиксацией наработанного). Покрывает ВСЕ пути завершения.
@@ -55,7 +57,7 @@ class PomodoroController extends ChangeNotifier {
   /// Уведомления о конце отрезков. null — в тестах и там, где сервиса нет.
   final NotificationService? _alarms;
   final DateTime Function() _now;
-  final SoundService _sound = SoundService();
+  final SoundService _sound;
   StreamSubscription<List<Task>>? _sub;
 
   Timer? _ticker;
@@ -143,10 +145,24 @@ class PomodoroController extends ChangeNotifier {
   void setForeground(bool value) {
     if (_foreground == value) return;
     _foreground = value;
+    if (value) _resumedAt = _now();
     _syncAlarms();
   }
 
   bool _foreground = true;
+
+  /// Когда приложение последний раз вернулось на экран. Отрезок, кончившийся
+  /// раньше, уже прозвенел уведомлением — второй сигнал при возврате лишний.
+  DateTime? _resumedAt;
+
+  /// Конец отрезка [end] уже отозвался уведомлением, пока приложение было
+  /// свёрнуто.
+  bool _ringedInBackground(DateTime end) {
+    if (_alarms == null) return false;
+    if (!_foreground) return true;
+    final back = _resumedAt;
+    return back != null && !end.isAfter(back);
+  }
 
   /// Закрыть баннер из состояния «Готово».
   void dismiss() => _reset();
@@ -211,7 +227,7 @@ class PomodoroController extends ChangeNotifier {
         notifyListeners();
         return;
       }
-      if (!played) {
+      if (!played && !_ringedInBackground(end)) {
         _sound.playPomodoroDone();
         Haptics.focusDone();
         played = true;

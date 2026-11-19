@@ -11,6 +11,7 @@ import '../../../data/repositories/backlog_repository.dart';
 import '../../../data/repositories/recurrence_repository.dart';
 import '../../../data/repositories/schedule_repository.dart';
 import '../../../data/repositories/task_repository.dart';
+import '../../../data/sources/local/local_storage.dart';
 import '../ics/ics_parser.dart';
 import 'imported_task.dart';
 
@@ -27,6 +28,9 @@ enum PlanSkip {
   noTitle,
   completedWithoutDate,
   brokenRow,
+
+  /// Пункт из календаря удалили в Enitor — обратно не возвращаем.
+  removedHere,
 }
 
 /// Строка предпросмотра: как пункт будет выглядеть и что с ним случится.
@@ -65,10 +69,16 @@ String stableId(String prefix, String externalId) =>
 /// Переводит события календаря в пункты расписания. Что Enitor выразить не
 /// может (весь день, «второй понедельник месяца», ежегодно) — пропускается с
 /// причиной, а не искажается.
+///
+/// [seen] — какую версию каждого события календаря Enitor уже видел. С ним
+/// пункт обновляется, только когда событие изменилось в самом календаре:
+/// правки, сделанные в Enitor, остаются, а удалённое здесь не возвращается.
+/// Без него (импорт файла впервые) — сравнение с тем, что лежит в расписании.
 List<PlanEntry> planIcsImport(
   IcsCalendar cal, {
   required ScheduleRepository schedule,
   required DateTime now,
+  IcsSeen? seen,
 }) {
   final today = dateOnly(now);
   final out = <PlanEntry>[];
@@ -99,7 +109,31 @@ List<PlanEntry> planIcsImport(
       continue;
     }
     final existing = schedule.byId(item.id);
-    final changed = existing == null || !_sameContent(existing, item);
+    final hash = icsItemHash(item);
+    final known = seen?[item.id];
+    if (seen != null && known != null && existing == null) {
+      out.add(skip(PlanSkip.removedHere));
+      continue;
+    }
+    if (seen != null && known == null && existing != null) {
+      // Импортировали до того, как Enitor стал запоминать версии: считаем
+      // лежащее в расписании своим (вдруг там правки), календарь — увиденным.
+      seen.mark(item.id, hash);
+    }
+    final changed = existing == null ||
+        (seen != null
+            ? known != null && known != hash
+            : !_sameContent(existing, item));
+    // Календарь поменял событие — берём его версию, но то, что задают только
+    // в Enitor (цвет, напоминание, удалённые дни серии), не теряем.
+    final next = existing == null
+        ? item
+        : item.copyWith(
+            colorIndex: existing.colorIndex,
+            reminderMinutes: existing.reminderMinutes,
+            exceptDates: {...item.exceptDates, ...existing.exceptDates}.toList()
+              ..sort(),
+          );
     out.add(
       PlanEntry(
         title: title,
@@ -113,7 +147,13 @@ List<PlanEntry> planIcsImport(
         startMinutes: item.startMinutes,
         endMinutes: item.endMinutes,
         repeats: item.isSeries,
-        apply: changed ? () => schedule.upsert(item) : null,
+        apply: changed
+            ? () async {
+                await schedule.upsert(next);
+                seen?.mark(item.id, hash);
+                await seen?.save();
+              }
+            : null,
       ),
     );
   }
@@ -203,6 +243,31 @@ DateTime? _lastOfCount(ScheduleItem item, int count) {
   return null;
 }
 
+/// Отпечаток события в том виде, в каком его отдал календарь.
+String icsItemHash(ScheduleItem i) {
+  final j = i.toJson()
+    ..remove('createdAt')
+    ..remove('updatedAt');
+  return sha1.convert(utf8.encode(jsonEncode(j))).toString();
+}
+
+/// Какие версии событий календаря Enitor уже видел (ключ «устройство»).
+class IcsSeen {
+  IcsSeen(this._storage)
+      : _map = {
+          for (final e in (_storage.readMap(_key) ?? const {}).entries)
+            if (e.value is String) e.key: e.value as String,
+        };
+
+  static const _key = 'device.ics.seen';
+  final LocalStorage _storage;
+  final Map<String, String> _map;
+
+  String? operator [](String id) => _map[id];
+  void mark(String id, String hash) => _map[id] = hash;
+  Future<void> save() => _storage.writeMap(_key, _map);
+}
+
 bool _sameContent(ScheduleItem a, ScheduleItem b) =>
     a.title == b.title &&
     a.date == b.date &&
@@ -219,7 +284,8 @@ bool _sameContent(ScheduleItem a, ScheduleItem b) =>
     _sameList(a.exceptDates, b.exceptDates);
 
 bool _sameList<T>(List<T> a, List<T> b) =>
-    a.length == b.length && [for (var i = 0; i < a.length; i++) a[i] == b[i]].every((x) => x);
+    a.length == b.length &&
+    [for (var i = 0; i < a.length; i++) a[i] == b[i]].every((x) => x);
 
 String? _nonEmpty(String? s) => s == null || s.trim().isEmpty ? null : s.trim();
 
@@ -247,9 +313,12 @@ List<PlanEntry> planTaskImport(
     final caveat =
         lostRepeat.contains(t.title) ? PlanSkip.unsupportedRepeat : null;
     final id = stableId('imp-${t.source.name}', t.sourceId);
-    final known = tasks.taskById(id) != null ||
+    // Задача могла уйти в бэклог (там она «b-<id>») и вернуться оттуда с
+    // тем же «b-<id>» — это всё ещё она.
+    final ids = {id, 'b-$id'};
+    final known = ids.any((x) => tasks.taskById(x) != null) ||
         rules.byId(id) != null ||
-        backlog.all.any((b) => b.id == id);
+        backlog.all.any((b) => ids.contains(b.id));
     PlanEntry skip(PlanSkip why) => PlanEntry(
           title: t.title,
           action: PlanAction.skip,

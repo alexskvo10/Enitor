@@ -205,14 +205,11 @@ class NotificationPrefs {
         retroWeekday: retroWeekday ?? this.retroWeekday,
         retroMinutes: retroMinutes ?? this.retroMinutes,
         transferReminder: transferReminder ?? this.transferReminder,
-        taskBacklogReminder:
-            taskBacklogReminder ?? this.taskBacklogReminder,
-        goalBacklogReminder:
-            goalBacklogReminder ?? this.goalBacklogReminder,
+        taskBacklogReminder: taskBacklogReminder ?? this.taskBacklogReminder,
+        goalBacklogReminder: goalBacklogReminder ?? this.goalBacklogReminder,
         goalUrgentAlerts: goalUrgentAlerts ?? this.goalUrgentAlerts,
         goalOverdueAlerts: goalOverdueAlerts ?? this.goalOverdueAlerts,
-        goalGeneralReminders:
-            goalGeneralReminders ?? this.goalGeneralReminders,
+        goalGeneralReminders: goalGeneralReminders ?? this.goalGeneralReminders,
         quietHoursEnabled: quietHoursEnabled ?? this.quietHoursEnabled,
         quietStart: quietStart ?? this.quietStart,
         quietEnd: quietEnd ?? this.quietEnd,
@@ -254,43 +251,43 @@ class NotificationPrefs {
     return NotificationPrefs(
       enabled: j['enabled'] as bool? ?? def.enabled,
       taskReminders: j['taskReminders'] as bool? ?? def.taskReminders,
-      taskLeadMinutes: j['taskLeadMinutes'] as int? ?? def.taskLeadMinutes,
-      taskEndReminders:
-          j['taskEndReminders'] as bool? ?? def.taskEndReminders,
+      taskLeadMinutes:
+          (j['taskLeadMinutes'] as int? ?? def.taskLeadMinutes).clamp(0, 1440),
+      taskEndReminders: j['taskEndReminders'] as bool? ?? def.taskEndReminders,
       taskEndLeadMinutes:
-          j['taskEndLeadMinutes'] as int? ?? def.taskEndLeadMinutes,
+          (j['taskEndLeadMinutes'] as int? ?? def.taskEndLeadMinutes)
+              .clamp(0, 1440),
       taskUrgentAlerts: j['taskUrgentAlerts'] as bool? ?? def.taskUrgentAlerts,
       taskOverdueAlerts:
           j['taskOverdueAlerts'] as bool? ?? def.taskOverdueAlerts,
       morningPlan: j['morningPlan'] as bool? ?? def.morningPlan,
-      morningMinutes: j['morningMinutes'] as int? ?? def.morningMinutes,
+      morningMinutes:
+          (j['morningMinutes'] as int? ?? def.morningMinutes).clamp(0, 1439),
       eveningReview: j['eveningReview'] as bool? ?? def.eveningReview,
-      eveningMinutes: j['eveningMinutes'] as int? ?? def.eveningMinutes,
+      eveningMinutes:
+          (j['eveningMinutes'] as int? ?? def.eveningMinutes).clamp(0, 1439),
       generalReminders: j['generalReminders'] as bool? ?? def.generalReminders,
       weeklyRetro: j['weeklyRetro'] as bool? ?? def.weeklyRetro,
       // Зажимаем: день недели индексирует список названий (weekday - 1), а
       // время собирается в TimeOfDay — битое значение из чужого/старого
       // бэкапа уронило бы и настройки, и планировщик.
-      retroWeekday:
-          (j['retroWeekday'] as int? ?? def.retroWeekday).clamp(1, 7),
+      retroWeekday: (j['retroWeekday'] as int? ?? def.retroWeekday).clamp(1, 7),
       retroMinutes:
           (j['retroMinutes'] as int? ?? def.retroMinutes).clamp(0, 1439),
-      transferReminder:
-          j['transferReminder'] as bool? ?? def.transferReminder,
+      transferReminder: j['transferReminder'] as bool? ?? def.transferReminder,
       taskBacklogReminder:
           j['taskBacklogReminder'] as bool? ?? def.taskBacklogReminder,
       goalBacklogReminder:
           j['goalBacklogReminder'] as bool? ?? def.goalBacklogReminder,
-      goalUrgentAlerts:
-          j['goalUrgentAlerts'] as bool? ?? def.goalUrgentAlerts,
+      goalUrgentAlerts: j['goalUrgentAlerts'] as bool? ?? def.goalUrgentAlerts,
       goalOverdueAlerts:
           j['goalOverdueAlerts'] as bool? ?? def.goalOverdueAlerts,
       goalGeneralReminders:
           j['goalGeneralReminders'] as bool? ?? def.goalGeneralReminders,
       quietHoursEnabled:
           j['quietHoursEnabled'] as bool? ?? def.quietHoursEnabled,
-      quietStart: j['quietStart'] as int? ?? def.quietStart,
-      quietEnd: j['quietEnd'] as int? ?? def.quietEnd,
+      quietStart: (j['quietStart'] as int? ?? def.quietStart).clamp(0, 1439),
+      quietEnd: (j['quietEnd'] as int? ?? def.quietEnd).clamp(0, 1439),
       scheduleReminders:
           j['scheduleReminders'] as bool? ?? def.scheduleReminders,
       scheduleLeadMinutes:

@@ -227,8 +227,10 @@ DateTime _toZone(DateTime utc, String zone) {
   );
 }
 
-/// Repeat: RRULE:FREQ=DAILY;INTERVAL=N | WEEKLY;BYDAY=MO,WE | MONTHLY;BYMONTHDAY=N.
-/// Остальное (ключи вне списка, недельные и месячные интервалы больше 1) — null.
+/// Repeat: RRULE:FREQ=DAILY;INTERVAL=N | DAILY;BYDAY=MO,WE (при INTERVAL=1) |
+/// WEEKLY;BYDAY=MO,WE | MONTHLY;BYMONTHDAY=N.
+/// Остальное (ключи вне списка, интервалы больше 1 там, где они не переводятся,
+/// BYMONTHDAY у DAILY/WEEKLY, BYDAY у MONTHLY) — null.
 ImportedRepeat? _parseRrule(String raw) {
   var body = raw.trim().toUpperCase();
   if (body.startsWith('RRULE:')) {
@@ -250,35 +252,52 @@ ImportedRepeat? _parseRrule(String raw) {
     return null;
   }
   final freq = parts['FREQ'];
+  final byDay = parts['BYDAY'];
+  final byMonthDay = parts['BYMONTHDAY'];
   if (freq == 'DAILY') {
-    return ImportedRepeat(
-      kind: RecurrenceKind.interval,
-      intervalDays: interval,
-    );
+    if (byMonthDay != null) {
+      return null;
+    }
+    if (byDay == null) {
+      return ImportedRepeat(
+        kind: RecurrenceKind.interval,
+        intervalDays: interval,
+      );
+    }
+    // «Каждый будний день» — DAILY;BYDAY=MO,TU,... при INTERVAL=1.
+    return interval == 1 ? _weekdaysRepeat(byDay) : null;
   }
   if (interval != 1) {
     return null;
   }
   if (freq == 'WEEKLY') {
-    final days = <int>[];
-    for (final code in (parts['BYDAY'] ?? '').split(',')) {
-      final d = _rruleDays[code.trim()];
-      if (d == null) {
-        return null;
-      }
-      days.add(d);
-    }
-    if (days.isEmpty) {
+    if (byMonthDay != null || byDay == null) {
       return null;
     }
-    return ImportedRepeat(kind: RecurrenceKind.weekly, weekdays: days);
+    return _weekdaysRepeat(byDay);
   }
   if (freq == 'MONTHLY') {
-    final day = int.tryParse(parts['BYMONTHDAY'] ?? '');
+    if (byDay != null) {
+      return null;
+    }
+    final day = int.tryParse(byMonthDay ?? '');
     if (day == null || day < 1 || day > 31) {
       return null;
     }
     return ImportedRepeat(kind: RecurrenceKind.monthly, monthDays: [day]);
   }
   return null;
+}
+
+/// Дни из BYDAY (MO,WE,...) в повтор по неделе; неизвестный код — null.
+ImportedRepeat? _weekdaysRepeat(String byDay) {
+  final days = <int>[];
+  for (final code in byDay.split(',')) {
+    final d = _rruleDays[code.trim()];
+    if (d == null) {
+      return null;
+    }
+    days.add(d);
+  }
+  return ImportedRepeat(kind: RecurrenceKind.weekly, weekdays: days);
 }

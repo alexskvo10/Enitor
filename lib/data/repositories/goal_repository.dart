@@ -894,9 +894,10 @@ class GoalRepository {
     List<String> tags = const [],
     GoalUnit unit = GoalUnit.count,
     String? parentId,
+    int manualProgress = 0,
   }) async {
     final now = DateTime.now();
-    final goal = Goal(
+    var goal = Goal(
       id: _uuid.v4(),
       title: title,
       period: period,
@@ -918,6 +919,13 @@ class GoalRepository {
       createdAt: now,
       updatedAt: now,
     );
+    // Из бэклога — с набранной ручной частью.
+    if (manualProgress > 0 && goal.isCounter) {
+      goal = _withProgress(
+        goal,
+        manual: manualProgress.clamp(0, goal.targetCount!),
+      );
+    }
     _cache.add(goal);
     await _save();
     return goal;
@@ -961,8 +969,11 @@ class GoalRepository {
     _cache[idx] = _withProgress(cur, manual: manual);
     if (_cache[idx].completed && !cur.completed)
       Haptics.completed(); // цель добита
+    // Состояние до _save: свёртка родителей в нём может сама достигнуть
+    // эту цель и уже отправить событие — повторно читать кэш нельзя.
+    final after = _cache[idx];
     await _save();
-    _emitIfAchieved(cur, _cache[idx]);
+    _emitIfAchieved(cur, after);
   }
 
   /// Обновляет вклад привязанных задач (вызывается из TaskRepository).
@@ -974,8 +985,11 @@ class GoalRepository {
     final l = sum.clamp(0, cur.targetCount!);
     if (l == cur.linkedProgress) return;
     _cache[idx] = _withProgress(cur, linked: l);
+    // Состояние до _save: свёртка родителей в нём может сама достигнуть
+    // эту цель и уже отправить событие — повторно читать кэш нельзя.
+    final after = _cache[idx];
     await _save();
-    _emitIfAchieved(cur, _cache[idx]);
+    _emitIfAchieved(cur, after);
   }
 
   /// Цели-счётчики, чей период содержит [date] — кандидаты для привязки задачи.
@@ -1004,8 +1018,11 @@ class GoalRepository {
       clearCompletedAt: !nowCompleting,
       updatedAt: now,
     );
+    // Состояние до _save: свёртка родителей в нём может сама достигнуть
+    // эту цель и уже отправить событие — повторно читать кэш нельзя.
+    final after = _cache[idx];
     await _save();
-    _emitIfAchieved(cur, _cache[idx]);
+    _emitIfAchieved(cur, after);
   }
 
   /// Переключает подзадачу цели. Когда все выполнены — цель достигается
@@ -1028,8 +1045,11 @@ class GoalRepository {
       clearCompletedAt: !allDone,
       updatedAt: now,
     );
+    // Состояние до _save: свёртка родителей в нём может сама достигнуть
+    // эту цель и уже отправить событие — повторно читать кэш нельзя.
+    final after = _cache[idx];
     await _save();
-    _emitIfAchieved(cur, _cache[idx]);
+    _emitIfAchieved(cur, after);
   }
 
   /// Отмечает все подзадачи цели как [done] разом и синхронизирует статус.
@@ -1048,8 +1068,11 @@ class GoalRepository {
       clearCompletedAt: !done,
       updatedAt: now,
     );
+    // Состояние до _save: свёртка родителей в нём может сама достигнуть
+    // эту цель и уже отправить событие — повторно читать кэш нельзя.
+    final after = _cache[idx];
     await _save();
-    _emitIfAchieved(cur, _cache[idx]);
+    _emitIfAchieved(cur, after);
   }
 
   /// Обновляет цель целиком (включая дедлайн и заголовок).
@@ -1077,6 +1100,13 @@ class GoalRepository {
   Future<void> deleteGoal(String id) async {
     final goal = _cache.where((g) => g.id == id).firstOrNull;
     _cache.removeWhere((g) => g.id == id);
+    // Подцели остаются сами по себе, без ссылки на удалённого родителя.
+    final now = DateTime.now();
+    for (var i = 0; i < _cache.length; i++) {
+      if (_cache[i].parentId == id) {
+        _cache[i] = _cache[i].copyWith(clearParentId: true, updatedAt: now);
+      }
+    }
     await _save();
 
     // Если удаляется перенесённая копия → отправляем в бэклог
@@ -1094,6 +1124,8 @@ class GoalRepository {
         unit: goal.unit,
         progressCount: goal.manualProgress,
         subtaskTitles: goal.subtasks.map((s) => s.title).toList(),
+        priority: goal.priority,
+        tags: goal.tags,
       ));
     }
   }
@@ -1154,6 +1186,9 @@ class GoalRepository {
   /// • помечает оригинал как [isTransferred] = true
   Future<void> transferGoal(Goal goal,
       {required GoalPeriodRef targetRef}) async {
+    // Второй тап по «Перенести», пока первый ещё пишет, видит уже
+    // помеченный оригинал (флаг ставится до первого await) — второй копии нет.
+    if (_cache.any((x) => x.id == goal.id && x.isTransferred)) return;
     final now = DateTime.now();
     // Предсказуемый id — как у переноса задач (синхронизация устройств).
     // Длина постоянная: из 't-' + id задача, которую переносят каждую ночь,
@@ -1287,6 +1322,8 @@ class GoalRepository {
       unit: goal.unit,
       progressCount: goal.manualProgress,
       subtaskTitles: goal.subtasks.map((s) => s.title).toList(),
+      priority: goal.priority,
+      tags: goal.tags,
     ));
     final idx = _cache.indexWhere((g) => g.id == goal.id);
     if (idx != -1) {

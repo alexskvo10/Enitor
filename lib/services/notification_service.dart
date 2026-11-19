@@ -587,8 +587,11 @@ class NotificationService {
       final now = tz.TZDateTime.now(tz.local);
       var id = _taskUrgentIdBase;
       for (final task in tasks) {
-        final when = _taskUrgentAt(task);
+        final when = _taskUrgentAt(task, prefs);
         if (!when.isAfter(now)) continue;
+        // Сдвинутое тихими часами «внимание» не позже «просрочена» — только
+        // дублировало бы его.
+        if (!when.isBefore(_taskOverdueAt(task, prefs))) continue;
         await _scheduleAt(
           id: id++,
           when: when,
@@ -607,7 +610,7 @@ class NotificationService {
       final now = tz.TZDateTime.now(tz.local);
       var id = _taskOverdueIdBase;
       for (final task in tasks) {
-        final when = _taskOverdueAt(task);
+        final when = _taskOverdueAt(task, prefs);
         if (!when.isAfter(now)) continue;
         await _scheduleAt(
           id: id++,
@@ -654,7 +657,7 @@ class NotificationService {
       final now = tz.TZDateTime.now(tz.local);
       var id = _goalUrgentIdBase;
       for (final goal in goals) {
-        final when = _goalUrgentAt(goal);
+        final when = _goalUrgentAt(goal, prefs);
         if (when == null || !when.isAfter(now)) continue;
         await _scheduleAt(
           id: id++,
@@ -673,7 +676,7 @@ class NotificationService {
       final now = tz.TZDateTime.now(tz.local);
       var id = _goalOverdueIdBase;
       for (final goal in goals) {
-        final when = _goalOverdueAt(goal);
+        final when = _goalOverdueAt(goal, prefs);
         if (!when.isAfter(now)) continue;
         await _scheduleAt(
           id: id++,
@@ -692,18 +695,20 @@ class NotificationService {
   /// _GoalUrgency.urgent в goals_screen.dart. null, если этот момент уже
   /// позади конца периода (тогда цель либо просрочена, либо порог ей не
   /// подходит — не планируем в прошлое).
-  tz.TZDateTime? _goalUrgentAt(Goal goal) {
+  tz.TZDateTime? _goalUrgentAt(Goal goal, NotificationPrefs prefs) {
     final effectiveDeadline = goal.deadline ?? goal.periodEnd;
     final threshold = goal.ref.urgencyThreshold;
     final d = addDays(effectiveDeadline, -threshold);
-    return tz.TZDateTime(tz.local, d.year, d.month, d.day, 9);
+    return shiftOutOfQuiet(
+        tz.TZDateTime(tz.local, d.year, d.month, d.day, 9), prefs,);
   }
 
   /// Момент, когда цель становится просроченной — на следующий день после
   /// конца периода, в 9:00 (см. _GoalUrgency.overdue).
-  tz.TZDateTime _goalOverdueAt(Goal goal) {
+  tz.TZDateTime _goalOverdueAt(Goal goal, NotificationPrefs prefs) {
     final d = addDays(goal.periodEnd, 1);
-    return tz.TZDateTime(tz.local, d.year, d.month, d.day, 9);
+    return shiftOutOfQuiet(
+        tz.TZDateTime(tz.local, d.year, d.month, d.day, 9), prefs,);
   }
 
   /// Абсолютный момент конца задачи (с учётом «через полночь»), либо null,
@@ -718,26 +723,34 @@ class NotificationService {
         ? addDays(DateTime(day.year, day.month, day.day), 1)
         : DateTime(day.year, day.month, day.day);
     return tz.TZDateTime(
-        tz.local, base.year, base.month, base.day, end ~/ 60, end % 60);
+        tz.local, base.year, base.month, base.day, end ~/ 60, end % 60,);
   }
 
   /// Момент, когда задача становится просроченной — совпадает с концом,
   /// либо, если конца нет, с полуночью после дня задачи (см. _TimeState.overdue).
-  tz.TZDateTime _taskOverdueAt(Task task) {
+  /// Время конца поставил сам человек — оно сильнее тихих часов; полночь
+  /// выбрало приложение — тогда уведомление ждёт конца тихих часов.
+  tz.TZDateTime _taskOverdueAt(Task task, NotificationPrefs prefs) {
     final end = _taskEndAt(task);
     if (end != null) return end;
     final day = task.date;
     final midnight = addDays(DateTime(day.year, day.month, day.day), 1);
-    return tz.TZDateTime(tz.local, midnight.year, midnight.month, midnight.day);
+    return shiftOutOfQuiet(
+      tz.TZDateTime(tz.local, midnight.year, midnight.month, midnight.day),
+      prefs,
+    );
   }
 
   /// Момент, когда задача становится «срочной» — за 30 минут до конца, либо,
   /// если конца нет, в 23:00 в день задачи (см. _TimeState.urgent).
-  tz.TZDateTime _taskUrgentAt(Task task) {
+  /// Как и у «просрочена»: от своего конца — всегда, от 23:00 приложения —
+  /// не в тихие часы.
+  tz.TZDateTime _taskUrgentAt(Task task, NotificationPrefs prefs) {
     final end = _taskEndAt(task);
     if (end != null) return end.subtract(const Duration(minutes: 30));
     final day = task.date;
-    return tz.TZDateTime(tz.local, day.year, day.month, day.day, 23, 0);
+    return shiftOutOfQuiet(
+        tz.TZDateTime(tz.local, day.year, day.month, day.day, 23, 0), prefs,);
   }
 
   Future<void> cancelAll() async {
@@ -851,7 +864,7 @@ class NotificationService {
     if (_isWindows) {
       for (var d = 0; d < _windowsDailyDays; d++) {
         final when = _tzAddDays(
-            _nextInstanceOf(minutesOfDay ~/ 60, minutesOfDay % 60), d);
+            _nextInstanceOf(minutesOfDay ~/ 60, minutesOfDay % 60), d,);
         await _scheduleAt(
           id: id * 100 + d,
           when: when,
@@ -1127,6 +1140,17 @@ final notificationServiceProvider = Provider<NotificationService>(
 
 /// [t] плюс [n] календарных дней с тем же временем на часах (через переход
 /// на летнее время `add(Duration(days:))` сдвинул бы напоминание на час).
+/// Момент [when], а если он попадает в тихие часы — их конец (ближайший
+/// после [when]). Для уведомлений, чьё время выбрало приложение, а не человек.
+tz.TZDateTime shiftOutOfQuiet(tz.TZDateTime when, NotificationPrefs prefs) {
+  if (!prefs.isQuiet(when.hour * 60 + when.minute)) return when;
+  final end = prefs.quietEnd;
+  var at = tz.TZDateTime(
+      when.location, when.year, when.month, when.day, end ~/ 60, end % 60,);
+  if (!at.isAfter(when)) at = _tzAddDays(at, 1);
+  return at;
+}
+
 tz.TZDateTime _tzAddDays(tz.TZDateTime t, int n) => tz.TZDateTime(
       t.location,
       t.year,

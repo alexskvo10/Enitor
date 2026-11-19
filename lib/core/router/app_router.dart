@@ -27,10 +27,12 @@ import '../../data/repositories/profile_repository.dart';
 import '../utils/date_utils.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../../services/transfer_prompt_controller.dart';
+import '../../services/update_service.dart';
 import '../../services/weekly_retro_controller.dart';
 import '../../widgets/achievement_popup.dart';
 import '../../widgets/transfer_catchup_sheet.dart';
 import '../../widgets/transfer_prompt_banner.dart';
+import '../../widgets/fancy_toast.dart';
 import '../../widgets/update_dialog.dart';
 import '../../widgets/weekly_retro_sheet.dart';
 
@@ -142,6 +144,15 @@ class _RootScaffoldState extends ConsumerState<_RootScaffold> {
     if (!mounted) return;
     await _maybeOfferTour();
     if (!mounted) return;
+    if (updateFailedOnLaunch) {
+      // Скрипт обновления не смог заменить файлы и запустил старую версию.
+      updateFailedOnLaunch = false;
+      showFancyToast(
+        context,
+        message: context.l10n.updateApplyFailedToast,
+        tone: ToastTone.error,
+      );
+    }
     // Тихая автопроверка обновлений (не чаще раза в сутки, см.
     // UpdateService._throttle) — молчит, если обновления нет или сети нет.
     await checkAndShowUpdateDialog(context, ref, manual: false);

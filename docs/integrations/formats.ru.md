@@ -237,7 +237,7 @@ Enitor отправляет `POST` на адреса, которые ты доб
   "v": 1,
   "exportedAt": "2026-11-02T18:31:05.120",
   "app": { "version": "0.4.0" },
-  "data": { "tasks": [], "goals": [], "schedule": [], "recurrence": [], "templates": [], "taskBacklog": [], "goalBacklog": [], "dayRatings": {}, "periodRatings": {} }
+  "data": { "tasks": [], "goals": [], "schedule": [], "recurrence": [], "templates": [], "scheduleTemplates": [], "taskBacklog": [], "goalBacklog": [], "dayRatings": {}, "periodRatings": {} }
 }
 ```
 

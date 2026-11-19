@@ -14,7 +14,10 @@ enitor-server [options]
   --data <dir>    папка с данными (enitor-data)
   --token <t>     свой токен вместо созданного сервером
   --show-token    напечатать токен и выйти
-  -h, --help      эта справка''';
+  -h, --help      эта справка
+
+«Сегодня» и время записей сервер считает по своему часовому поясу —
+задайте ваш: TZ=Europe/Moscow enitor-server''';
 
 /// Эталонный сервер Enitor: синхронизация устройств и REST для автоматики.
 /// Описание — docs/integrations/server.md.
@@ -68,6 +71,17 @@ Future<void> main(List<String> args) async {
   final app = EnitorServer(store, token: token, webPage: kWebPage);
   final server = await HttpServer.bind(host, port);
   stdout.writeln('enitor-server: http://$host:$port  (data: ${dir.path})');
+  // Пояс сервера — «сегодня» для задач без даты и время записей. На VPS
+  // обычно UTC, и задачи «на сегодня» ночью уезжали бы на другой день.
+  final now = DateTime.now();
+  final off = now.timeZoneOffset;
+  final sign = off.isNegative ? '-' : '+';
+  final hh = off.inHours.abs().toString().padLeft(2, '0');
+  final mm = (off.inMinutes.abs() % 60).toString().padLeft(2, '0');
+  stdout.writeln(
+    'Time zone: ${now.timeZoneName} ($sign$hh:$mm) — set TZ=<your zone> '
+    'if it differs from your devices',
+  );
   if (created) {
     stdout.writeln('Token (Enitor → Settings → Sync → Own server):\n$token');
   }

@@ -213,6 +213,18 @@ void main() {
       router.routerDelegate.currentConfiguration.last.matchedLocation,
       '/settings',
     );
+    // Системная «Назад» на шаге в «Настройках» — шаг назад, а не закрытие
+    // «Настроек» под экскурсией.
+    await tester.binding.handlePopRoute();
+    await _settle(tester);
+    expect(find.text('Шаг 11 из 12'), findsOneWidget);
+    expect(
+      router.routerDelegate.currentConfiguration.last.matchedLocation,
+      '/settings',
+    );
+    await tester.tap(find.text('Далее'));
+    await _settle(tester);
+
     // Назад с последнего шага на «Настройки» не кладёт их второй раз.
     await tester.tap(find.text('Назад'));
     await _settle(tester);

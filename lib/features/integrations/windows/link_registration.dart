@@ -15,6 +15,20 @@ enum LinkRegistrationState {
   stale,
 }
 
+/// Сравнение значения из вывода `reg query` с ожидаемым. reg.exe печатает
+/// в кодировке консоли (cp866), а Dart читает вывод как ANSI (cp1251):
+/// кириллица в пути (папка «Загрузки», имя пользователя) приходит другими
+/// буквами, и путь казался бы «устаревшим» на каждом запуске. Оба
+/// однобайтовые — сравниваем ASCII как есть, а прочие символы только по
+/// месту.
+// ponytail: путь, отличающийся лишь кириллицей той же длины, сочтётся тем
+// же; честное чтение — через `reg export` (UTF-16), если это всплывёт.
+bool regTextEquals(String fromReg, String expected) {
+  String ascii(String s) =>
+      String.fromCharCodes(s.toLowerCase().runes.map((c) => c < 128 ? c : 63));
+  return ascii(fromReg) == ascii(expected);
+}
+
 typedef ProcessRunner = Future<ProcessResult> Function(
   String executable,
   List<String> arguments,
@@ -47,7 +61,7 @@ class LinkRegistration {
         .firstWhere((l) => l.contains('REG_SZ'), orElse: () => '');
     final i = line.indexOf('REG_SZ');
     final value = i < 0 ? '' : line.substring(i + 'REG_SZ'.length).trim();
-    return value.toLowerCase() == expectedCommand.toLowerCase()
+    return regTextEquals(value, expectedCommand)
         ? LinkRegistrationState.current
         : LinkRegistrationState.stale;
   }

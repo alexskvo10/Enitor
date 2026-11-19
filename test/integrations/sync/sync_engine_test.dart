@@ -100,11 +100,14 @@ void main() {
       updatedAt: _t0,
     );
     final onA = taskFromRule(rule, _day, order: 0, now: _t0);
-    final onB = taskFromRule(rule, _day,
-        order: 3,
-        now: _t0.add(
-          const Duration(minutes: 5),
-        ),);
+    final onB = taskFromRule(
+      rule,
+      _day,
+      order: 3,
+      now: _t0.add(
+        const Duration(minutes: 5),
+      ),
+    );
     expect(onA.id, onB.id);
     await a.setTasks([
       onA.copyWith(completedAt: _t0, updatedAt: _t0).toJson(),
@@ -150,11 +153,15 @@ void main() {
     await b.sync();
 
     // A забирает правку B, но человек как раз правит ту же задачу.
-    final slow = SyncEngine(a.storage, deviceId: 'A', send: (body) async {
-      final r = await server.sync(body);
-      await a.setTasks([_task('x', 'от A, пока шёл запрос')]);
-      return r;
-    },);
+    final slow = SyncEngine(
+      a.storage,
+      deviceId: 'A',
+      send: (body) async {
+        final r = await server.sync(body);
+        await a.setTasks([_task('x', 'от A, пока шёл запрос')]);
+        return r;
+      },
+    );
     await slow.run();
     expect(a.task('x')!['title'], 'от A, пока шёл запрос');
     await a.sync();
@@ -169,8 +176,8 @@ void main() {
           'coll': 'tasks',
           'id': 'bad',
           'baseRev': 0,
-          'data': {'title': 1}
-        ,},
+          'data': {'title': 1},
+        },
       ],
     });
     // Сервер сам такую не примет.
@@ -179,6 +186,60 @@ void main() {
       server.put('tasks', 'bad', {'id': 'bad'}),
       throwsA(isA<StoreError>()),
     );
+  });
+
+  test('непонятая запись не теряется: курсор останавливается перед ней',
+      () async {
+    final storage = await MemoryStorage.create();
+    final sentCursors = <int>[];
+    final engine = SyncEngine(
+      storage,
+      deviceId: 'A',
+      send: (body) async {
+        sentCursors.add(body['cursor'] as int);
+        return {
+          'cursor': 7,
+          'applied': const <Object>[],
+          'changes': [
+            {'coll': 'tasks', 'id': 'x', 'rev': 4, 'data': _task('x', 'Хлеб')},
+            // Коллекция из будущей версии приложения.
+            {
+              'coll': 'habits',
+              'id': 'h',
+              'rev': 5,
+              'data': const <String, Object>{},
+            },
+            {'coll': 'tasks', 'id': 'y', 'rev': 7, 'data': _task('y', 'Сыр')},
+          ],
+        };
+      },
+    );
+    final r = await engine.run();
+    expect(r.rejected, 1);
+    expect(storage.readList('tasks').map((t) => t['id']), ['x', 'y']);
+    await engine.run();
+    expect(sentCursors, [0, 4]);
+  });
+
+  test('фоновый обмен не пишет, если тем временем открылось приложение',
+      () async {
+    await a.setTasks([_task('x', 'Хлеб')]);
+    await a.sync();
+    var appOpened = false;
+    final bg = SyncEngine(
+      b.storage,
+      deviceId: 'B',
+      send: (body) async {
+        final r = await server.sync(body);
+        appOpened = true; // пока шёл запрос
+        return r;
+      },
+      canWrite: () => !appOpened,
+    );
+    final r = await bg.run();
+    expect(r.skipped, isTrue);
+    expect(b.tasks, isEmpty);
+    expect(b.storage.readMap(kSyncCursorKey), isNull);
   });
 
   test('оценки (карта) синхронизуются по ключу', () async {
@@ -265,7 +326,12 @@ void main() {
         s.sync({
           'cursor': 0,
           'changes': [
-            {'coll': 'tasks', 'id': 't$i', 'baseRev': 0, 'data': _task('t$i', 'x')},
+            {
+              'coll': 'tasks',
+              'id': 't$i',
+              'baseRev': 0,
+              'data': _task('t$i', 'x'),
+            },
           ],
         }),
     ]);
@@ -273,5 +339,40 @@ void main() {
     expect(again.all('tasks'), hasLength(10));
     expect(again.epoch, s.epoch);
     await dir.delete(recursive: true);
+  });
+
+  group('восстановление бэкапа', () {
+    // A и B синхронизированы, бэкап снят, когда была одна задача x = «old».
+    Future<List<Map<String, dynamic>>> setup() async {
+      await a.setTasks([_task('x', 'old')]);
+      await a.sync();
+      await b.sync();
+      final backup = a.tasks;
+      await b.setTasks([_task('x', 'new'), _task('y', 'later')]);
+      await b.sync();
+      await a.sync();
+      expect(a.tasks.length, 2);
+      return backup;
+    }
+
+    test('на всех устройствах — везде как в бэкапе', () async {
+      final backup = await setup();
+      await a.setTasks(backup); // память обмена не сброшена
+      await a.sync();
+      await b.sync();
+      expect(b.task('x')!['title'], 'old');
+      expect(b.task('y'), isNull, reason: 'записи, которых нет в бэкапе');
+    });
+
+    test('только здесь — свежие записи соседей возвращаются', () async {
+      final backup = await setup();
+      await a.setTasks(backup);
+      await SyncEngine.reset(a.storage);
+      await a.sync();
+      await b.sync();
+      expect(b.task('x')!['title'], 'new');
+      expect(a.task('x')!['title'], 'new');
+      expect(a.task('y'), isNotNull);
+    });
   });
 }

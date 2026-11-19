@@ -94,6 +94,30 @@ void main() {
     expect(result.warnings, hasLength(1));
   });
 
+  test('одинаковые задачи в одном файле получают разные sourceId', () {
+    final csv = [
+      _header,
+      'section,Работа,,,,,,,,',
+      'task,Купить молоко,,4,1,,,,,',
+      'task,Купить молоко,,4,1,,,,,',
+      'section,Дом,,,,,,,,',
+      'task,Купить молоко,,4,1,,,,,',
+    ].join('\n');
+
+    final ids = parseTodoistCsv(csv).tasks.map((t) => t.sourceId).toList();
+
+    expect(ids.toSet(), hasLength(3));
+  });
+
+  test('одинаковые задачи из файлов двух проектов — разные sourceId', () {
+    final csv = [_header, 'task,Купить молоко,,4,1,,,,,'].join('\n');
+    String id(String project) =>
+        parseTodoistCsv(csv, project: project).tasks.single.sourceId;
+
+    expect(id('Работа.csv'), isNot(id('Дом.csv')));
+    expect(id('Работа.csv'), id('Работа.csv'));
+  });
+
   test('метки @label из названия становятся тегами', () {
     final r = parseTodoistCsv(
       'TYPE,CONTENT,DESCRIPTION,PRIORITY,INDENT,AUTHOR,RESPONSIBLE,DATE,'

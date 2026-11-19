@@ -43,7 +43,18 @@ class BackupService {
 
   /// Восстанавливает данные из JSON-строки. Бросает [FormatException] на чужом
   /// файле. [clear] — полная замена (по умолчанию).
-  Future<void> restoreFromJson(String jsonStr, {bool clear = true}) async {
+  ///
+  /// [everywhere] — бэкап главнее всех: память синхронизации о последнем
+  /// обмене остаётся, поэтому следующий обмен отправит записи бэкапа как
+  /// свежие правки, а записи, которых в бэкапе нет, — удалениями: всё
+  /// вернётся, как в бэкапе, и на сервере, и у соседей по сети. Без него —
+  /// только на этом устройстве: память сбрасывается, и при обмене более
+  /// свежие записи других устройств вернутся сюда.
+  Future<void> restoreFromJson(
+    String jsonStr, {
+    bool clear = true,
+    bool everywhere = false,
+  }) async {
     final decoded = jsonDecode(jsonStr);
     if (decoded is! Map ||
         decoded['app'] != 'todo' ||
@@ -61,6 +72,7 @@ class BackupService {
       (k, v) => MapEntry(k.toString(), v as Object?),
     );
     await _storage.restore(data, clear: clear);
+    if (everywhere) return;
     // Иначе синхронизация сочла бы записи, которых нет в копии, удалёнными
     // и стёрла бы их на сервере и других устройствах.
     await SyncEngine.reset(_storage);
@@ -86,7 +98,7 @@ class BackupService {
       );
     }
     final path = await FilePicker.platform.saveFile(
-      dialogTitle: 'Сохранить бэкап',
+      dialogTitle: _l10n.saveBackupDialogTitle,
       fileName: name,
       type: FileType.custom,
       allowedExtensions: const ['json'],
@@ -101,7 +113,7 @@ class BackupService {
 
   /// Импортирует бэкап из выбранного файла. Возвращает true при успехе.
   /// Бросает [FormatException] на чужом/битом файле.
-  Future<bool> importFromFile() async {
+  Future<bool> importFromFile({bool everywhere = false}) async {
     final res = await FilePicker.platform.pickFiles(
       dialogTitle: _l10n.pickBackupFileDialogTitle,
       type: FileType.custom,
@@ -113,7 +125,7 @@ class BackupService {
     final content = f.bytes != null
         ? utf8.decode(f.bytes!)
         : await File(f.path!).readAsString();
-    await restoreFromJson(content);
+    await restoreFromJson(content, everywhere: everywhere);
     return true;
   }
 
@@ -128,7 +140,15 @@ class BackupService {
   /// полностью записан — заменяет им основной файл. Так прерванная запись
   /// (вылет/потеря питания) не уничтожит уже существующий целый бэкап.
   /// Тихо: ошибки глотаются — авто-бэкап не критичен для работы.
-  Future<void> writeAutoBackup() async {
+  ///
+  /// Записи идут по очереди: два вызова подряд (сворачивание и обмен
+  /// синхронизации) иначе писали бы в один `.tmp` одновременно.
+  Future<void> writeAutoBackup() =>
+      _autoBackupQueue = _autoBackupQueue.then((_) => _writeAutoBackup());
+
+  Future<void> _autoBackupQueue = Future.value();
+
+  Future<void> _writeAutoBackup() async {
     try {
       final f = await _autoBackupFile();
       final tmp = File('${f.path}.tmp');

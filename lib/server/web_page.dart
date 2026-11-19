@@ -122,10 +122,10 @@ button.danger { color: var(--danger); }
 
   <section id="auth" hidden>
     <h1>Enitor</h1>
-    <p class="muted">Введите токен сервера. Он сохранится в этом браузере, пока вы не нажмёте «Выйти».</p>
+    <p class="muted" data-en="Enter the server token. This browser keeps it until you press “Sign out”.">Введите токен сервера. Он сохранится в этом браузере, пока вы не нажмёте «Выйти».</p>
     <form id="auth-form" class="card form">
-      <input id="token-input" type="password" autocomplete="off" placeholder="Токен" aria-label="Токен" required>
-      <button type="submit" class="primary">Войти</button>
+      <input id="token-input" type="password" autocomplete="off" placeholder="Токен" aria-label="Токен" data-en-ph="Token" data-en-aria="Token" required>
+      <button type="submit" class="primary" data-en="Sign in">Войти</button>
       <p id="auth-msg" class="err"></p>
     </form>
   </section>
@@ -133,56 +133,56 @@ button.danger { color: var(--danger); }
   <section id="app" hidden>
     <header class="top">
       <h1>Enitor</h1>
-      <button type="button" id="logout" class="ghost">Выйти</button>
+      <button type="button" id="logout" class="ghost" data-en="Sign out">Выйти</button>
     </header>
 
     <nav class="daynav">
-      <button type="button" id="prev" class="ghost" aria-label="Предыдущий день">←</button>
+      <button type="button" id="prev" class="ghost" aria-label="Предыдущий день" data-en-aria="Previous day">←</button>
       <div id="day-label" class="daylabel"></div>
-      <button type="button" id="next" class="ghost" aria-label="Следующий день">→</button>
+      <button type="button" id="next" class="ghost" aria-label="Следующий день" data-en-aria="Next day">→</button>
     </nav>
-    <div class="todaywrap"><button type="button" id="today" class="ghost">Сегодня</button></div>
+    <div class="todaywrap"><button type="button" id="today" class="ghost" data-en="Today">Сегодня</button></div>
 
     <p id="msg" class="err" role="alert" hidden></p>
 
     <section class="card">
-      <h2>Задачи</h2>
+      <h2 data-en="Tasks">Задачи</h2>
       <ul id="task-list" class="list"></ul>
       <form id="task-form" class="form">
-        <input id="task-title" type="text" required maxlength="200" placeholder="Новая задача" aria-label="Название задачи">
+        <input id="task-title" type="text" required maxlength="200" placeholder="Новая задача" aria-label="Название задачи" data-en-ph="New task" data-en-aria="Task title">
         <div class="formrow">
-          <label>Начало <input id="task-start" type="time"></label>
-          <label>Конец <input id="task-end" type="time"></label>
-          <label>Важность <select id="task-priority"></select></label>
+          <label><span data-en="Start">Начало</span> <input id="task-start" type="time"></label>
+          <label><span data-en="End">Конец</span> <input id="task-end" type="time"></label>
+          <label><span data-en="Priority">Важность</span> <select id="task-priority"></select></label>
         </div>
-        <button type="submit" class="primary">Добавить задачу</button>
+        <button type="submit" class="primary" data-en="Add task">Добавить задачу</button>
       </form>
     </section>
 
     <section class="card">
-      <h2>Расписание</h2>
+      <h2 data-en="Schedule">Расписание</h2>
       <ul id="sched-list" class="list"></ul>
       <form id="sched-form" class="form">
-        <input id="sched-title" type="text" required maxlength="200" placeholder="Название" aria-label="Название пункта">
+        <input id="sched-title" type="text" required maxlength="200" placeholder="Название" aria-label="Название пункта" data-en-ph="Title" data-en-aria="Event title">
         <div class="formrow">
-          <label>Начало <input id="sched-start" type="time" required></label>
-          <label>Конец <input id="sched-end" type="time"></label>
+          <label><span data-en="Start">Начало</span> <input id="sched-start" type="time" required></label>
+          <label><span data-en="End">Конец</span> <input id="sched-end" type="time"></label>
         </div>
-        <input id="sched-location" type="text" maxlength="200" placeholder="Место (необязательно)" aria-label="Место">
-        <button type="submit" class="primary">Добавить в расписание</button>
+        <input id="sched-location" type="text" maxlength="200" placeholder="Место (необязательно)" aria-label="Место" data-en-ph="Place (optional)" data-en-aria="Place">
+        <button type="submit" class="primary" data-en="Add to schedule">Добавить в расписание</button>
       </form>
     </section>
 
     <section class="card">
-      <h2>Цели периода</h2>
+      <h2 data-en="Goals of the period">Цели периода</h2>
       <ul id="goal-list" class="list"></ul>
       <form id="goal-form" class="form">
-        <input id="goal-title" type="text" required maxlength="200" placeholder="Новая цель" aria-label="Название цели">
+        <input id="goal-title" type="text" required maxlength="200" placeholder="Новая цель" aria-label="Название цели" data-en-ph="New goal" data-en-aria="Goal title">
         <div class="formrow">
-          <label>Период <select id="goal-period"></select></label>
-          <label>Цель, шт. <input id="goal-target" type="number" min="1" step="1" placeholder="без счётчика"></label>
+          <label><span data-en="Period">Период</span> <select id="goal-period"></select></label>
+          <label><span data-en="Target">Цель, шт.</span> <input id="goal-target" type="number" min="1" step="1" placeholder="без счётчика" data-en-ph="no counter"></label>
         </div>
-        <button type="submit" class="primary">Добавить цель</button>
+        <button type="submit" class="primary" data-en="Add goal">Добавить цель</button>
       </form>
     </section>
   </section>
@@ -193,19 +193,26 @@ button.danger { color: var(--danger); }
   'use strict';
 
   var TOKEN_KEY = 'enitor-token';
+  // Язык — по браузеру: русский для ru, иначе английский.
+  var RU = /^ru\b/i.test(navigator.language || '');
+  function T(ru, en) { return RU ? ru : en; }
   var PRIORITY = [
-    { v: 'none', t: 'нет' },
-    { v: 'low', t: 'низкая' },
-    { v: 'medium', t: 'средняя' },
-    { v: 'high', t: 'высокая' }
+    { v: 'none', t: T('нет', 'none') },
+    { v: 'low', t: T('низкая', 'low') },
+    { v: 'medium', t: T('средняя', 'medium') },
+    { v: 'high', t: T('высокая', 'high') }
   ];
   var PERIODS = [
-    { v: 'week', t: 'неделя' },
-    { v: 'month', t: 'месяц' },
-    { v: 'season', t: 'сезон' },
-    { v: 'year', t: 'год' }
+    { v: 'week', t: T('неделя', 'week') },
+    { v: 'month', t: T('месяц', 'month') },
+    { v: 'season', t: T('сезон', 'season') },
+    { v: 'year', t: T('год', 'year') }
   ];
-  var REPEAT = { weekly: 'каждую неделю', monthly: 'каждый месяц', interval: 'повтор по дням' };
+  var REPEAT = {
+    weekly: T('каждую неделю', 'every week'),
+    monthly: T('каждый месяц', 'every month'),
+    interval: T('повтор по дням', 'every few days')
+  };
 
   var state = { token: '', day: '', rev: null, data: null, editing: null, timer: null };
 
@@ -220,7 +227,7 @@ button.danger { color: var(--danger); }
   function shiftDay(s, n) { var p = parts(s); return ymd(new Date(p[0], p[1] - 1, p[2] + n)); }
   function dayLabel(s) {
     var p = parts(s);
-    return new Date(p[0], p[1] - 1, p[2]).toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
+    return new Date(p[0], p[1] - 1, p[2]).toLocaleDateString(T('ru-RU', 'en-US'), { weekday: 'long', day: 'numeric', month: 'long' });
   }
   function hm(min) { return pad(Math.floor(min / 60)) + ':' + pad(min % 60); }
   function span(s, e) {
@@ -285,8 +292,8 @@ button.danger { color: var(--danger); }
     $('msg').hidden = true;
   }
   function handleErr(e) {
-    if (e instanceof AuthError) { showAuth('Токен не подошёл. Введите его снова.', true); return; }
-    showError(e && e.message ? e.message : 'Неизвестная ошибка');
+    if (e instanceof AuthError) { showAuth(T('Токен не подошёл. Введите его снова.', 'The token didn’t work. Enter it again.'), true); return; }
+    showError(e && e.message ? e.message : T('Неизвестная ошибка', 'Unknown error'));
   }
 
   // ── Сеть ──────────────────────────────────────────────────────────────────
@@ -303,12 +310,12 @@ button.danger { color: var(--danger); }
         if (res.status === 401) throw new AuthError('unauthorized');
         if (!j || j.ok !== true) {
           var e = j && j.error;
-          throw new Error(e && e.message ? e.message : 'Ошибка сервера (' + res.status + ')');
+          throw new Error(e && e.message ? e.message : T('Ошибка сервера (', 'Server error (') + res.status + ')');
         }
         return j.result;
       });
     }, function () {
-      throw new Error('Нет связи с сервером');
+      throw new Error(T('Нет связи с сервером', 'Can’t reach the server'));
     });
   }
 
@@ -376,7 +383,7 @@ button.danger { color: var(--danger); }
       startPolling();
       return load();
     }).catch(function (e) {
-      if (e instanceof AuthError) showAuth('Неверный токен', true);
+      if (e instanceof AuthError) showAuth(T('Неверный токен', 'Wrong token'), true);
       else showAuth(e.message, false);
     });
   }
@@ -393,7 +400,7 @@ button.danger { color: var(--danger); }
   function renderTasks(list) {
     var ul = clear($('task-list'));
     if (!list.length) {
-      ul.appendChild(el('li', { cls: 'empty', text: 'Задач на этот день нет' }));
+      ul.appendChild(el('li', { cls: 'empty', text: T('Задач на этот день нет', 'No tasks for this day') }));
       return;
     }
     sortByTime(list).forEach(function (t) { ul.appendChild(taskRow(t)); });
@@ -404,7 +411,7 @@ button.danger { color: var(--danger); }
     var prio = t.priority || 0;
     var cb = el('input', {
       type: 'checkbox',
-      'aria-label': 'Отметить задачу',
+      'aria-label': T('Отметить задачу', 'Mark the task'),
       checked: !!t.completedAt,
       on: {
         change: function () {
@@ -417,14 +424,14 @@ button.danger { color: var(--danger); }
       el('div', { cls: 'meta' }, [
         t.startMinutes == null ? null : el('span', { text: span(t.startMinutes, t.endMinutes) }),
         prio ? el('span', { cls: 'prio p' + prio, text: PRIORITY[prio].t }) : null,
-        t.virtual ? el('span', { text: 'повтор' }) : null
+        t.virtual ? el('span', { text: T('повтор', 'repeat') }) : null
       ])
     ]);
     var actions = el('div', { cls: 'actions' }, [
-      el('button', { type: 'button', cls: 'ghost', text: 'Изменить', on: {
+      el('button', { type: 'button', cls: 'ghost', text: T('Изменить', 'Edit'), on: {
         click: function () { state.editing = t.id; render(); }
       } }),
-      el('button', { type: 'button', cls: 'ghost danger', text: 'Удалить', on: {
+      el('button', { type: 'button', cls: 'ghost danger', text: T('Удалить', 'Delete'), on: {
         click: function () { run(api('DELETE', '/v1/tasks/' + enc(t.id))); }
       } })
     ]);
@@ -432,13 +439,13 @@ button.danger { color: var(--danger); }
   }
 
   function taskEditRow(t) {
-    var title = el('input', { type: 'text', required: true, maxlength: 200, value: t.title, 'aria-label': 'Название' });
-    var start = el('input', { type: 'time', value: t.startMinutes == null ? '' : hm(t.startMinutes), 'aria-label': 'Начало' });
-    var end = el('input', { type: 'time', value: t.endMinutes == null ? '' : hm(t.endMinutes), 'aria-label': 'Конец' });
-    var sel = fillOptions(el('select', { 'aria-label': 'Важность' }), PRIORITY, PRIORITY[t.priority || 0].v);
-    var save = el('button', { type: 'button', cls: 'primary', text: 'Сохранить', on: {
+    var title = el('input', { type: 'text', required: true, maxlength: 200, value: t.title, 'aria-label': T('Название', 'Title') });
+    var start = el('input', { type: 'time', value: t.startMinutes == null ? '' : hm(t.startMinutes), 'aria-label': T('Начало', 'Start') });
+    var end = el('input', { type: 'time', value: t.endMinutes == null ? '' : hm(t.endMinutes), 'aria-label': T('Конец', 'End') });
+    var sel = fillOptions(el('select', { 'aria-label': T('Важность', 'Priority') }), PRIORITY, PRIORITY[t.priority || 0].v);
+    var save = el('button', { type: 'button', cls: 'primary', text: T('Сохранить', 'Save'), on: {
       click: function () {
-        if (!title.value.trim()) { showError('Введите название задачи'); return; }
+        if (!title.value.trim()) { showError(T('Введите название задачи', 'Enter a task title')); return; }
         run(api('PATCH', '/v1/tasks/' + enc(t.id), {
           title: title.value.trim(),
           start: start.value || null,
@@ -449,7 +456,7 @@ button.danger { color: var(--danger); }
         });
       }
     } });
-    var cancel = el('button', { type: 'button', cls: 'ghost', text: 'Отмена', on: {
+    var cancel = el('button', { type: 'button', cls: 'ghost', text: T('Отмена', 'Cancel'), on: {
       click: function () { state.editing = null; render(); }
     } });
     return el('li', { cls: 'row edit' }, [
@@ -463,7 +470,7 @@ button.danger { color: var(--danger); }
   function renderSchedule(list) {
     var ul = clear($('sched-list'));
     if (!list.length) {
-      ul.appendChild(el('li', { cls: 'empty', text: 'На этот день пунктов нет' }));
+      ul.appendChild(el('li', { cls: 'empty', text: T('На этот день пунктов нет', 'No events for this day') }));
       return;
     }
     sortByTime(list).forEach(function (s) { ul.appendChild(schedRow(s)); });
@@ -476,24 +483,24 @@ button.danger { color: var(--danger); }
       el('div', { cls: 'meta' }, [
         s.startMinutes == null ? null : el('span', { text: span(s.startMinutes, s.endMinutes) }),
         s.location ? el('span', { text: s.location }) : null,
-        series ? el('span', { text: REPEAT[s.repeat] || 'повтор' }) : null
+        series ? el('span', { text: REPEAT[s.repeat] || T('повтор', 'repeat') }) : null
       ])
     ]);
     var btns;
     if (series) {
       btns = [
-        el('button', { type: 'button', cls: 'ghost', text: 'Удалить только этот день', on: {
+        el('button', { type: 'button', cls: 'ghost', text: T('Удалить только этот день', 'Delete this day only'), on: {
           click: function () { run(api('DELETE', '/v1/schedule/' + enc(s.id) + '?scope=day&date=' + state.day)); }
         } }),
-        el('button', { type: 'button', cls: 'ghost danger', text: 'Удалить всю серию', on: {
+        el('button', { type: 'button', cls: 'ghost danger', text: T('Удалить всю серию', 'Delete the whole series'), on: {
           click: function () {
-            if (confirm('Удалить всю серию «' + s.title + '»?')) run(api('DELETE', '/v1/schedule/' + enc(s.id)));
+            if (confirm(T('Удалить всю серию «', 'Delete the whole series “') + s.title + T('»?', '”?'))) run(api('DELETE', '/v1/schedule/' + enc(s.id)));
           }
         } })
       ];
     } else {
       btns = [
-        el('button', { type: 'button', cls: 'ghost danger', text: 'Удалить', on: {
+        el('button', { type: 'button', cls: 'ghost danger', text: T('Удалить', 'Delete'), on: {
           click: function () { run(api('DELETE', '/v1/schedule/' + enc(s.id))); }
         } })
       ];
@@ -506,7 +513,7 @@ button.danger { color: var(--danger); }
   function renderGoals(list) {
     var ul = clear($('goal-list'));
     if (!list.length) {
-      ul.appendChild(el('li', { cls: 'empty', text: 'Целей на этот день нет' }));
+      ul.appendChild(el('li', { cls: 'empty', text: T('Целей на этот день нет', 'No goals for this day') }));
       return;
     }
     list.forEach(function (g) { ul.appendChild(goalRow(g)); });
@@ -517,7 +524,7 @@ button.danger { color: var(--danger); }
     var total = (g.manualProgress || 0) + (g.linkedProgress || 0) + (g.childProgress || 0);
     var cb = el('input', {
       type: 'checkbox',
-      'aria-label': 'Отметить цель',
+      'aria-label': T('Отметить цель', 'Mark the goal'),
       checked: !!g.completed,
       on: {
         change: function () {
@@ -529,14 +536,14 @@ button.danger { color: var(--danger); }
       el('div', { cls: 'title' + (g.completed ? ' done' : ''), text: g.title }),
       el('div', { cls: 'meta' }, [
         el('span', { text: periodLabel(g.period) }),
-        el('span', { text: g.targetCount ? total + ' / ' + g.targetCount : 'прогресс: ' + total })
+        el('span', { text: g.targetCount ? total + ' / ' + g.targetCount : T('прогресс: ', 'progress: ') + total })
       ])
     ]);
     var actions = el('div', { cls: 'actions' }, [
       el('button', { type: 'button', cls: 'ghost', text: '+1', on: {
         click: function () { run(api('POST', '/v1/goals/' + enc(g.id) + '/progress', { value: total + 1 })); }
       } }),
-      el('button', { type: 'button', cls: 'ghost danger', text: 'Удалить', on: {
+      el('button', { type: 'button', cls: 'ghost danger', text: T('Удалить', 'Delete'), on: {
         click: function () { run(api('DELETE', '/v1/goals/' + enc(g.id))); }
       } })
     ]);
@@ -604,7 +611,17 @@ button.danger { color: var(--danger); }
     });
   }
 
+  // Статичный текст страницы — на языке браузера.
+  function translate() {
+    if (RU) return;
+    document.documentElement.lang = 'en';
+    document.querySelectorAll('[data-en]').forEach(function (n) { n.textContent = n.getAttribute('data-en'); });
+    document.querySelectorAll('[data-en-ph]').forEach(function (n) { n.placeholder = n.getAttribute('data-en-ph'); });
+    document.querySelectorAll('[data-en-aria]').forEach(function (n) { n.setAttribute('aria-label', n.getAttribute('data-en-aria')); });
+  }
+
   function init() {
+    translate();
     fillOptions($('task-priority'), PRIORITY, 'none');
     fillOptions($('goal-period'), PERIODS, 'month');
     bindForms();

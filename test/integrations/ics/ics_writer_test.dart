@@ -124,6 +124,24 @@ void main() {
       expect(text, contains('RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU'));
     });
 
+    test('событие прошлых лет: переходы тех лет разовые, без правила', () {
+      final text = writeIcs(
+        [IcsOutEvent(uid: 'old', summary: 'old', start: DateTime(2010, 7, 1, 9))],
+        zone: moscow,
+        now: now,
+      );
+      // Летом 2010 в Москве было +0400 (летнее время отменили в 2011).
+      expect(text, contains('BEGIN:DAYLIGHT'));
+      expect(text, contains('TZOFFSETTO:+0400'));
+      expect(text, isNot(contains('RRULE:FREQ=YEARLY')));
+      // Последнее смещение — нынешнее.
+      final offsets = RegExp(r'TZOFFSETTO:([+-]\d{4})')
+          .allMatches(text)
+          .map((m) => m[1])
+          .toList();
+      expect(offsets.last, '+0300');
+    });
+
     test('туда-обратно: повторение, EXDATE, UNTIL в UTC', () {
       final until = DateTime(2026, 12, 31, 23, 59, 59);
       final text = writeIcs(

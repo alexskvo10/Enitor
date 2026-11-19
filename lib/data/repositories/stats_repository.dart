@@ -464,7 +464,9 @@ class StatsRepository {
       byDay[d] = s;
       if (minDay == null || d.isBefore(minDay)) minDay = d;
     }
-    final todayDate = today();
+    // День приложения, а не календарный: с 0:00 до 4:00 ещё идёт вчерашний,
+    // и его незакрытые задачи не должны рвать серию.
+    final todayDate = effectiveDay(DateTime.now());
     if (minDay == null || minDay.isAfter(todayDate)) return StreakInfo.empty;
 
     // Состояние дня: 1 — успех, 0 — провал, null — нейтральный (пропуск).

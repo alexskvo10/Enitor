@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/appearance.dart';
+import '../../core/utils/format_utils.dart';
 import '../../l10n/l10n_extensions.dart';
 import 'pomodoro_guide_sheet.dart';
 
@@ -300,7 +301,10 @@ const List<_Section> _kFaq = [
           'видно, что попадёт в расписание, а что нет и почему (например, '
           'события на весь день — у пункта расписания должно быть время). '
           'Пункты попадут на вкладку «Расписание». Повторный '
-          'импорт того же календаря обновляет их, а не дублирует.',
+          'импорт того же календаря обновляет их, а не дублирует. Твои правки '
+          'в Enitor остаются: пункт меняется, только если событие изменили в '
+          'самом календаре, а удалённое здесь не возвращается. Календарь по '
+          'ссылке можно обновлять раз в день сам или кнопкой «Обновить сейчас».',
       'How do I load a university timetable or shift plan?',
       'While the schedule is empty — with the “Take a schedule from a '
           'calendar (.ics)” button right on the tab. Any time — Settings → '
@@ -308,7 +312,11 @@ const List<_Section> _kFaq = [
           'importing you see what goes in and what does not and why (for '
           'example, all-day events — a schedule item needs a time). The '
           'items land on the Schedule tab. Importing the same '
-          'calendar again updates them rather than duplicating them.',
+          'calendar again updates them rather than duplicating them. Your '
+          'edits in Enitor stay: an item changes only when the event changed '
+          'in the calendar itself, and what you deleted here does not come '
+          'back. A calendar from a link can update once a day by itself or '
+          'with “Update now”.',
     ),
   ]),
   _Section(
@@ -365,10 +373,16 @@ const List<_Section> _kFaq = [
       _Qa(
         'Зачем шаблоны дня?',
         'Сохрани типовой набор задач (например «рабочий день») как шаблон и '
-            'применяй в любой день одним нажатием — задачи добавятся с нуля.',
+            'применяй в любой день одним нажатием — задачи добавятся с нуля. '
+            'У «Расписания» шаблоны свои: кнопка «Шаблоны» в шапке дня '
+            'сохраняет его пункты и кладёт их на другой день разовыми, '
+            'а пункты, которые там уже есть, не повторяет.',
         'What are day templates for?',
         'Save a typical set of tasks (e.g. a "workday") as a template and '
-            'apply it to any day with one tap — the tasks get added fresh.',
+            'apply it to any day with one tap — the tasks get added fresh. '
+            'The Schedule has its own templates: the Templates button in the '
+            "day's header saves its events and puts them on another day as "
+            'one-off events, skipping the ones that day already has.',
       ),
     ],
   ),
@@ -580,13 +594,16 @@ const List<_Section> _kFaq = [
       'Что такое серия (streak)?',
       'Число дней подряд, закрытых на 100% (все задачи дня выполнены). Дни без '
           'задач нейтральны — серию не рвут и не продлевают. Сегодняшний ещё не '
-          'закрытый день серию тоже не обрывает. В Профиле видно текущую серию '
-          'и рекорд.',
+          'закрытый день серию тоже не обрывает. Повторяющаяся задача на день '
+          'считается, даже если приложение в тот день не открывали: не '
+          'выполнена — серия рвётся. В Профиле видно текущую серию и рекорд.',
       "What's a streak?",
       'The number of consecutive days closed at 100% (all of the day’s tasks '
           'done). Days with no tasks are neutral — they neither break nor '
           "extend the streak. Today, if it isn't closed yet, doesn't break it "
-          'either. The Profile shows your current streak and your record.',
+          'either. A repeating task counts for its day even if you never '
+          'opened the app that day: not done — the streak breaks. The Profile '
+          'shows your current streak and your record.',
     ),
     _Qa(
       'Что показывает тепловая карта года?',
@@ -630,8 +647,8 @@ const List<_Section> _kFaq = [
       'Что за окно с итогами при запуске?',
       'Разбор прошедшей недели. Показывается один раз за неделю — при первом '
           'открытии приложения после назначенного момента (по умолчанию '
-          'понедельник, 19:00; день и время меняются в Настройках → Итоги '
-          'недели). Внутри: продуктивность недели и сравнение с предыдущей, '
+          'понедельник, 19:00; день и время меняются в Настройках → Уведомления → '
+          'Итоги недели). Внутри: продуктивность недели и сравнение с предыдущей, '
           'задачи, лучший день, цели на неделю и точность оценок — стала она '
           'лучше или хуже, чем неделей раньше.\n\n'
           'Понедельник, а не воскресенье, потому что неделя должна быть '
@@ -654,7 +671,7 @@ const List<_Section> _kFaq = [
       'What is that summary window on launch?',
       'The review of the past week. It shows once a week — at the first app '
           'launch after the configured moment (Monday 19:00 by default; the '
-          'day and time are in Settings → Week summary). Inside: the week’s '
+          'day and time are in Settings → Notifications → Week summary). Inside: the week’s '
           'productivity and how it compares with the week before, tasks, the '
           'best day, the goals set for that week, and estimate accuracy — '
           'whether it got better or worse than the week before.\n\n'
@@ -717,7 +734,7 @@ const List<_Section> _kFaq = [
           'показывается, если за неделю нет данных.\n\n'
           'Выключено по умолчанию только напоминание о переносе. Оно '
           'содержательное, но его момент жёстко привязан к границе дня — 4:00 '
-          '— и потому единственное не подчиняется тихим часам: включённым оно '
+          '— и потому тихие часы его не сдвигают: включённым оно '
           'будило бы среди ночи, а невыполненное всё равно встретит диалогом '
           'при первом открытии приложения. Включается там же, если такой ритм '
           'подходит.',
@@ -746,28 +763,44 @@ const List<_Section> _kFaq = [
           'doesn\'t appear when the week has no data.\n\n'
           'Only the carry-over reminder is off by default. It does carry real '
           'information, but its moment is pinned to the day rollover — 4:00 — '
-          'so it is the one reminder quiet hours do not cover: on by default '
+          'so quiet hours cannot move it: on by default '
           'it would wake you at night, and unfinished items greet you in a '
           'dialog at the next launch anyway. Turn it on in the same place if '
           'that rhythm suits you.',
     ),
     _Qa(
       'Что такое тихие часы?',
-      'Окно (по умолчанию 23:00–08:00), когда умные и общие напоминания '
+      'Окно (по умолчанию 23:00–08:00), когда общие и умные напоминания '
           'молчат.\n\n'
-          'Два исключения. Напоминания к началу и концу конкретных задач '
-          'работают всегда — время им назначил ты сам. И напоминание о '
-          'переносе: его момент жёстко привязан к границе дня (4:00), сдвинуть '
-          'его нельзя, поэтому подчиняться тихим часам ему нечем. Именно '
-          'поэтому оно единственное выключено по умолчанию.',
+          'Исключения, которые приходят всегда:\n'
+          '• напоминания к началу и концу задач, для которых ты поставил время;\n'
+          '• «требует внимания» и «просрочена» у задачи, у которой стоит время '
+          'конца;\n'
+          '• напоминания из Расписания: время у каждого пункта назначаешь ты;\n'
+          '• напоминание о переносе: его момент жёстко привязан к границе дня '
+          '(4:00), сдвинуть его нельзя, поэтому подчиняться тихим часам ему '
+          'нечем. Именно поэтому оно единственное выключено по умолчанию.\n\n'
+          'У задачи без времени конца «требует внимания» (23:00 в день задачи) '
+          'и «просрочена» (полночь) выбирает приложение. В тихие часы они не '
+          'будят: приходят в конце тихих часов, по умолчанию в 8:00.\n\n'
+          'У целей «требует внимания» и «просрочена» стоят на 9:00. Если этот '
+          'час попадает в тихие часы, они тоже переносятся на их конец.',
       'What are quiet hours?',
-      'A window (23:00–08:00 by default) during which smart and general '
+      'A window (23:00–08:00 by default) during which general and smart '
           'reminders stay silent.\n\n'
-          'Two exceptions. Reminders for the start and end of a specific task '
-          'always fire — you picked those times yourself. And the carry-over '
-          'reminder: its moment is pinned to the day rollover (4:00) and can\'t '
-          'be moved, so there is nothing for quiet hours to shift. That is '
-          'exactly why it is the one reminder off by default.',
+          'Exceptions that always fire:\n'
+          '• reminders before the start and end of tasks you set a time for;\n'
+          '• "needs attention" and "overdue" for a task that has an end time;\n'
+          '• schedule reminders: you set the time for each item;\n'
+          '• the carry-over reminder: its moment is pinned to the day rollover '
+          '(4:00) and can’t be moved, so there is nothing for quiet hours to '
+          'shift. That is exactly why it is the one reminder off by default.\n\n'
+          'For a task with no end time, "needs attention" (23:00 on the task’s '
+          'day) and "overdue" (midnight) are chosen by the app. During quiet '
+          'hours they stay silent and arrive at the end of quiet hours instead '
+          '(8:00 by default).\n\n'
+          'For goals, "needs attention" and "overdue" are set at 9:00. If that '
+          'hour falls inside quiet hours, they move to the end of quiet hours too.',
     ),
     _Qa(
       'Почему уведомления не приходят?',
@@ -1093,19 +1126,34 @@ const List<_Section> _kFaq = [
   _Section('Резервные копии', 'Backups', Icons.backup_outlined, [
     _Qa(
       'Данные куда-то отправляются?',
-      'Нет, если ты сам не подключил свой сервер. Аккаунта нет, сервера Enitor '
-          'нет, аналитики и телеметрии нет — всё лежит только на этом '
-          'устройстве. В сеть приложение ходит ровно за одним: спросить у GitHub, '
-          'не вышла ли новая версия (и скачать её, если ты согласишься). Эта '
-          'проверка не передаёт ни задач, ни целей, ни статистики. Если ты '
-          'подключил свой сервер для синхронизации, данные уходят только на его адрес.',
+      'Нет, если ты сам не включил что-то из перечисленного. Аккаунта нет, '
+          'сервера Enitor нет, аналитики и телеметрии нет — всё лежит на этом '
+          'устройстве. В сеть приложение ходит только за тем, что ты включил сам:\n'
+          '• синхронизация — на твой сервер (его адрес ты вводишь сам);\n'
+          '• синхронизация по локальной сети — между твоими устройствами в одной сети;\n'
+          '• календарь по ссылке — скачивается по кнопке «Обновить сейчас» '
+          'или раз в сутки, если ты включил автообновление;\n'
+          '• вебхуки — отправляют изменения на адреса, которые ты задал.\n\n'
+          'Без этого приложение ходит в сеть только за проверкой обновлений на '
+          'GitHub: при запуске, не чаще раза в сутки. Отключить её нельзя — '
+          'переключателя нет; ручная «Проверить обновления» работает по нажатию. '
+          'Проверка не передаёт ни задач, ни целей, ни статистики. Файл обновления '
+          'скачивается, только если ты согласился.',
       'Is my data sent anywhere?',
-      'No, unless you connected your own server. There is no account, no '
-          'Enitor server, no analytics and no telemetry — everything lives on '
-          'this device only. The app reaches the network for exactly one thing: '
-          'asking GitHub whether a newer version exists (and downloading it if '
-          'you agree). That check sends no tasks, goals or stats. If you '
-          'connected your own server for sync, data goes only to its address.',
+      'No, unless you switched on one of the things below. There is no '
+          'account, no Enitor server, no analytics and no telemetry — everything '
+          'lives on this device only. The app reaches the network only for what '
+          'you switched on yourself:\n'
+          '• sync — to your own server (you enter its address);\n'
+          '• sync over the local network — between your devices on the same network;\n'
+          '• calendar by link — downloaded with “Update now”, or once a day '
+          'if you turned on auto-update;\n'
+          '• webhooks — send changes to the addresses you set.\n\n'
+          'Otherwise the only network request is the update check against GitHub: '
+          'at launch, at most once a day. It cannot be turned off — there is no '
+          'switch; the manual “Check for updates” button runs only when you press '
+          'it. The check sends no tasks, goals or stats. An update file is '
+          'downloaded only if you agree.',
     ),
     _Qa(
       'Где физически лежат мои данные?',
@@ -1123,11 +1171,38 @@ const List<_Section> _kFaq = [
     ),
     _Qa(
       'Мои данные где-то сохраняются?',
-      'Да. Приложение само хранит свежую резервную копию всех данных и '
-          'восстановит её при чистой переустановке или после «очистить данные».',
+      'Да, на этом же устройстве. Приложение само держит свежую авто-копию всех '
+          'данных и поднимает её при запуске, если хранилище данных оказалось '
+          'пустым. На Windows копия — файл auto_backup.json в папке «Документы»: '
+          'он переживает удаление программы, а «Удалить все данные» стирает его '
+          'намеренно. На Android она лежит в папке самого приложения, поэтому '
+          'пропадает вместе с приложением или при очистке его данных. Для переноса '
+          'между устройствами и настоящей страховки есть экспорт в файл.',
       'Is my data saved anywhere?',
-      'Yes. The app automatically keeps a fresh backup of all your data '
-          'and restores it on a clean reinstall or after "clear data".',
+      'Yes, on this device. The app keeps a fresh automatic copy of all your '
+          'data and restores it at launch if the data storage turns out to be '
+          'empty. On Windows the copy is a file, auto_backup.json, in your '
+          'Documents folder: it survives uninstalling the program, and “Delete '
+          'all data” removes it on purpose. On Android it sits in the app’s own '
+          'folder, so it is deleted together with the app or when its data is '
+          'cleared. For moving between devices and real safekeeping, use the '
+          'file export.',
+    ),
+    _Qa(
+      'Что будет с другими устройствами, если восстановить бэкап?',
+      'Если синхронизация включена, Enitor спросит. «На всех устройствах» — '
+          'везде станет как в бэкапе: его записи разойдутся по серверу и '
+          'соседям по сети, а записи, которых в нём нет, удалятся и там. '
+          '«Только здесь» — файл запишется только на это устройство, а более '
+          'свежие записи с других устройств вернутся при следующем обмене. '
+          'Без синхронизации вопроса нет — бэкап просто заменяет данные.',
+      'What happens to my other devices when I restore a backup?',
+      'If sync is on, Enitor asks. “On all devices” — every device goes '
+          'back to the backup: its records spread to the server and network '
+          'neighbours, and records it does not have are deleted there too. '
+          '“Only here” — the file goes to this device only, and newer records '
+          'from other devices come back at the next sync. Without sync there '
+          'is no question — the backup simply replaces the data.',
     ),
     _Qa(
       'Что делает «Сбросить настройки»?',
@@ -1380,10 +1455,8 @@ class _FaqScreenState extends State<FaqScreen> {
     final matches = <_Qa>[
       for (final section in _kFaq)
         for (final qa in section.items)
-          if (qa.q.toLowerCase().contains(q) ||
-              qa.a.toLowerCase().contains(q) ||
-              qa.qEn.toLowerCase().contains(q) ||
-              qa.aEn.toLowerCase().contains(q))
+          if ([qa.q, qa.a, qa.qEn, qa.aEn]
+              .any((t) => searchNorm(t).contains(searchNorm(q))))
             qa,
     ];
     if (matches.isEmpty) {

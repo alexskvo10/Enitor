@@ -10,7 +10,7 @@ import '../../l10n/l10n_extensions.dart';
 import '../../widgets/seg_chip.dart';
 
 /// Таймфрейм статистики по тегам целей — тот же принцип, что у задач
-/// (см. _TagTf в tag_stats_screen.dart): окно по дате начала периода цели.
+/// (см. _TagTf в tag_stats_screen.dart): цели, чей период задевает окно.
 enum _GoalTagTf {
   week(7),
   month(30),
@@ -133,14 +133,15 @@ class _GoalTagStatsScreenState extends ConsumerState<GoalTagStatsScreen> {
       ThemeData theme, AppLocalizations l10n, List<Goal> goals) {
     final todayDate = today();
     final from =
-        _tf.days == null ? null : addDays(todayDate, -(_tf.days!));
+        _tf.days == null ? null : addDays(todayDate, 1 - _tf.days!);
 
     final byTag = <String, _GoalTagAgg>{};
     for (final g in goals) {
       if (g.tags.isEmpty) continue;
-      final d = dateOnly(g.ref.start);
-      if (d.isAfter(todayDate)) continue; // будущее не считаем
-      if (from != null && d.isBefore(from)) continue;
+      // Цель входит, если её период задевает окно: годовая цель, начатая
+      // в январе, видна и за последнюю неделю.
+      if (dateOnly(g.ref.start).isAfter(todayDate)) continue; // будущее
+      if (from != null && dateOnly(g.periodEnd).isBefore(from)) continue;
       for (final tag in g.tags) {
         final agg = byTag.putIfAbsent(tag, () => _GoalTagAgg());
         agg.total++;

@@ -93,6 +93,17 @@ class _ScheduleDayViewState extends ConsumerState<_ScheduleDayView> {
               : Icons.calendar_view_week_outlined,
           actionLabel: _week ? l10n.scheduleViewDay : l10n.scheduleViewWeek,
           onAction: () => setState(() => _week = !_week),
+          // Шаблон — набор пунктов одного дня, у недели его нет.
+          extraIcon: Icons.dashboard_customize_outlined,
+          extraLabel: l10n.templatesLabel,
+          onExtra: _week
+              ? null
+              : () => showScheduleTemplatesSheet(
+                    context,
+                    date: widget.date,
+                    isPast: widget.date.isBefore(_effectiveToday(widget.now)),
+                    dayItems: items,
+                  ),
         ),
         if (summary.isNotEmpty)
           Padding(
