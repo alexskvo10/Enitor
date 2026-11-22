@@ -1150,13 +1150,26 @@ class _GoalTile extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (!isPast)
+                // Убавить можно только ручную часть. Если весь прогресс от
+                // задач и подцелей, кнопка серая, а тап объясняет почему.
                 IconButton(
                   visualDensity: VisualDensity.compact,
                   iconSize: 30,
-                  icon: const Icon(Icons.remove_circle_outline),
-                  onPressed: goal.progressCount > 0
-                      ? () => repo.incrementGoalCounter(goal, -step)
-                      : null,
+                  icon: Icon(
+                    Icons.remove_circle_outline,
+                    color: goal.manualProgress > 0
+                        ? null
+                        : theme.disabledColor,
+                  ),
+                  onPressed: goal.progressCount == 0
+                      ? null
+                      : goal.manualProgress > 0
+                          ? () => repo.incrementGoalCounter(goal, -step)
+                          : () => showFancyToast(
+                                context,
+                                message: context.l10n.goalCounterFromTasks,
+                                tone: ToastTone.info,
+                              ),
                 ),
               InkWell(
                 onTap: isPast ? null : () => _showSetCounterDialog(context),

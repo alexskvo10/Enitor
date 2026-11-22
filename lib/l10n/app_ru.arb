@@ -277,6 +277,7 @@
   "emptyGoalsState": "Ещё нет целей. Добавь первую.",
 
   "copiedToPeriodToast": "Скопировано в «{period}»",
+  "goalCounterFromTasks": "Это прогресс от задач и подцелей. Чтобы убавить, сними отметку с задачи",
 
   "copyToWeekBarrier": "Скопировать в неделю",
   "copyToMonthBarrier": "Скопировать в месяц",

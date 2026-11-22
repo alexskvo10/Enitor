@@ -94,7 +94,7 @@ void main() {
     final result = parseGoogleTasksJson(json);
 
     expect(result.tasks.single.date, isNull);
-    expect(result.warnings.single.reason, ImportSkipReason.unsupportedRow);
+    expect(result.warnings.single.reason, ImportSkipReason.partlyLost);
   });
 
   test('не JSON и пустой файл не бросают исключение', () {

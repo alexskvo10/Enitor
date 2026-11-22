@@ -286,6 +286,21 @@ END:VCALENDAR''');
       expect(container.read(backlogRepositoryProvider).all.length, 1);
     });
 
+    test('задача с битой датой импортируется и не числится пропущенной', () {
+      const csv = 'TYPE,CONTENT,DESCRIPTION,PRIORITY,INDENT,AUTHOR,'
+          'RESPONSIBLE,DATE,DATE_LANG,TIMEZONE\n'
+          'task,Дата,,1,1,,,2026-02-31,en,\n';
+      final entries = plan(parseTodoistCsv(csv));
+      expect(entries.where((e) => e.action == PlanAction.skip), isEmpty);
+      expect(entries.map((e) => e.title), ['Дата']);
+    });
+
+    test('файл не того формата — пустой план, но с предупреждением', () {
+      final result = parseTodoistCsv('a,b\n1,2');
+      expect(plan(result), isEmpty);
+      expect(result.warnings, isNotEmpty);
+    });
+
     test('задача, сходившая в бэклог и вернувшаяся, не импортируется заново',
         () async {
       const csv = 'TYPE,CONTENT,DESCRIPTION,PRIORITY,INDENT,AUTHOR,'

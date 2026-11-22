@@ -414,7 +414,11 @@ List<PlanEntry> planTaskImport(
     );
   }
   for (final w in result.warnings) {
-    if (w.reason == ImportSkipReason.unsupportedRepeat) continue;
+    if (w.reason == ImportSkipReason.unsupportedRepeat ||
+        w.reason == ImportSkipReason.partlyLost ||
+        w.reason == ImportSkipReason.unreadableFile) {
+      continue;
+    }
     out.add(
       PlanEntry(
         title: w.title,

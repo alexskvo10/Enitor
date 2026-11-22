@@ -97,6 +97,11 @@ abstract final class AppTheme {
       // холодного серого M3. Ховер и фокус (hover/focusColor) не трогаем.
       pageTransitionsTheme: _transitions,
       tooltipTheme: _tooltip(dark: false),
+      // Фон полосы прогресса: по умолчанию M3 берёт secondaryContainer, а он
+      // не задан и выходит бирюзовым — пустой счётчик выглядел полным.
+      progressIndicatorTheme: ProgressIndicatorThemeData(
+        linearTrackColor: AppColors.textPrimary.withValues(alpha: 0.10),
+      ),
       splashFactory: InkWave.splashFactory,
       splashColor: AppColors.textPrimary.withValues(alpha: 0.12),
       highlightColor: Colors.transparent,
@@ -189,6 +194,11 @@ abstract final class AppTheme {
       canvasColor: AppColors.surfaceDarkElevated,
       pageTransitionsTheme: _transitions,
       tooltipTheme: _tooltip(dark: true),
+      // Фон полосы прогресса: по умолчанию M3 берёт secondaryContainer, а он
+      // не задан и выходит бирюзовым — пустой счётчик выглядел полным.
+      progressIndicatorTheme: ProgressIndicatorThemeData(
+        linearTrackColor: AppColors.textPrimaryDark.withValues(alpha: 0.12),
+      ),
       splashFactory: InkWave.splashFactory,
       splashColor: AppColors.textPrimaryDark.withValues(alpha: 0.14),
       highlightColor: Colors.transparent,

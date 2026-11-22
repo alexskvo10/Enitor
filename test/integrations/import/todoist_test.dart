@@ -71,7 +71,7 @@ void main() {
     final result = parseTodoistCsv(csv);
 
     expect(result.tasks.single.date, isNull);
-    expect(result.warnings.single.reason, ImportSkipReason.unsupportedRow);
+    expect(result.warnings.single.reason, ImportSkipReason.partlyLost);
   });
 
   test('неизвестный TYPE пропускается с предупреждением', () {

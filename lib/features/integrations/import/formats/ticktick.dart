@@ -26,9 +26,7 @@ ImportResult parseTickTickCsv(String text) {
   final rows = parseCsv(text);
   final headerAt = rows.indexWhere(_isHeader);
   if (headerAt < 0) {
-    return importFileError(
-      rows.isEmpty ? 'пустой файл' : 'не похоже на CSV TickTick',
-    );
+    return importFileError();
   }
   final header = rows[headerAt].map((c) => c.trim()).toList();
   int at(String name) => header.indexOf(name);
@@ -56,21 +54,16 @@ ImportResult parseTickTickCsv(String text) {
       continue;
     }
     String cell(int idx) => idx >= 0 && idx < row.length ? row[idx].trim() : '';
-    final where = 'строка ${i + 1}';
 
     final title = cell(iTitle);
     if (title.isEmpty) {
-      warnings.add(ImportWarning('', ImportSkipReason.noTitle, where));
+      warnings.add(const ImportWarning('', ImportSkipReason.noTitle));
       continue;
     }
     final id = cell(iTaskId);
     if (id.isEmpty) {
       warnings.add(
-        ImportWarning(
-          title,
-          ImportSkipReason.unsupportedRow,
-          '$where: нет taskId',
-        ),
+        ImportWarning(title, ImportSkipReason.unsupportedRow),
       );
       continue;
     }
@@ -85,24 +78,14 @@ ImportResult parseTickTickCsv(String text) {
       zone: cell(iTimezone),
     );
     if (due.bad) {
-      warnings.add(
-        ImportWarning(
-          title,
-          ImportSkipReason.unsupportedRow,
-          '$where: срок ${cell(iDue)}',
-        ),
-      );
+      warnings.add(ImportWarning(title, ImportSkipReason.partlyLost));
     }
 
     final repeatRaw = cell(iRepeat);
     final repeat = repeatRaw.isEmpty ? null : _parseRrule(repeatRaw);
     if (repeatRaw.isNotEmpty && repeat == null) {
       warnings.add(
-        ImportWarning(
-          title,
-          ImportSkipReason.unsupportedRepeat,
-          repeatRaw,
-        ),
+        ImportWarning(title, ImportSkipReason.unsupportedRepeat),
       );
     }
 

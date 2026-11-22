@@ -13,9 +13,7 @@ import '../imported_task.dart';
 ImportResult parseTodoistCsv(String text, {String project = ''}) {
   final rows = parseCsv(text);
   if (rows.isEmpty || !_isHeader(rows.first)) {
-    return importFileError(
-      rows.isEmpty ? 'пустой файл' : 'не похоже на CSV Todoist',
-    );
+    return importFileError();
   }
   final header = rows.first.map(_norm).toList();
   final iType = header.indexOf('TYPE');
@@ -41,7 +39,6 @@ ImportResult parseTodoistCsv(String text, {String project = ''}) {
 
     final type = cell(iType).toLowerCase();
     final content = cell(iContent);
-    final where = 'строка ${i + 1}';
 
     if (type == 'meta') {
       continue;
@@ -58,20 +55,10 @@ ImportResult parseTodoistCsv(String text, {String project = ''}) {
       }
       if (top == null) {
         warnings.add(
-          ImportWarning(
-            content,
-            ImportSkipReason.unsupportedRow,
-            '$where: заметка без задачи',
-          ),
+          ImportWarning(content, ImportSkipReason.unsupportedRow),
         );
       } else if (lastIsSubtask) {
-        warnings.add(
-          ImportWarning(
-            content,
-            ImportSkipReason.unsupportedRow,
-            '$where: заметка к подзадаче не сохраняется',
-          ),
-        );
+        warnings.add(ImportWarning(content, ImportSkipReason.partlyLost));
       } else {
         final current = top.description;
         top.description = current == null ? content : '$current\n$content';
@@ -80,16 +67,12 @@ ImportResult parseTodoistCsv(String text, {String project = ''}) {
     }
     if (type.isNotEmpty && type != 'task') {
       warnings.add(
-        ImportWarning(
-          content,
-          ImportSkipReason.unsupportedRow,
-          '$where: неизвестный TYPE "$type"',
-        ),
+        ImportWarning(content, ImportSkipReason.unsupportedRow),
       );
       continue;
     }
     if (content.isEmpty) {
-      warnings.add(ImportWarning('', ImportSkipReason.noTitle, where));
+      warnings.add(const ImportWarning('', ImportSkipReason.noTitle));
       top = null;
       lastIsSubtask = false;
       continue;
@@ -102,20 +85,14 @@ ImportResult parseTodoistCsv(String text, {String project = ''}) {
       continue;
     }
     if (indent > 1) {
-      warnings.add(
-        ImportWarning(
-          content,
-          ImportSkipReason.unsupportedRow,
-          '$where: подзадача без родителя, импортирована отдельно',
-        ),
-      );
+      warnings.add(ImportWarning(content, ImportSkipReason.partlyLost));
     }
 
     final dateRaw = cell(iDate);
     final when = _parseWhen(dateRaw);
     final problem = when.problem;
     if (problem != null) {
-      warnings.add(ImportWarning(content, problem, '$where: $dateRaw'));
+      warnings.add(ImportWarning(content, problem));
     }
 
     final key = project.isEmpty
@@ -260,7 +237,7 @@ _When _parseWhen(String raw) {
       date: null,
       startMinutes: null,
       repeat: null,
-      problem: ImportSkipReason.unsupportedRow,
+      problem: ImportSkipReason.partlyLost,
     );
   }
   final date = validDate(int.parse(m[1]!), int.parse(m[2]!), int.parse(m[3]!));
@@ -269,7 +246,7 @@ _When _parseWhen(String raw) {
       date: null,
       startMinutes: null,
       repeat: null,
-      problem: ImportSkipReason.unsupportedRow,
+      problem: ImportSkipReason.partlyLost,
     );
   }
   if (m[4] == null) {
@@ -282,7 +259,7 @@ _When _parseWhen(String raw) {
       date: date,
       startMinutes: null,
       repeat: null,
-      problem: ImportSkipReason.unsupportedRow,
+      problem: ImportSkipReason.partlyLost,
     );
   }
   return (

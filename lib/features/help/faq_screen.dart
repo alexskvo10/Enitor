@@ -407,14 +407,18 @@ const List<_Section> _kFaq = [
           'для «10 тренировок в месяц». Если в часах, в цель идёт время '
           'фокуса по задаче, а задача, сделанная без таймера, отдаёт свою '
           'оценку. Кнопки ± у цели в часах шагают по полчаса, а число можно '
-          'ввести дробным: «1,5».',
+          'ввести дробным: «1,5». «−» убавляет только то, что ты добавил '
+          'сам: если весь прогресс от задач, она серая — сними отметку с '
+          'задачи.',
       'How do I link tasks to a goal?',
       'A counter goal can be linked to tasks (the Goal field of a task). '
           'For a counter in times, each completed task adds 1 — handy for '
           '"10 workouts this month". For a counter in hours, the focus time '
           'logged on the task goes in, and a task done without the timer '
           'adds its estimate. On an hours goal the ± buttons step by half an '
-          'hour, and you can type a fraction like "1.5".',
+          'hour, and you can type a fraction like "1.5". The − button only '
+          'takes back what you added yourself: if all progress comes from '
+          'tasks, it is greyed out — uncheck a task instead.',
     ),
     _Qa(
       'Можно ли сделать цель частью другой?',

@@ -9,15 +9,15 @@ final _dueDate = RegExp(r'^(\d{4})-(\d{2})-(\d{2})');
 /// только датой; дату из UTC-строки берём как есть. Подзадача — задача с "parent".
 ImportResult parseGoogleTasksJson(String text) {
   if (text.trim().isEmpty) {
-    return importFileError('пустой файл');
+    return importFileError();
   }
   final decoded = _tryDecode(text);
   if (decoded == null) {
-    return importFileError('не JSON');
+    return importFileError();
   }
   final lists = decoded is Map<String, dynamic> ? decoded['items'] : decoded;
   if (lists is! List) {
-    return importFileError('не похоже на Tasks.json Google');
+    return importFileError();
   }
 
   final warnings = <ImportWarning>[];
@@ -25,11 +25,7 @@ ImportResult parseGoogleTasksJson(String text) {
   for (final entry in lists) {
     if (entry is! Map<String, dynamic>) {
       warnings.add(
-        const ImportWarning(
-          '',
-          ImportSkipReason.unsupportedRow,
-          'список не объект',
-        ),
+        const ImportWarning('', ImportSkipReason.unsupportedRow),
       );
       continue;
     }
@@ -52,11 +48,7 @@ List<ImportDraft> _parseItems(
   for (final raw in items) {
     if (raw is! Map<String, dynamic>) {
       warnings.add(
-        const ImportWarning(
-          '',
-          ImportSkipReason.unsupportedRow,
-          'задача не объект',
-        ),
+        const ImportWarning('', ImportSkipReason.unsupportedRow),
       );
       continue;
     }
@@ -67,27 +59,19 @@ List<ImportDraft> _parseItems(
     final title = _str(raw['title']);
     if (id == null) {
       warnings.add(
-        ImportWarning(
-          title ?? '',
-          ImportSkipReason.unsupportedRow,
-          'нет id',
-        ),
+        ImportWarning(title ?? '', ImportSkipReason.unsupportedRow),
       );
       continue;
     }
     if (title == null) {
-      warnings.add(ImportWarning('', ImportSkipReason.noTitle, 'id $id'));
+      warnings.add(const ImportWarning('', ImportSkipReason.noTitle));
       continue;
     }
     final dueRaw = _str(raw['due']);
     final due = dueRaw == null ? null : _parseDue(dueRaw);
     if (dueRaw != null && due == null) {
       warnings.add(
-        ImportWarning(
-          title,
-          ImportSkipReason.unsupportedRow,
-          'срок: $dueRaw',
-        ),
+        ImportWarning(title, ImportSkipReason.partlyLost),
       );
     }
     final completed = raw['status'] == 'completed';

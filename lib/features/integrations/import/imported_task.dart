@@ -25,14 +25,20 @@ enum ImportSkipReason {
   unsupportedRepeat,
   noTitle,
   unsupportedRow,
+
+  /// Задача перенесена, но без части данных: битый срок, потерянный
+  /// родитель, заметка к подзадаче. В пропущенных её не показываем.
+  partlyLost,
+
+  /// Файл не того формата: предпросмотр пишет «не получилось прочитать».
+  unreadableFile,
 }
 
 class ImportWarning {
-  const ImportWarning(this.title, this.reason, [this.detail]);
+  const ImportWarning(this.title, this.reason);
 
   final String title;
   final ImportSkipReason reason;
-  final String? detail;
 }
 
 /// Задача из внешнего экспорта в общей модели.
@@ -139,9 +145,9 @@ class ImportDraft {
 }
 
 /// Результат для файла, который не удалось разобрать: пусто и одно предупреждение.
-ImportResult importFileError(String detail) => ImportResult(
-      tasks: const [],
-      warnings: [ImportWarning('', ImportSkipReason.unsupportedRow, detail)],
+ImportResult importFileError() => const ImportResult(
+      tasks: [],
+      warnings: [ImportWarning('', ImportSkipReason.unreadableFile)],
     );
 
 /// Дата без времени; null, если такого дня нет (например, 31 февраля).
@@ -172,20 +178,12 @@ List<ImportDraft> linkSubtasks(
     final parent = byId[parentId];
     if (parent == null) {
       warnings.add(
-        ImportWarning(
-          d.title,
-          ImportSkipReason.unsupportedRow,
-          'родитель не найден, задача импортирована отдельно',
-        ),
+        ImportWarning(d.title, ImportSkipReason.partlyLost),
       );
       roots.add(d);
     } else if (parent.parentId != null) {
       warnings.add(
-        ImportWarning(
-          d.title,
-          ImportSkipReason.unsupportedRow,
-          'вложенность глубже одного уровня, задача импортирована отдельно',
-        ),
+        ImportWarning(d.title, ImportSkipReason.partlyLost),
       );
       roots.add(d);
     } else {
