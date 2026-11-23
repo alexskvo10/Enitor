@@ -51,10 +51,11 @@ And the fundamentals that make it worth trusting with your habits:
 |---|---|
 | **⇄ Sync** | Phone and PC directly over Wi-Fi — encrypted, no internet — or through your own `enitor-server`. |
 | **▦ Calendars** | Import a `.ics` timetable or link into the Schedule, export it back, move in from Todoist, Google Tasks or TickTick. |
+| **▦ Schedule templates** | Save a day of classes or shifts and put it on any other day in one tap. |
 | **⚙ Automation** | `enitor://` links and Share, Tasker / Automate, `enitor-cli`, an MCP server for AI assistants, signed webhooks. |
 | **▣ Widget** | A Today widget with tick boxes and a quick-add tile on Android. |
 | **◷ Focus** | The timer takes the whole screen and keeps it awake; minimize it to a card and back. A chime you won't miss, with vibration. |
-| **⚑ Goals** | Counters in hours, filled by focus time; a month's goal can be part of the year's. |
+| **⚑ Goals** | Counters in hours, filled by focus time; a month's goal can be part of the year's; moving a task keeps its goal. |
 | **◔ Rings or bars** | Choose how the day summary looks. |
 | **✦ Tour** | A 12-step guided tour on first launch, and a "What's new" card after updates. |
 
@@ -120,6 +121,7 @@ Full notes: [Release 0.4.0](https://github.com/alexskvo10/Enitor/releases/tag/v0
 - Every week or **every other week** (odd/even timetables), by day of month, or every N days. Move one class "for this day only" and the series stays put.
 - Overlaps are marked; the Today card subtracts scheduled time from what's left for tasks.
 - A week view, duplicate in one tap, turn an entry — or a whole series — into tasks.
+- **Templates** for days that repeat in shape — save a day, apply it to another as one-off entries; whatever is already there isn't doubled.
 - **Import from a calendar** (`.ics` file or link) straight from an empty tab.
 
 ### ⚑ Goals
@@ -127,6 +129,8 @@ Full notes: [Release 0.4.0](https://github.com/alexskvo10/Enitor/releases/tag/v0
 - A checkbox, a counter or a checklist; counters can track linked tasks ("10 workouts this month").
 - **Counters in hours** — "20 hours of English this month" fills itself from the focus time of linked tasks (or their estimate, if a task is done without the timer).
 - **Goals inside goals** — mark "2 books in November" as part of "24 books this year", and the year fills from the months (and a month from its weeks).
+- Moving or copying a task to another day keeps its goal, as long as the goal's period covers the new date.
+- `−` on a counter only takes back what you added yourself; progress that comes from tasks goes away when you untick the task.
 - Carrying a goal into the next period is a copy, never an edit of the original.
 
 ### ◔ Stats & profile
@@ -238,6 +242,8 @@ From then on the devices exchange changes on their own whenever both are on the 
 2. **Connect each device:** Settings → *Notifications & connections* → **Sync** → *Own server* → **Connect server**. Enter the address (at home, e.g. `http://192.168.1.10:8787`; from outside, an HTTPS address) and the token.
 3. The first time, choose **Merge with the data on the server**. *Replace this device's data* starts a device fresh from the server, after an automatic backup.
 4. *Optional, Android:* install a UnifiedPush app such as [ntfy](https://ntfy.sh) — changes then arrive within seconds even while Enitor is closed.
+
+Update the server together with the apps: a new kind of data (like schedule templates) is turned down by an older server until it's updated. The same goes for Wi-Fi sync — update every device.
 
 The full guide — HTTPS with Caddy, the REST API for your own automations, what syncs and how conflicts resolve: [docs/integrations/server.md](docs/integrations/server.md) · [по-русски](docs/integrations/server.ru.md).
 
