@@ -119,7 +119,7 @@ Full notes: [Release 0.4.0](https://github.com/alexskvo10/Enitor/releases/tag/v0
 ### ▦ Schedule
 - A tab next to the list for what happens at a time rather than what needs doing: classes, shifts, practice. A start, an optional end, a place, a note, a colour.
 - Every week or **every other week** (odd/even timetables), by day of month, or every N days. Move one class "for this day only" and the series stays put.
-- Overlaps are marked; the Today card subtracts scheduled time from what's left for tasks.
+- Overlaps are marked; the Today card subtracts scheduled time from what's left for tasks, and one line above the task list says what's on now and what's next.
 - A week view, duplicate in one tap, turn an entry — or a whole series — into tasks.
 - **Templates** for days that repeat in shape — save a day, apply it to another as one-off entries; whatever is already there isn't doubled.
 - **Import from a calendar** (`.ics` file or link) straight from an empty tab.
@@ -182,7 +182,7 @@ Recipes: [docs/integrations/recipes.md](docs/integrations/recipes.md) · formats
 
 There is **no Enitor server** and no account. Your tasks live on your devices.
 
-Data leaves a device only when you set that up yourself: a webhook address, a calendar link, your own sync server, or a "read" permission for Tasker or an AI assistant. All of it is **off by default**, and Settings → Integrations → Permissions shows it in one place. Sync over Wi-Fi goes only to devices you paired; push notifications from your server carry a wake-up signal, never your data.
+Data leaves a device only when you set that up yourself: a webhook address, a calendar link, your own sync server, or a "read" permission for Tasker or an AI assistant. All of it is **off by default**, and Settings → *Notifications & connections* → **Integrations** → *Permissions* shows it in one place. Sync over Wi-Fi goes only to devices you paired; push notifications from your server carry a wake-up signal, never your data.
 
 ---
 
@@ -240,10 +240,10 @@ From then on the devices exchange changes on their own whenever both are on the 
    ```
    The first start prints a **token** (see it again with `--show-token`). On Linux, build it with `dart build cli -t bin/enitor_server.dart -o build/server`.
 2. **Connect each device:** Settings → *Notifications & connections* → **Sync** → *Own server* → **Connect server**. Enter the address (at home, e.g. `http://192.168.1.10:8787`; from outside, an HTTPS address) and the token.
-3. The first time, choose **Merge with the data on the server**. *Replace this device's data* starts a device fresh from the server, after an automatic backup.
+3. The first time, choose **Merge with the data on the server**. *Replace this device's data with the server's data* starts a device fresh from the server, after an automatic backup.
 4. *Optional, Android:* install a UnifiedPush app such as [ntfy](https://ntfy.sh) — changes then arrive within seconds even while Enitor is closed.
 
-Update the server together with the apps: a new kind of data (like schedule templates) is turned down by an older server until it's updated. The same goes for Wi-Fi sync — update every device.
+Update the server together with the apps: a newer app may bring a new kind of data, and an older server turns it down until it's updated. The same goes for Wi-Fi sync — keep every device on the same version.
 
 The full guide — HTTPS with Caddy, the REST API for your own automations, what syncs and how conflicts resolve: [docs/integrations/server.md](docs/integrations/server.md) · [по-русски](docs/integrations/server.ru.md).
 
