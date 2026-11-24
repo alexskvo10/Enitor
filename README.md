@@ -130,7 +130,7 @@ Full notes: [Release 0.4.0](https://github.com/alexskvo10/Enitor/releases/tag/v0
 - **Counters in hours** — "20 hours of English this month" fills itself from the focus time of linked tasks (or their estimate, if a task is done without the timer).
 - **Goals inside goals** — mark "2 books in November" as part of "24 books this year", and the year fills from the months (and a month from its weeks).
 - Moving or copying a task to another day keeps its goal, as long as the goal's period covers the new date.
-- `−` on a counter only takes back what you added yourself; progress that comes from tasks goes away when you untick the task.
+- `−` on a counter only takes back what you added yourself; to lower what comes from tasks, edit the task. Time worked on a task (focus or actual time) stays in an hours goal even if you untick it; the estimate counts only while it's done.
 - Carrying a goal into the next period is a copy, never an edit of the original.
 
 ### ◔ Stats & profile

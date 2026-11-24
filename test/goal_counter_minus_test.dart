@@ -79,7 +79,7 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.remove_circle_outline));
     await tester.pump();
-    expect(find.textContaining('сними отметку с задачи'), findsOneWidget);
+    expect(find.textContaining('сними отметку или измени фактическое время'), findsOneWidget);
     expect(c.read(goalRepositoryProvider).goalById(g.id)!.progressCount, 1);
     await tester.pump(const Duration(seconds: 5));
   });

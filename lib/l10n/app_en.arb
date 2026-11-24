@@ -310,7 +310,7 @@
 
   "copiedToPeriodToast": "Copied to “{period}”",
   "@copiedToPeriodToast": { "placeholders": { "period": { "type": "String" } } },
-  "goalCounterFromTasks": "This progress comes from tasks and sub-goals. To lower it, uncheck a task",
+  "goalCounterFromTasks": "This progress comes from tasks and sub-goals. To lower it, edit the task: uncheck it or change its actual time",
 
   "copyToWeekBarrier": "Copy to a week",
   "copyToMonthBarrier": "Copy to a month",
