@@ -76,6 +76,7 @@
     <a class="brand" href="#top"><img src="icon.png" alt="" width="26" height="26" /> Enitor</a>
     <nav>
       <a href="#why" class="hide-sm">Why</a>
+      <a href="#new" class="hide-xs">New</a>
       <a href="#features" class="hide-xs">Features</a>
       <a href="#screens" class="hide-sm">Screenshots</a>
       <a href="#download">Download</a>
@@ -98,7 +99,7 @@
         <span class="mark-wrap"><img class="mark" src="icon.png" width="92" height="92" alt="" /></span>
         <h1>Enitor</h1>
         <p class="tagline">Staying out of your way isn't the goal.<br />Getting better is.</p>
-        <p class="lede">Tasks, goals, and productivity stats honest enough to act on. One app for Windows and Android — fully local, no account, no cloud, no telemetry.</p>
+        <p class="lede">Tasks, goals, and productivity stats honest enough to act on. One app for Windows and Android — fully local, no account, no cloud, no telemetry. Your phone and your PC sync with each other directly: over Wi-Fi or through a server of your own.</p>
 
         <div class="cta">
           <a class="btn btn-primary" href="https://github.com/alexskvo10/Enitor/releases/latest">
@@ -142,6 +143,86 @@
       </div>
     </div>
   </div>
+
+  <!-- ── Новое в 0.4.0 ─────────────────────────────────────────────────── -->
+  <!-- Снимки те же, что в заметках к релизу: docs/release/v0.4.0, демо-данные. -->
+  <section id="new">
+    <div class="wrap">
+      <p class="eyebrow">New in 0.4.0</p>
+      <h2>Everywhere you are</h2>
+      <p class="lede">A plan only helps if it's there when you look. Now it is — on your phone, on your laptop, and in the calendar you already keep.</p>
+
+      <div class="gallery">
+        <figure class="reveal">
+          <button class="zoom" type="button" data-caption="Sync: directly over Wi-Fi, encrypted and offline, or through a server of your own">
+            <img src="release/v0.4.0/sync.png" width="1030" height="2230" loading="lazy" alt="Sync screen: add a device with a QR code or a code, or connect your own server" />
+          </button>
+          <figcaption>Sync over Wi-Fi or your own server</figcaption>
+        </figure>
+        <figure class="reveal">
+          <button class="zoom" type="button" data-caption="A full-screen focus timer — the screen stays on while it's open">
+            <img src="release/v0.4.0/focus.png" width="1030" height="2230" loading="lazy" alt="Full-screen focus timer: a big countdown ring and the task" />
+          </button>
+          <figcaption>Focus, full screen</figcaption>
+        </figure>
+        <figure class="reveal">
+          <button class="zoom" type="button" data-caption="Calendar import: see what's new, what gets updated and what's skipped — and why">
+            <img src="release/v0.4.0/import.png" width="1030" height="2230" loading="lazy" alt="Preview of an .ics import: new, updated and skipped events with reasons" />
+          </button>
+          <figcaption>.ics import, with reasons</figcaption>
+        </figure>
+        <figure class="reveal">
+          <button class="zoom" type="button" data-caption="Day summary: rings or bars — pick from a live preview">
+            <img src="release/v0.4.0/summary.png" width="1030" height="2230" loading="lazy" alt="Choosing the day summary: two rings or two bars" />
+          </button>
+          <figcaption>Rings or bars</figcaption>
+        </figure>
+        <figure class="reveal">
+          <button class="zoom" type="button" data-caption="Tasks: the schedule in one line — what's on now and what's next">
+            <img src="release/v0.4.0/today-phone.png" width="1030" height="2230" loading="lazy" alt="Tasks screen on a phone: the schedule line, the day summary and the task list" />
+          </button>
+          <figcaption>The schedule in one line above your tasks</figcaption>
+        </figure>
+      </div>
+
+      <div class="grid" style="margin-top:40px">
+        <div class="tile reveal">
+          <div class="ico" aria-hidden="true">⇄</div>
+          <h3>Sync without anyone's cloud</h3>
+          <p>Point a camera at a QR code once, and devices on the same network exchange changes on their own, encrypted. Across networks, run <code>enitor-server</code> on your own computer or VPS.</p>
+        </div>
+        <div class="tile reveal">
+          <div class="ico" aria-hidden="true">⚑</div>
+          <h3>Goals in hours, goals inside goals</h3>
+          <p>"20 hours of English in November" fills itself from focus sessions. A month's goal can be part of the year's — progress rolls up.</p>
+        </div>
+        <div class="tile reveal">
+          <div class="ico" aria-hidden="true">▣</div>
+          <h3>An Android widget</h3>
+          <p>The day's tasks with tick boxes right on the home screen, plus a Quick Settings tile to add a task from anywhere.</p>
+        </div>
+        <div class="tile reveal">
+          <div class="ico" aria-hidden="true">▦</div>
+          <h3>Schedule templates</h3>
+          <p>Save a day of classes or shifts and put it on any other day in one tap.</p>
+        </div>
+        <div class="tile reveal">
+          <div class="ico" aria-hidden="true">✦</div>
+          <h3>A guided tour</h3>
+          <p>12 steps through what matters on first launch, and a "What's new" card after every update.</p>
+        </div>
+        <div class="tile reveal">
+          <div class="ico" aria-hidden="true">⚙</div>
+          <h3>Automation, if you want it</h3>
+          <p>Links, Share, Tasker, a command line, MCP for AI assistants and signed webhooks. <a href="#integrations">More below.</a></p>
+        </div>
+      </div>
+
+      <div class="cta" style="margin-top:26px">
+        <a class="btn btn-ghost" href="https://github.com/alexskvo10/Enitor/releases/tag/v0.4.0">Everything in 0.4.0</a>
+      </div>
+    </div>
+  </section>
 
   <!-- ── Ключевые возможности ──────────────────────────────────────────── -->
   <section id="features">
@@ -198,7 +279,8 @@
           <h3>Goals across four horizons</h3>
           <p>Week, month, season, year — the same structure as tasks, so a year's ambition and today's checklist live in one place instead of two apps.</p>
           <ul class="facts">
-            <li>Counter progress ("read 12 books") and subtask checklists</li>
+            <li>Counter progress ("read 12 books"), counters in hours that the focus timer fills, and subtask checklists</li>
+            <li>A goal can be part of a longer one: months add up to the year</li>
             <li>A grace period after a period ends — a week's goals stay closable through Tuesday</li>
             <li>Unachieved goals go to a backlog instead of quietly disappearing</li>
             <li>Goals appear in the statistics and the weekly retrospective too</li>
@@ -243,7 +325,7 @@
             <li>Daily streak, plus your productivity delta against last week</li>
             <li>Achievements for volume, consistency, punctuality and milestones</li>
             <li>Top-tier ones stay hidden as "???" until you earn them</li>
-            <li>Pomodoro sessions log themselves as real time spent, feeding the same stats — and both the focus and the break run as long as suits you, 25/5 being only the default</li>
+            <li>Pomodoro sessions log themselves as real time spent, feeding the same stats — and both the focus and the break run as long as suits you, 25/5 being only the default. The timer takes the whole screen and keeps it awake while it runs</li>
           </ul>
         </div>
         <div class="shot">
@@ -285,7 +367,7 @@
         <div class="tile reveal">
           <div class="ico" aria-hidden="true">🔒</div>
           <h3>Genuinely yours</h3>
-          <p>No account, no cloud, no telemetry. Everything lives in local storage; manual export and import cover backups and moving to a new device.</p>
+          <p>No account, no cloud, no telemetry. Everything lives in local storage. Devices sync directly over Wi-Fi or through a server you run yourself; manual export and import cover backups.</p>
         </div>
         <div class="tile reveal">
           <div class="ico" aria-hidden="true">🔄</div>
