@@ -15,7 +15,7 @@ Tasks, a schedule, goals and honest productivity stats — on Windows and Androi
 [![No account](https://img.shields.io/badge/account-none-2A2722?style=flat-square)](#-your-data-stays-yours)
 [![License: MIT](https://img.shields.io/badge/license-MIT-C26B45?style=flat-square)](LICENSE)
 
-**[Download](https://github.com/alexskvo10/Enitor/releases/latest)** · **[Website](https://alexskvo10.github.io/Enitor/)** ([по-русски](https://alexskvo10.github.io/Enitor/ru/)) · **[What's new in 0.4.0](#-new-in-040)** · **[Setting it up](#-setting-it-up)**
+**[Download](https://github.com/alexskvo10/Enitor/releases/latest)** · **[Open in a browser](https://enitor.alexskvo.com/)** · **[Website](https://alexskvo10.github.io/Enitor/)** ([по-русски](https://alexskvo10.github.io/Enitor/ru/)) · **[What's new in 0.4.0](#-new-in-040)** · **[Setting it up](#-setting-it-up)**
 
 </div>
 
@@ -180,9 +180,33 @@ Recipes: [docs/integrations/recipes.md](docs/integrations/recipes.md) · formats
 
 ## 🔒 Your data stays yours
 
-There is **no Enitor server** and no account. Your tasks live on your devices.
+There is **no Enitor cloud** and no account. Your tasks live on your devices.
 
 Data leaves a device only when you set that up yourself: a webhook address, a calendar link, your own sync server, or a "read" permission for Tasker or an AI assistant. All of it is **off by default**, and Settings → *Notifications & connections* → **Integrations** → *Permissions* shows it in one place. Sync over Wi-Fi goes only to devices you paired; push notifications from your server carry a wake-up signal, never your data.
+
+### 🌐 The web version — hosted, but your data never reaches us
+
+**[enitor.alexskvo.com](https://enitor.alexskvo.com/)** runs Enitor in a browser, nothing to install. The page is served from our server, so it's fair to ask what that server sees. The answer: **the app's files go from the server to you, and nothing comes back.**
+
+- **The server only hands out files.** It's a plain static file server (Caddy `file_server`): the same HTML, JavaScript and fonts for everyone. It has no API, no database, no accounts, and it answers only `GET`/`HEAD` — there is nowhere to send data even if the app wanted to.
+- **Your tasks live in your browser** — in its local storage, under keys that start with `enitor.`. They're saved on your device the moment you change something and are never uploaded.
+- **No third parties.** No analytics, no ads, no CDN, no Google Fonts: the rendering engine (CanvasKit) and every font, emoji included, come from the same address. A Content-Security-Policy header tells your browser to refuse code from any other address.
+- **No visit log.** The server config has no access log, so it doesn't keep a record of who opened the page.
+
+**Check it yourself** — you don't have to take our word for it:
+
+1. **Watch the traffic.** Open the browser's developer tools (<kbd>F12</kbd>) → **Network**, reload the page and use the app: add tasks, finish them, open every screen. You'll see only `GET` requests for the app's own files on `enitor.alexskvo.com` while it loads, and **nothing at all after that**.
+2. **See where the data is.** Developer tools → **Application** (Chrome) or **Storage** (Firefox) → **Local Storage** → `https://enitor.alexskvo.com`: your tasks and goals are there, as plain JSON.
+3. **Try to send something.** The server turns down anything but reading files:
+   ```sh
+   curl -i -X POST https://enitor.alexskvo.com/ -d 'test'   # → 405 Method Not Allowed
+   curl -sI https://enitor.alexskvo.com/ | grep -i content-security-policy
+   ```
+4. **Read the source.** The web version is built from this repository (`scripts/build_web.ps1`, Flutter's `--no-web-resources-cdn`); [enitor.alexskvo.com/version.txt](https://enitor.alexskvo.com/version.txt) names the commit it was built from.
+
+The one exception is a request you set up yourself: if you connect **your own** sync server (Settings → *Notifications & connections* → **Sync** → *Own server*), the app talks to that address — yours, not ours.
+
+**Keep a copy.** A browser can clear its storage — Safari does after 7 days without a visit, and so does "clear browsing data". Install the page to your home screen (Share → *Add to Home Screen* on iPhone, the install icon in the address bar on a PC), and save a backup now and then: Settings → *Data* → **Export to file**, or the reminder the app shows every two weeks. The web version has no notifications, Wi-Fi sync, widgets or automatic backups — for those, use the Android or Windows app.
 
 ---
 

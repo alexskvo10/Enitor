@@ -12,7 +12,7 @@ SSH=ssh
 [ -x /c/Windows/System32/OpenSSH/ssh.exe ] && SSH=/c/Windows/System32/OpenSSH/ssh.exe
 
 [ -f build/web/index.html ] || { echo "нет build/web — сначала build_web.ps1" >&2; exit 1; }
-if grep -q '+ незакоммиченные' build/web/version.txt; then
+if grep -q 'uncommitted' build/web/version.txt; then
   echo "сборка из незакоммиченного кода — сначала коммит и пересборка" >&2; exit 1
 fi
 

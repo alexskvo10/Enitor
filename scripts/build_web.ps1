@@ -18,7 +18,7 @@ Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "$out/canvaskit/experi
 
 # Из какого коммита собрано — открыто всем: enitor.alexskvo.com/version.txt.
 $commit = git rev-parse HEAD
-$dirty = if (git status --porcelain -- lib web pubspec.yaml pubspec.lock) { ' (+ незакоммиченные правки)' } else { '' }
-Set-Content -Encoding utf8 "$out/version.txt" "Enitor web`ncommit $commit$dirty`nbuilt $((Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm')) UTC"
+$dirty = if (git status --porcelain -- lib web pubspec.yaml pubspec.lock) { ' (+ uncommitted changes)' } else { '' }
+Set-Content -Encoding ascii "$out/version.txt" "Enitor web`ncommit $commit$dirty`nbuilt $((Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm')) UTC"
 
 Write-Host "OK: $out"
