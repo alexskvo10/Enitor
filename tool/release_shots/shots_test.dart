@@ -20,6 +20,8 @@ import 'package:enitor/features/integrations/import/import_preview_screen.dart';
 import 'package:enitor/features/integrations/ui/sync_screen.dart';
 import 'package:enitor/features/settings/settings_screen.dart';
 import 'package:enitor/features/today/today_screen.dart';
+import 'package:enitor/data/models/task.dart';
+import 'package:enitor/widgets/transfer_catchup_sheet.dart';
 import 'package:enitor/features/stats/stats_screen.dart';
 import 'package:enitor/features/goals/goals_screen.dart';
 import 'package:enitor/features/profile/profile_screen.dart';
@@ -138,6 +140,7 @@ void main() {
     double dpr = _dpr,
     double scroll = 0,
     ThemeMode mode = ThemeMode.dark,
+    Future<void> Function(WidgetTester)? after,
   }) async {
     await c.read(appearanceProvider).setThemeMode(mode);
     await loadAppFonts();
@@ -193,6 +196,7 @@ void main() {
         );
       lists.first.position.jumpTo(scroll);
     }
+    if (after != null) await after(tester);
     // Кольца, полосы и плитки заполняются при входе — даём им дойти.
     for (var t = Duration.zero; t < settle; t += const Duration(milliseconds: 100)) {
       await tester.pump(const Duration(milliseconds: 100));
@@ -350,4 +354,43 @@ try {
       );
     });
   }
+
+  // Догоняющее окно переноса поверх «Задач»: вчерашние незавершённые.
+  testWidgets('site windows/transfer', (tester) async {
+    await tester.runAsync(seed);
+    final now = DateTime.now();
+    final y = DateTime(now.year, now.month, now.day - 1);
+    Task t(String id, String title, {int? start, int? end, int? est, List<String> tags = const []}) => Task(
+          id: id,
+          title: title,
+          date: y,
+          createdAt: y,
+          updatedAt: y,
+          startMinutes: start,
+          endMinutes: end,
+          estimatedMinutes: est,
+          tags: tags,
+        );
+    await shot(
+      tester,
+      'site/windows/transfer',
+      tasks(),
+      size: win,
+      dpr: 2,
+      mode: ThemeMode.light,
+      settle: const Duration(seconds: 2),
+      after: (tester) async {
+        await tester.pump(const Duration(milliseconds: 300));
+        showTransferCatchupSheet(
+          tester.element(find.byType(TodayScreen)),
+          tasks: [
+            t('tr1', 'Finish the slides for Thursday', start: 16 * 60, end: 17 * 60 + 30, tags: ['work']),
+            t('tr2', 'Call the dentist', est: 10, tags: ['personal']),
+            t('tr3', 'Read chapter 4', est: 40, tags: ['learning']),
+          ],
+          goals: const [],
+        );
+      },
+    );
+  });
 }
