@@ -20,12 +20,19 @@ import 'package:enitor/features/integrations/import/import_preview_screen.dart';
 import 'package:enitor/features/integrations/ui/sync_screen.dart';
 import 'package:enitor/features/settings/settings_screen.dart';
 import 'package:enitor/features/today/today_screen.dart';
+import 'package:enitor/features/stats/stats_screen.dart';
+import 'package:enitor/features/goals/goals_screen.dart';
+import 'package:enitor/features/profile/profile_screen.dart';
+import 'package:enitor/features/retro/retrospective_screen.dart';
+import 'package:enitor/features/stats/tag_stats_screen.dart';
+import 'package:enitor/features/achievements/achievements_screen.dart';
 import 'package:enitor/services/backup_service.dart';
 import 'dart:io';
 import 'package:enitor/l10n/app_localizations.dart';
 import 'package:enitor/services/notification_service.dart';
 import 'package:enitor/services/pomodoro_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -35,6 +42,13 @@ import '../../test/goldens/golden_helpers.dart';
 
 const _size = Size(412, 892);
 const _dpr = 2.5;
+var _emojiLoaded = false;
+
+ThemeData _withEmoji(ThemeData t) => t.copyWith(
+      textTheme: t.textTheme.apply(fontFamilyFallback: const ['ShotEmoji']),
+      primaryTextTheme:
+          t.primaryTextTheme.apply(fontFamilyFallback: const ['ShotEmoji']),
+    );
 
 final _calendar = [
   PlanEntry(
@@ -123,8 +137,20 @@ void main() {
     Size size = _size,
     double dpr = _dpr,
     double scroll = 0,
+    ThemeMode mode = ThemeMode.dark,
   }) async {
+    await c.read(appearanceProvider).setThemeMode(mode);
     await loadAppFonts();
+    // Эмодзи (достижения, профиль, итоги недели): в тестах их шрифта нет,
+    // и вместо них чёрные полосы. Берём Segoe UI Emoji из Windows и подключаем
+    // запасным шрифтом темы (_withEmoji).
+    if (!_emojiLoaded) {
+      final bytes = File(r'C:\Windows\Fonts\seguiemj.ttf').readAsBytesSync();
+      await (FontLoader('ShotEmoji')
+            ..addFont(Future.value(ByteData.sublistView(bytes))))
+          .load();
+      _emojiLoaded = true;
+    }
     // flutter_test по умолчанию рисует вместо теней чёрные рамки.
     debugDisableShadows = false;
     tester.view.physicalSize = size * dpr;
@@ -135,9 +161,9 @@ void main() {
         container: c,
         child: MaterialApp(
           debugShowCheckedModeBanner: false,
-          theme: AppTheme.light(),
-          darkTheme: AppTheme.dark(),
-          themeMode: ThemeMode.dark,
+          theme: _withEmoji(AppTheme.light()),
+          darkTheme: _withEmoji(AppTheme.dark()),
+          themeMode: mode,
           locale: const Locale('en'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -217,11 +243,11 @@ try {
 
   // «Задачи» на демо-данных (dart run scripts/generate_demo_backup.dart —
   // «сегодня» в нём то, когда скрипт запущен): телефон и окно ноутбука.
-  Widget tasks() => Scaffold(
-        body: const TodayScreen(),
+  Widget tasks([Widget body = const TodayScreen(), int tab = 0]) => Scaffold(
+        body: body,
         bottomNavigationBar: Builder(
           builder: (context) => NavigationBar(
-            selectedIndex: 0,
+            selectedIndex: tab,
             destinations: const [
               NavigationDestination(
                 icon: Icon(Icons.check_circle_outline),
@@ -272,4 +298,56 @@ try {
       settle: const Duration(seconds: 2),
     );
   });
+
+  // Галерея сайта (docs/): окно ноутбука и телефон, тоже на демо-данных.
+  // PNG — в out/site/, на сайт их кладёт scripts/site_shots.py.
+  const win = Size(706, 1073);
+  const phone = Size(412, 892);
+  final siteShots = <String, ({Widget Function() screen, Size size, ThemeMode mode, double scroll})>{
+    'windows/today': (screen: () => tasks(), size: win, mode: ThemeMode.light, scroll: 0),
+    'windows/today_dark': (screen: () => tasks(), size: win, mode: ThemeMode.dark, scroll: 0),
+    'windows/today_2': (screen: () => tasks(), size: win, mode: ThemeMode.light, scroll: 520),
+    'windows/week_summary': (screen: () => const RetrospectiveScreen(), size: win, mode: ThemeMode.light, scroll: 0),
+    'windows/stats': (screen: () => tasks(const StatsScreen(), 2), size: win, mode: ThemeMode.light, scroll: 0),
+    'windows/goals': (screen: () => tasks(const GoalsScreen(), 1), size: win, mode: ThemeMode.light, scroll: 0),
+    'windows/profile': (screen: () => tasks(const ProfileScreen(), 3), size: win, mode: ThemeMode.light, scroll: 0),
+    'windows/tag_stats': (screen: () => const TagStatsScreen(), size: win, mode: ThemeMode.light, scroll: 0),
+    'windows/achievements': (screen: () => const AchievementsScreen(), size: win, mode: ThemeMode.light, scroll: 0),
+    'windows/settings': (screen: () => const SettingsScreen(), size: win, mode: ThemeMode.light, scroll: 0),
+    'windows/focus': (screen: () => const FocusScreen(), size: win, mode: ThemeMode.light, scroll: 0),
+    'android/today': (screen: () => tasks(), size: phone, mode: ThemeMode.light, scroll: 0),
+    'android/today_done': (screen: () => tasks(), size: phone, mode: ThemeMode.light, scroll: 900),
+    'android/today_dark': (screen: () => tasks(), size: phone, mode: ThemeMode.dark, scroll: 0),
+    'android/stats': (screen: () => tasks(const StatsScreen(), 2), size: phone, mode: ThemeMode.light, scroll: 0),
+    'android/goals': (screen: () => tasks(const GoalsScreen(), 1), size: phone, mode: ThemeMode.light, scroll: 0),
+    'android/profile': (screen: () => tasks(const ProfileScreen(), 3), size: phone, mode: ThemeMode.light, scroll: 0),
+    'android/achievements': (screen: () => const AchievementsScreen(), size: phone, mode: ThemeMode.light, scroll: 0),
+    'android/settings': (screen: () => const SettingsScreen(), size: phone, mode: ThemeMode.light, scroll: 0),
+    'android/focus': (screen: () => const FocusScreen(), size: phone, mode: ThemeMode.light, scroll: 0),
+  };
+  for (final e in siteShots.entries) {
+    testWidgets('site ${e.key}', (tester) async {
+      await tester.runAsync(seed);
+      if (e.key.endsWith('focus')) {
+        c.read(pomodoroProvider)
+          ..phase = PomodoroPhase.focus
+          ..taskTitle = 'Quarterly report draft'
+          ..totalSeconds = 25 * 60
+          ..remainingSeconds = 17 * 60 + 37
+          ..sessionNumber = 2
+          ..sessionMinutes = 25;
+      }
+      final v = e.value;
+      await shot(
+        tester,
+        'site/${e.key}',
+        v.screen(),
+        size: v.size,
+        dpr: v.size == win ? 2 : _dpr,
+        mode: v.mode,
+        scroll: v.scroll,
+        settle: const Duration(seconds: 2),
+      );
+    });
+  }
 }

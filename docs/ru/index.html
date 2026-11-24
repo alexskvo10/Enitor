@@ -116,7 +116,7 @@
       <div class="stack">
         <picture>
           <source srcset="../screenshots/windows/today.webp" type="image/webp" />
-          <img class="front" src="../screenshots/windows/today.png" width="706" height="1073" alt="Экран «Сегодня»: календарь месяца с цветными метками дней, цитата дня и кольца прогресса" />
+          <img class="front" src="../screenshots/windows/today.png" width="706" height="1073" alt="Экран «Сегодня»: календарь на две недели с точкой у каждого дня, цитата дня и кольца прогресса" />
         </picture>
         <picture>
           <source srcset="../screenshots/windows/today_dark.webp" type="image/webp" />
@@ -401,10 +401,10 @@
           <figcaption>Требует внимания, незавершённые, выполненные</figcaption>
         </figure>
         <figure class="reveal">
-          <button class="zoom" type="button" data-caption="Pomodoro — завершённая сессия записывается как реальное время">
-            <picture><source srcset="../screenshots/windows/pomodoro_fuul.webp" type="image/webp" /><img src="../screenshots/windows/pomodoro_fuul.png" width="706" height="1073" loading="lazy" alt="Активная сессия Pomodoro" /></picture>
+          <button class="zoom" type="button" data-caption="Таймер фокуса на весь экран, экран не гаснет; законченная сессия записывается как реальное время">
+            <picture><source srcset="../screenshots/windows/focus.webp" type="image/webp" /><img src="../screenshots/windows/focus.png" width="706" height="1073" loading="lazy" alt="Таймер фокуса на весь экран: большое кольцо обратного отсчёта и задача" /></picture>
           </button>
-          <figcaption>Pomodoro как реальное время</figcaption>
+          <figcaption>Фокус на весь экран</figcaption>
         </figure>
         <figure class="reveal">
           <button class="zoom" type="button" data-caption="Статистика по тегам — куда на самом деле уходят часы">
@@ -430,66 +430,60 @@
           </button>
           <figcaption>Тёмная тема — отдельное решение</figcaption>
         </figure>
-        <figure class="reveal">
-          <button class="zoom" type="button" data-caption="Поймано на границе дня: приложение спрашивает про каждую задачу отдельно, а время, которое успел записать таймер, остаётся при ней">
-            <picture><source srcset="../screenshots/windows/transfer_banner.webp" type="image/webp" /><img src="../screenshots/windows/transfer_banner.png" width="706" height="1073" loading="lazy" alt="Плашка переноса вверху экрана «Сегодня»: перенести ли одну незавершённую задачу на сегодня" /></picture>
-          </button>
-          <figcaption>Перенос, о котором спрашивают в моменте</figcaption>
-        </figure>
       </div>
 
       <div class="gallery" id="shots-android">
         <figure class="reveal">
-          <button class="zoom" type="button" data-caption="«Сегодня» на Android — месяц одним взглядом">
-            <picture><source srcset="../screenshots/android/today.webp" type="image/webp" /><img src="../screenshots/android/today.jpg" width="567" height="1280" loading="lazy" alt="Экран «Сегодня» на Android: календарь месяца с цветными метками дней и кольца дня" /></picture>
+          <button class="zoom" type="button" data-caption="«Сегодня» на Android — две недели одним взглядом">
+            <picture><source srcset="../screenshots/android/today.webp" type="image/webp" /><img src="../screenshots/android/today.jpg" width="1030" height="2230" loading="lazy" alt="Экран «Сегодня» на Android: календарь на две недели с точкой у каждого дня и кольца дня" /></picture>
           </button>
-          <figcaption>Сегодня — месяц одним взглядом</figcaption>
+          <figcaption>Сегодня — две недели одним взглядом</figcaption>
         </figure>
         <figure class="reveal">
           <button class="zoom" type="button" data-caption="Выполненные задачи — с оценками, тегами и счётчиком">
-            <picture><source srcset="../screenshots/android/today_done.webp" type="image/webp" /><img src="../screenshots/android/today_done.jpg" width="567" height="1280" loading="lazy" alt="Выполненные задачи на Android: оценки звёздами, теги и задача-счётчик 100 из 100" /></picture>
+            <picture><source srcset="../screenshots/android/today_done.webp" type="image/webp" /><img src="../screenshots/android/today_done.jpg" width="1030" height="2230" loading="lazy" alt="Выполненные задачи на Android: оценки звёздами, теги и задача-счётчик 100 из 100" /></picture>
           </button>
           <figcaption>Выполненные, с оценками и счётчиками</figcaption>
         </figure>
         <figure class="reveal">
           <button class="zoom" type="button" data-caption="Статистика — график и карточка точности оценок">
-            <picture><source srcset="../screenshots/android/stats.webp" type="image/webp" /><img src="../screenshots/android/stats.jpg" width="567" height="1280" loading="lazy" alt="Статистика на Android: продуктивность против «вовремя», статистика по тегам и точность оценок" /></picture>
+            <picture><source srcset="../screenshots/android/stats.webp" type="image/webp" /><img src="../screenshots/android/stats.jpg" width="1030" height="2230" loading="lazy" alt="Статистика на Android: продуктивность против «вовремя», статистика по тегам и точность оценок" /></picture>
           </button>
           <figcaption>Графики и точность оценок</figcaption>
         </figure>
         <figure class="reveal">
-          <button class="zoom" type="button" data-caption="Цели на месяц вместе со счётчиками">
-            <picture><source srcset="../screenshots/android/goals.webp" type="image/webp" /><img src="../screenshots/android/goals.jpg" width="567" height="1280" loading="lazy" alt="Цели месяца на Android: кольца, приоритетная цель и два счётчика в процессе" /></picture>
+          <button class="zoom" type="button" data-caption="Цели на неделю со счётчиком">
+            <picture><source srcset="../screenshots/android/goals.webp" type="image/webp" /><img src="../screenshots/android/goals.jpg" width="1030" height="2230" loading="lazy" alt="Цели недели на Android: кольца и цель-счётчик в процессе" /></picture>
           </button>
-          <figcaption>Цели на месяц</figcaption>
+          <figcaption>Цели на неделю</figcaption>
         </figure>
         <figure class="reveal">
           <button class="zoom" type="button" data-caption="Профиль — тепловая карта года, достижения и лучшие периоды">
-            <picture><source srcset="../screenshots/android/profile.webp" type="image/webp" /><img src="../screenshots/android/profile.jpg" width="567" height="1280" loading="lazy" alt="Профиль на Android: тепловая карта года, достижения и лучшие периоды" /></picture>
+            <picture><source srcset="../screenshots/android/profile.webp" type="image/webp" /><img src="../screenshots/android/profile.jpg" width="1030" height="2230" loading="lazy" alt="Профиль на Android: тепловая карта года, достижения и лучшие периоды" /></picture>
           </button>
           <figcaption>Тепловая карта, достижения, периоды</figcaption>
         </figure>
         <figure class="reveal">
-          <button class="zoom" type="button" data-caption="Идущая сессия фокуса над кольцами дня">
-            <picture><source srcset="../screenshots/android/pomodoro.webp" type="image/webp" /><img src="../screenshots/android/pomodoro.jpg" width="567" height="1280" loading="lazy" alt="Идущая сессия Pomodoro с обратным отсчётом над кольцами дня на Android" /></picture>
+          <button class="zoom" type="button" data-caption="Фокус на телефоне: положи его и работай — экран не гаснет">
+            <picture><source srcset="../screenshots/android/focus.webp" type="image/webp" /><img src="../screenshots/android/focus.jpg" width="1030" height="2230" loading="lazy" alt="Таймер фокуса на весь экран на Android" /></picture>
           </button>
-          <figcaption>Pomodoro прямо на «Сегодня»</figcaption>
+          <figcaption>Фокус на весь экран</figcaption>
         </figure>
         <figure class="reveal">
-          <button class="zoom" type="button" data-caption="После сессии — 13 минут факта против оценки в 30">
-            <picture><source srcset="../screenshots/android/pomodoro_done.webp" type="image/webp" /><img src="../screenshots/android/pomodoro_done.jpg" width="567" height="1280" loading="lazy" alt="Задача на Android: 13 минут фактического времени против оценки в 30 минут" /></picture>
+          <button class="zoom" type="button" data-caption="Достижения — верхние скрыты, пока не заработаны">
+            <picture><source srcset="../screenshots/android/achievements.webp" type="image/webp" /><img src="../screenshots/android/achievements.jpg" width="1030" height="2230" loading="lazy" alt="Список достижений на Android" /></picture>
           </button>
-          <figcaption>Сессия записывается как реальное время</figcaption>
+          <figcaption>Достижения, часть ещё скрыта</figcaption>
         </figure>
         <figure class="reveal">
           <button class="zoom" type="button" data-caption="Тёмная тема на телефоне">
-            <picture><source srcset="../screenshots/android/today_dark.webp" type="image/webp" /><img src="../screenshots/android/today_dark.jpg" width="567" height="1280" loading="lazy" alt="Экран «Сегодня» на Android в тёмной теме" /></picture>
+            <picture><source srcset="../screenshots/android/today_dark.webp" type="image/webp" /><img src="../screenshots/android/today_dark.jpg" width="1030" height="2230" loading="lazy" alt="Экран «Сегодня» на Android в тёмной теме" /></picture>
           </button>
           <figcaption>Тёмная тема на телефоне</figcaption>
         </figure>
         <figure class="reveal">
           <button class="zoom" type="button" data-caption="Длины фокуса и перерыва, а гайд по их выбору — в одно касание">
-            <picture><source srcset="../screenshots/android/settings.webp" type="image/webp" /><img src="../screenshots/android/settings.jpg" width="567" height="1280" loading="lazy" alt="Настройки на Android: секция «Таймер фокуса» с длинами и ссылкой на гайд" /></picture>
+            <picture><source srcset="../screenshots/android/settings.webp" type="image/webp" /><img src="../screenshots/android/settings.jpg" width="1030" height="2230" loading="lazy" alt="Настройки на Android: секция «Таймер фокуса» с длинами и ссылкой на гайд" /></picture>
           </button>
           <figcaption>Таймер под свои цифры</figcaption>
         </figure>
