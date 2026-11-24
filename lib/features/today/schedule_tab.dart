@@ -426,6 +426,8 @@ class _ScheduleTile extends ConsumerWidget {
                   PopupMenuButton<_ScheduleAction>(
                     icon: Icon(Icons.more_vert, color: muted),
                     onSelected: (a) => switch (a) {
+                      _ScheduleAction.edit => _showScheduleForm(context,
+                          date: date, existing: item,),
                       _ScheduleAction.makeTask =>
                         _makeScheduleTask(context, ref, item, date),
                       _ScheduleAction.duplicate =>
@@ -434,6 +436,10 @@ class _ScheduleTile extends ConsumerWidget {
                         _deleteScheduleItem(context, ref, item, date),
                     },
                     itemBuilder: (_) => [
+                      PopupMenuItem(
+                        value: _ScheduleAction.edit,
+                        child: Text(l10n.editMenuItem),
+                      ),
                       PopupMenuItem(
                         value: _ScheduleAction.makeTask,
                         child: Text(l10n.scheduleMakeTask),
@@ -492,14 +498,59 @@ class _ScheduleTile extends ConsumerWidget {
   }
 }
 
-enum _ScheduleAction { makeTask, duplicate, delete }
+enum _ScheduleAction { edit, makeTask, duplicate, delete }
+
+/// Строка полоски расписания на «Задачах» ([items] — по времени начала).
+/// Одна строка вместо списка: сегодня — что идёт и что дальше, в другой
+/// день — от начала первого пункта до конца последнего.
+String scheduleStripLine(
+  AppLocalizations l10n,
+  List<ScheduleItem> items,
+  DateTime date,
+  DateTime now,
+) {
+  final head = '${l10n.scheduleTab} · ${items.length}';
+  if (!isSameDay(date, now)) {
+    final from = items.first.startMinutes;
+    final to = items
+        .map((i) => i.endMinutes ?? i.startMinutes)
+        .reduce((a, b) => a > b ? a : b);
+    return '$head · ${_fmtTime(from)}${to > from ? '–${_fmtTime(to)}' : ''}';
+  }
+  final nowMin = now.hour * 60 + now.minute;
+  final live = items
+      .where(
+        (i) =>
+            i.endMinutes != null &&
+            nowMin >= i.startMinutes &&
+            nowMin < i.endMinutes!,
+      )
+      .firstOrNull;
+  final next = items.where((i) => i.startMinutes > nowMin).firstOrNull;
+  return [
+    head,
+    if (live != null)
+      l10n.scheduleStripNow(live.title, _fmtTime(live.endMinutes!)),
+    if (next != null)
+      l10n.scheduleStripNext(next.title, _fmtTime(next.startMinutes)),
+    if (live == null && next == null) l10n.scheduleStripDone,
+  ].join(' · ');
+}
 
 /// Компактная сводка расписания дня на вкладке «Задачи»: занятое время видно
 /// там, где планируют задачи. Нажатие открывает вкладку «Расписание».
 class _ScheduleStrip extends StatelessWidget {
-  const _ScheduleStrip({required this.items, required this.onOpen});
+  const _ScheduleStrip({
+    required this.items,
+    required this.date,
+    required this.now,
+    required this.onOpen,
+  });
 
+  /// Пункты дня, по времени начала.
   final List<ScheduleItem> items;
+  final DateTime date;
+  final DateTime now;
   final VoidCallback onOpen;
 
   @override
@@ -516,34 +567,19 @@ class _ScheduleStrip extends StatelessWidget {
           onTap: onOpen,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Icon(Icons.event_note_outlined, size: 16, color: muted),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        '${context.l10n.scheduleTab} · ${items.length}',
-                        style:
-                            theme.textTheme.labelMedium?.copyWith(color: muted),
-                      ),
-                    ),
-                    Icon(Icons.chevron_right, size: 18, color: muted),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                for (final i in items)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text(
-                      '${_scheduleTimeLabel(i)}  ${i.title}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(color: muted),
-                    ),
+                Icon(Icons.event_note_outlined, size: 16, color: muted),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    scheduleStripLine(context.l10n, items, date, now),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelMedium?.copyWith(color: muted),
                   ),
+                ),
+                Icon(Icons.chevron_right, size: 18, color: muted),
               ],
             ),
           ),

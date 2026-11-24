@@ -86,10 +86,10 @@ void main() {
     await pumpToday(tester);
 
     // Вкладка «Задачи»: сводка расписания над списком.
-    expect(find.text('Расписание · 1'), findsOneWidget);
+    expect(find.textContaining('Расписание · 1'), findsOneWidget);
 
     // Нажатие на сводку открывает вкладку «Расписание».
-    await tester.tap(find.text('Расписание · 1'));
+    await tester.tap(find.textContaining('Расписание · 1'));
     await tester.pumpAndSettle();
     expect(find.text('23:20'), findsOneWidget);
 

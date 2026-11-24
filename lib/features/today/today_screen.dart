@@ -22,6 +22,7 @@ import '../../data/repositories/schedule_repository.dart';
 import '../../data/repositories/stats_repository.dart';
 import '../../data/repositories/task_repository.dart';
 import '../../data/sources/local/local_storage.dart';
+import '../../l10n/app_localizations.dart';
 import '../../l10n/l10n_extensions.dart';
 import '../backlog/backlog_screen.dart';
 import '../focus/focus_screen.dart';
@@ -526,6 +527,8 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                           if (daySchedule.isNotEmpty)
                             _ScheduleStrip(
                               items: daySchedule,
+                              date: _selected,
+                              now: now,
                               onOpen: () => setState(() => _tab = 1),
                             ),
                           // Над самим списком, а не над цитатой: кнопки действуют
