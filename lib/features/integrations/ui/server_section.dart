@@ -234,7 +234,7 @@ class _ServerSectionState extends ConsumerState<ServerSection> {
                       : null,
                 ),
               ),
-              if (defaultTargetPlatform == TargetPlatform.android) ...[
+              if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) ...[
                 tileDivider,
                 _PushTile(storage: ref.read(localStorageProvider)),
               ],

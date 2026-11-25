@@ -330,7 +330,7 @@ class NotificationService {
   /// переживает и то и другое. Ошибка → null: тост без лого лучше, чем битая
   /// ссылка на картинку.
   Future<String?> _windowsIconPath() async {
-    if (defaultTargetPlatform != TargetPlatform.windows) return null;
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.windows) return null;
     try {
       final dir = await getApplicationSupportDirectory();
       final file = File('${dir.path}${Platform.pathSeparator}toast_icon.png');
@@ -849,7 +849,7 @@ class NotificationService {
   // уведомление явно на N дней вперёд, каждый день — отдельным id.
   static const _windowsDailyDays = 14;
 
-  bool get _isWindows => defaultTargetPlatform == TargetPlatform.windows;
+  bool get _isWindows => !kIsWeb && defaultTargetPlatform == TargetPlatform.windows;
 
   /// Ежедневное уведомление в [minutesOfDay]. На Android/iOS — один вызов с
   /// повтором через matchDateTimeComponents; на Windows — явный цикл на

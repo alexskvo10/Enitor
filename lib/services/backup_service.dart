@@ -12,6 +12,7 @@ import '../data/sources/local/local_storage.dart';
 import '../features/integrations/sync/lan/lan_node.dart';
 import '../features/integrations/sync/sync_engine.dart';
 import '../l10n/app_localizations.dart';
+import 'web_bits.dart';
 
 AppLocalizations get _l10n =>
     lookupAppLocalizations(Locale(intl.Intl.defaultLocale ?? 'ru'));
@@ -85,6 +86,10 @@ class BackupService {
   Future<String?> exportToFile() async {
     final json = buildJson();
     final name = 'enitor-backup-${_stamp()}.json';
+    if (kIsWeb) {
+      downloadText(name, json, 'application/json');
+      return name;
+    }
 
     // На мобиле saveFile сам пишет файл (нужны bytes); на десктопе — только
     // возвращает путь, писать надо самим.

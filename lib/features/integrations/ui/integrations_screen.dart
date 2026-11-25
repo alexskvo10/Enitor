@@ -28,10 +28,11 @@ class IntegrationsScreen extends StatelessWidget {
           // Права стоят прямо над входами, которыми управляют (Tasker,
           // консоль, ассистенты); вебхуки — для тех, кто строит своё, внизу.
           const CalendarSection(),
-          const PermissionsSection(),
-          if (defaultTargetPlatform == TargetPlatform.android)
+          // В вебе нет ни ссылок enitor://, ни других входов.
+          if (!kIsWeb) const PermissionsSection(),
+          if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android)
             const TaskerSection(),
-          if (defaultTargetPlatform == TargetPlatform.windows) ...[
+          if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) ...[
             const WindowsSection(),
             const AssistantsSection(),
           ],

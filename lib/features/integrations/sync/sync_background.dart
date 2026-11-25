@@ -26,7 +26,7 @@ const kSyncPushKey = 'device.sync.push';
 const _syncPortName = 'enitor.sync';
 const _kTaskName = 'enitor-sync';
 
-bool get _android => defaultTargetPlatform == TargetPlatform.android;
+bool get _android => !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
 ReceivePort? _port;
 SyncService? _service;

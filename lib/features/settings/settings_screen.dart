@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -216,21 +217,24 @@ class SettingsScreen extends ConsumerWidget {
           _card(
             key: TourKeys.connections,
             [
-              ListTile(
-                leading: const Icon(Icons.notifications_outlined),
-                title: _tileTitle(context, l10n.notificationsTitle),
-                subtitle: Text(
-                  prefs.enabled
-                      ? l10n.notifRowOn(
-                          _notifKinds(prefs).where((v) => v).length,
-                          _notifKinds(prefs).length,
-                        )
-                      : l10n.notifRowOff,
+              // В вебе уведомлений нет: пакет работает только в приложении.
+              if (!kIsWeb) ...[
+                ListTile(
+                  leading: const Icon(Icons.notifications_outlined),
+                  title: _tileTitle(context, l10n.notificationsTitle),
+                  subtitle: Text(
+                    prefs.enabled
+                        ? l10n.notifRowOn(
+                            _notifKinds(prefs).where((v) => v).length,
+                            _notifKinds(prefs).length,
+                          )
+                        : l10n.notifRowOff,
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/settings/notifications'),
                 ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/settings/notifications'),
-              ),
-              const Divider(height: 1, indent: 16, endIndent: 16),
+                const Divider(height: 1, indent: 16, endIndent: 16),
+              ],
               ListTile(
                 leading: const Icon(Icons.sync_rounded),
                 title: _tileTitle(context, l10n.syncTitle),
@@ -285,7 +289,7 @@ class SettingsScreen extends ConsumerWidget {
               onTap: () => CalendarSection.fullExport(context, ref),
             ),
           ]),
-          _note(context, l10n.backupNote),
+          _note(context, kIsWeb ? l10n.webBackupNote : l10n.backupNote),
 
           // ── Прочее ──────────────────────────────────────────────────────
           const SizedBox(height: 4),

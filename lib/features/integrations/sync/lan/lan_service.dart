@@ -219,7 +219,7 @@ class LanSyncService {
   /// Android: без этого телефон не слышит широковещательные пакеты соседей
   /// (свои вопросы шлёт и ответы получает и так).
   Future<void> _multicast(bool on) async {
-    if (defaultTargetPlatform != TargetPlatform.android) return;
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
     if (on && _node == null && _creating == null) return;
     try {
       await kCommandsChannel.invokeMethod<void>('multicastLock', {'on': on});

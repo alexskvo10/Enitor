@@ -65,6 +65,7 @@ dependencies:
   basic_utils: ^5.8.2
   qr_flutter: ^4.1.0
   wakelock_plus: ^1.3.3
+  web: ^1.1.1 # веб-сборка: скачивание файлов, вкладки (lib/services/web_bits_web.dart)
 
 dev_dependencies:
   flutter_test:

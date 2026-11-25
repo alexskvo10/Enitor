@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -98,8 +99,8 @@ class AboutScreen extends ConsumerWidget {
             ),
           ),
 
-          const SizedBox(height: 12),
-          Card(
+          if (!kIsWeb) const SizedBox(height: 12),
+          if (!kIsWeb) Card(
             margin: EdgeInsets.zero,
             // Без этого InkWell-подсветка ListTile.onTap рисуется прямым
             // прямоугольником поверх скруглённых углов карточки (тот же

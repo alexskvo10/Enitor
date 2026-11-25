@@ -28,6 +28,7 @@ import 'services/backup_service.dart';
 import 'services/notification_service.dart';
 import 'services/pomodoro_controller.dart';
 import 'services/update_service.dart';
+import 'services/web_bits.dart';
 
 /// Вычисляет следующий момент 4:00 утра (сегодня или завтра).
 DateTime _nextFourAm() {
@@ -91,6 +92,15 @@ Future<void> main(List<String> args) async {
   if (args.contains('--unifiedpush-bg')) return runPushBackground();
   updateFailedOnLaunch = args.contains(kUpdateFailedArg);
   WidgetsFlutterBinding.ensureInitialized();
+  if (kIsWeb) {
+    // Вторая вкладка не читает и не пишет хранилище: иначе две копии
+    // затирали бы правки друг друга.
+    if (await anotherTabOpen()) return runApp(const _OtherTabScreen());
+    requestPersistentStorage();
+    // Ключи в localStorage — со своим префиксом, чтобы не пересечься с
+    // другими приложениями на том же адресе.
+    SharedPreferences.setPrefix('enitor.');
+  }
   // До чтения хранилища: см. claimForegroundSync.
   claimForegroundSync();
 
@@ -170,7 +180,7 @@ Future<void> main(List<String> args) async {
   final gateway = container.read(integrationGatewayProvider);
   await gateway.attach();
   watchExecutedCommands(container);
-  if (defaultTargetPlatform == TargetPlatform.android) {
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
     WidgetSnapshotWriter(container).start();
   }
   // Вебхуки: события от действий на этом устройстве + досылка накопленного.
@@ -202,7 +212,7 @@ Future<void> main(List<String> args) async {
   }
   // Календарь по ссылке — только если человек сам включил «обновлять».
   unawaited(refreshIcsSubscription(container));
-  if (defaultTargetPlatform == TargetPlatform.windows) {
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
     // Схема enitor:// — на путь этого exe: папку могли перенести.
     unawaited(
       container
@@ -221,4 +231,32 @@ Future<void> main(List<String> args) async {
       child: const EnitorApp(),
     ),
   );
+}
+
+/// Веб: Enitor уже открыт в другой вкладке. Локализации ещё нет — до неё
+/// хранилище не читаем, поэтому язык берём у браузера.
+class _OtherTabScreen extends StatelessWidget {
+  const _OtherTabScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    final ru = WidgetsBinding.instance.platformDispatcher.locale.languageCode == 'ru';
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData.dark(),
+      home: Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              ru
+                  ? 'Enitor уже открыт в другой вкладке.\nЗакройте её и обновите эту страницу.'
+                  : 'Enitor is already open in another tab.\nClose it and reload this page.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

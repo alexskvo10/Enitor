@@ -512,15 +512,15 @@ IcsRule? _parseRule(String raw, _Time start, _Ctx c) {
 }
 
 /// Детерминированный хэш FNV-1a 64 для UID без поля UID.
+/// На BigInt: в вебе int — это double, 64-битное умножение там неточно.
 String _fnvHex(String s) {
-  var h = -0x340D631B7BDDDCDB; // смещение FNV-1a 64 (знаковое представление)
+  final mask = (BigInt.one << 64) - BigInt.one;
+  final prime = BigInt.parse('100000001b3', radix: 16);
+  var h = BigInt.parse('cbf29ce484222325', radix: 16); // смещение FNV-1a 64
   for (final b in utf8.encode(s)) {
-    h = (h ^ b) * 0x100000001b3;
+    h = ((h ^ BigInt.from(b)) * prime) & mask;
   }
-  final hi = (h >> 32) & 0xFFFFFFFF;
-  final lo = h & 0xFFFFFFFF;
-  return '${hi.toRadixString(16).padLeft(8, '0')}'
-      '${lo.toRadixString(16).padLeft(8, '0')}';
+  return h.toRadixString(16).padLeft(16, '0');
 }
 
 IcsEvent? _buildEvent(List<_Prop> props, _Ctx c) {

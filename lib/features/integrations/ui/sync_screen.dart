@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../l10n/l10n_extensions.dart';
@@ -20,7 +21,8 @@ class SyncScreen extends StatelessWidget {
         padding: const EdgeInsets.only(top: 4, bottom: 24),
         children: [
           SectionNote(l10n.syncIntro),
-          const LanSection(),
+          // Браузер не принимает входящие соединения.
+          if (!kIsWeb) const LanSection(),
           const ServerSection(),
         ],
       ),

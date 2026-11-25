@@ -448,7 +448,7 @@ class SyncService {
         // На телефоне соединение в фоне всё равно оборвут — не держим его.
         // Опрос тоже стоит: в фоне обмен идёт по сигналу сервера
         // (sync_background), а при возврате — сразу.
-        if (defaultTargetPlatform == TargetPlatform.android) {
+        if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
           _stopEvents();
           _poll?.cancel();
           _poll = null;
@@ -461,7 +461,7 @@ class SyncService {
 
   Future<void> _onResume() async {
     if (!settings.connected) return;
-    if (defaultTargetPlatform == TargetPlatform.android) {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       // Фоновая синхронизация писала хранилище из другого изолята.
       await _storage.reloadFromDisk();
       _engine = null;

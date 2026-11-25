@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -24,6 +25,7 @@ Future<void> checkAndShowUpdateDialog(
   WidgetRef ref, {
   bool manual = false,
 }) async {
+  if (kIsWeb) return; // веб обновляется сам, без запросов к GitHub
   final service = ref.read(updateServiceProvider);
   final result = await service.checkForUpdate(force: manual);
   if (!context.mounted) return;

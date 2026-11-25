@@ -34,6 +34,7 @@ import '../../widgets/transfer_catchup_sheet.dart';
 import '../../widgets/transfer_prompt_banner.dart';
 import '../../widgets/fancy_toast.dart';
 import '../../widgets/update_dialog.dart';
+import '../../widgets/web_hint.dart';
 import '../../widgets/weekly_retro_sheet.dart';
 
 /// Главный роутер. Использует ShellRoute с нижней навигацией для пяти
@@ -156,6 +157,7 @@ class _RootScaffoldState extends ConsumerState<_RootScaffold> {
     // Тихая автопроверка обновлений (не чаще раза в сутки, см.
     // UpdateService._throttle) — молчит, если обновления нет или сети нет.
     await checkAndShowUpdateDialog(context, ref, manual: false);
+    if (mounted) await maybeShowWebHint(context, ref);
   }
 
   /// Карточка «В первый раз?» при чистой установке и «Что нового» при первом

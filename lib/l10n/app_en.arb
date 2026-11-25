@@ -1206,5 +1206,11 @@
   "tour11Title": "Your devices",
   "tour11Body": "Sync tasks between your phone and laptop — over Wi-Fi or through your own server. Notifications and integrations are here too.",
   "tour12Title": "That's it",
-  "tour12Body": "You can take the tour again here. The switch below decides whether to offer it after updates."
+  "tour12Body": "You can take the tour again here. The switch below decides whether to offer it after updates.",
+  "webHintTitle": "Your data lives only in this browser",
+  "webHintBody": "Enitor on the web keeps your tasks only here, on this device. Safari erases data of sites not opened for 7 days, so add Enitor to your Home Screen (Share → Add to Home Screen) and save a copy to a file now and then.",
+  "webHintBodyInstalled": "Enitor keeps your tasks only in this browser. Clearing browser data erases them — save a copy to a file now and then.",
+  "webHintSave": "Save a copy",
+  "webHintLater": "Later",
+  "webBackupNote": "There is no auto-copy in the browser: your tasks live only in this browser. Save a copy to a file — you can restore it here or in the app."
 }

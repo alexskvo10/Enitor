@@ -28,6 +28,7 @@ import '../import/formats/todoist.dart';
 import '../import/import_plan.dart';
 import '../import/import_preview_screen.dart';
 import '../import/imported_task.dart';
+import '../../../services/web_bits.dart';
 import 'section_parts.dart';
 
 /// Календари (.ics). Переезд из других приложений и полный экспорт —
@@ -385,6 +386,10 @@ class CalendarSection extends ConsumerWidget {
     String text,
     String ext,
   ) async {
+    if (kIsWeb) {
+      downloadText(name, text, 'application/octet-stream');
+      return true;
+    }
     final bytes = Uint8List.fromList(utf8.encode(text));
     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
       final path = await FilePicker.platform.saveFile(
