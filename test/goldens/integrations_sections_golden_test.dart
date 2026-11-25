@@ -58,6 +58,7 @@ void main() {
   late ProviderContainer container;
 
   setUp(() async {
+    cliPathForTests = r'C:\Enitor\enitor-cli.exe';
     await initializeDateFormatting('ru');
     await initializeDateFormatting('en');
     SharedPreferences.setMockInitialValues({});

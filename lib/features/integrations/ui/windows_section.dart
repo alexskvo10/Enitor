@@ -14,7 +14,13 @@ import 'section_parts.dart';
 
 /// Путь к `enitor-cli.exe` — он лежит рядом с `enitor.exe` в папке релиза.
 String cliPath() =>
+    cliPathForTests ??
     '${File(Platform.resolvedExecutable).parent.path}\\enitor-cli.exe';
+
+/// В тестах «программа» — тестовый движок из папки Flutter SDK: без
+/// постоянного пути снимок экрана зависел бы от того, где лежит SDK.
+@visibleForTesting
+String? cliPathForTests;
 
 /// Готовая настройка MCP (формат `mcpServers`).
 String claudeDesktopConfig(String cli) =>
