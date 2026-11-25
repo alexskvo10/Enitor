@@ -124,19 +124,26 @@ class LanDiscovery {
       reuseAddress: true,
     );
     s.broadcastEnabled = true;
-    s.listen((e) {
-      if (e != RawSocketEvent.read) return;
-      final d = s.receive();
-      if (d == null) return;
-      final a = parseLanAnnounce(d.data, d.address.address);
-      if (a == null || a.id == id) return;
-      try {
-        if (jsonDecode(utf8.decode(d.data))['q'] == true) {
-          s.send(_packet(query: false), d.address, d.port);
-        }
-      } catch (_) {}
-      _found.add(a);
-    });
+    s.listen(
+      (e) {
+        if (e != RawSocketEvent.read) return;
+        final d = s.receive();
+        if (d == null) return;
+        final a = parseLanAnnounce(d.data, d.address.address);
+        if (a == null || a.id == id) return;
+        try {
+          if (jsonDecode(utf8.decode(d.data))['q'] == true) {
+            s.send(_packet(query: false), d.address, d.port);
+          }
+        } catch (_) {}
+        _found.add(a);
+      },
+      // Linux (и Android) сообщает о неудачной отправке не из send(), а
+      // позже — ошибкой в этом потоке: например, если широковещательные
+      // пакеты в сети запрещены. Поиск — дело «если получится»: соседи
+      // находятся и по запомненным адресам, поэтому ошибку молча пропускаем.
+      onError: (Object _) {},
+    );
   }
 
   List<int> _packet({required bool query}) =>
