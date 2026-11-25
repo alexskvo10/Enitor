@@ -140,6 +140,47 @@ the settings again.
 To check what the assistant has done, look at **Recent calls** on the same
 screen. It has a **Clear** button.
 
+### Other assistants: Cursor, VS Code, Windsurf, Cline, LM Studio, Claude Code
+
+Any assistant that can start a local MCP server works the same way: it runs
+`enitor-cli.exe mcp` on this computer. Copy the settings in Enitor as above;
+only the file you paste them into changes. Enitor has to be running, and the
+same Permissions apply — including the warning about reading.
+
+| Assistant | Where the setting goes |
+|---|---|
+| **Cursor** | `%USERPROFILE%\.cursor\mcp.json` (all projects) or `.cursor\mcp.json` in one project. Same `"mcpServers"` block. |
+| **Windsurf** | `%USERPROFILE%\.codeium\windsurf\mcp_config.json`. Same block. |
+| **Cline** (VS Code) | Cline panel → **MCP Servers** → **Configure** → `cline_mcp_settings.json`. Same block. |
+| **LM Studio** | **Program** tab → **Install** → **Edit mcp.json**. Same block. |
+| **VS Code** (Copilot, agent mode) | `.vscode\mcp.json` in a project, or **MCP: Open User Configuration** from the command palette. The top key is `"servers"`, not `"mcpServers"` — see below. |
+| **Claude Code** | One command in a terminal — see below. |
+
+For VS Code, rename the top key and add the type:
+
+```json
+{
+  "servers": {
+    "enitor": {
+      "type": "stdio",
+      "command": "C:\\path\\to\\enitor-cli.exe",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+For Claude Code:
+
+```
+claude mcp add enitor -- "C:\path\to\enitor-cli.exe" mcp
+```
+
+Use the path from the copied block; inside JSON every `\` is written twice,
+as it already is in the copy. After saving, restart the assistant or reload
+its MCP servers. Menu names move between versions — if one isn't where the
+table says, look for "MCP" in the assistant's settings.
+
 ---
 
 ## 3. n8n
