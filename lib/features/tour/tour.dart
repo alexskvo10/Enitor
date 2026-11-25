@@ -497,7 +497,9 @@ class _TourOverlayState extends State<_TourOverlay>
       }
     }
     if (!mounted) return;
-    final ctx = step.target?.currentContext;
+    final target = step.target;
+    final ctx = target == null ? null : await revealTarget(target);
+    if (!mounted) return;
     if (ctx != null && ctx.mounted) {
       // Элемент может быть ниже края (строка в настройках) — докручиваем.
       await Scrollable.ensureVisible(
@@ -877,4 +879,65 @@ class _DimPainter extends CustomPainter {
   @override
   bool shouldRepaint(_DimPainter o) =>
       o.hole != hole || o.pulse != pulse || o.ring != ring;
+}
+
+/// Контекст [key], даже если элемент ещё не построен.
+///
+/// Длинные экраны (задачи, настройки) строят только видимое и небольшой
+/// запас. Если элемент далеко за краем — например, список задач длинный и
+/// прошлый шаг увёл экран вниз, — контекста у него нет, и ensureVisible
+/// докрутить не может: подсветка оставалась на прошлом шаге. Тогда листаем
+/// видимые вертикальные списки сверху вниз, пока элемент не появится; не
+/// нашёлся — возвращаем прокрутку на место.
+@visibleForTesting
+Future<BuildContext?> revealTarget(GlobalKey key) async {
+  BuildContext? found() {
+    final c = key.currentContext;
+    return c != null && c.mounted ? c : null;
+  }
+
+  if (found() case final c?) return c;
+  for (final s in _visibleVerticalScrollables()) {
+    final p = s.position;
+    final start = p.pixels;
+    final step = math.max(p.viewportDimension * 0.8, 100.0);
+    var at = p.minScrollExtent;
+    // ponytail: до 60 экранов — длиннее экранов с подсветкой в приложении нет.
+    for (var i = 0; i < 60; i++) {
+      p.jumpTo(math.min(at, p.maxScrollExtent));
+      await WidgetsBinding.instance.endOfFrame;
+      if (found() case final c?) return c;
+      if (at >= p.maxScrollExtent) break;
+      at += step;
+    }
+    p.jumpTo(math.min(start, p.maxScrollExtent));
+  }
+  return null;
+}
+
+/// Вертикальные списки, которые сейчас на экране: у экранов под верхним
+/// и у неактивных вкладок тикеры выключены — их не трогаем.
+List<ScrollableState> _visibleVerticalScrollables() {
+  final out = <ScrollableState>[];
+  void visit(Element e) {
+    if (e is StatefulElement) {
+      final s = e.state;
+      if (s is ScrollableState &&
+          axisDirectionToAxis(s.axisDirection) == Axis.vertical &&
+          s.position.hasContentDimensions &&
+          s.position.maxScrollExtent > s.position.minScrollExtent &&
+          TickerMode.getValuesNotifier(e).value.enabled) {
+        out.add(s);
+      }
+    }
+    e.visitChildren(visit);
+  }
+
+  WidgetsBinding.instance.rootElement?.visitChildren(visit);
+  // Главный список экрана — самый высокий.
+  out.sort(
+    (a, b) =>
+        b.position.viewportDimension.compareTo(a.position.viewportDimension),
+  );
+  return out;
 }
