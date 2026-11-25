@@ -153,6 +153,7 @@ Full notes: [Release 0.4.0](https://github.com/alexskvo10/Enitor/releases/tag/v0
 - **Over Wi-Fi:** pair once with a QR code or a 12-character code, confirm on your device, and devices on the same network sync by themselves — encrypted, no internet.
 - **Through your own server:** `enitor-server` for devices that are far apart; changes arrive in seconds while the app is open, in the background on Android, instantly with a push app such as ntfy.
 - Merge or replace on connect, a device list, removing a lost device for good. → [server guide](docs/integrations/server.md)
+- What syncs: tasks, goals, the schedule, templates, the backlog, day stats and ratings. Settings — theme, focus length, notifications — stay on each device, so a phone and a PC can be set up differently.
 
 ### ⚙ Integrations & automation
 - **Links & Share** — `enitor://` links and *Share → Enitor* open a filled-in form; nothing is added until you press Add.
