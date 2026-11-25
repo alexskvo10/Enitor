@@ -30,6 +30,8 @@ class ProfileScreen extends ConsumerWidget {
     final profileAsync = ref.watch(profileProvider);
     final avgAsync = ref.watch(allTimeAverageProvider);
     final onTimeAvgAsync = ref.watch(allTimeOnTimeAverageProvider);
+    final weekAvg = ref.watch(weekStartAverageProvider).value;
+    final weekOnTime = ref.watch(weekStartOnTimeAverageProvider).value;
     final tasks = ref.watch(allTasksProvider).value;
     final goals = ref.watch(allGoalsProvider).value;
     final best = ref.watch(bestPeriodsProvider).value;
@@ -61,13 +63,12 @@ class ProfileScreen extends ConsumerWidget {
           final daysUsing =
               calendarDaysBetween(profile.startedAt, DateTime.now()) + 1;
           final avg = avgAsync.value;
-          final delta = (avg != null && profile.lastWeekAvgProductivity != null)
-              ? (avg - profile.lastWeekAvgProductivity!) * 100
-              : null;
+          final delta =
+              (avg != null && weekAvg != null) ? (avg - weekAvg) * 100 : null;
           final onTimeAvg = onTimeAvgAsync.value;
           final onTimeDelta =
-              (onTimeAvg != null && profile.lastWeekOnTimeAverage != null)
-                  ? (onTimeAvg - profile.lastWeekOnTimeAverage!) * 100
+              (onTimeAvg != null && weekOnTime != null)
+                  ? (onTimeAvg - weekOnTime) * 100
                   : null;
 
           return ListView(

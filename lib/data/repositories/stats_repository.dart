@@ -222,10 +222,27 @@ class StatsRepository {
     }
   }
 
-  static double? _averageOf(List<DayStats> all) {
+  /// Средние на начало этой недели — по дням до понедельника: база для
+  /// «за неделю» в профиле. Считаются из статистики дней, а она
+  /// синхронизируется, поэтому на всех устройствах число одно.
+  Stream<double?> watchAverageBeforeThisWeek() =>
+      _watchOf((all) => _averageOf(all, before: startOfWeek(today())));
+
+  Stream<double?> watchOnTimeAverageBeforeThisWeek() =>
+      _watchOf((all) => _onTimeAverageOf(all, before: startOfWeek(today())));
+
+  Stream<T> _watchOf<T>(T Function(List<DayStats>) f) async* {
+    yield f(_cache);
+    await for (final all in _controller.stream) {
+      yield f(all);
+    }
+  }
+
+  static double? _averageOf(List<DayStats> all, {DateTime? before}) {
     final todayDate = today();
     final days = all
         .where((s) => s.productivity != null && !s.date.isAfter(todayDate))
+        .where((s) => before == null || s.date.isBefore(before))
         .toList();
     if (days.isEmpty) return null;
     return days.fold<double>(0, (a, s) => a + s.productivity!) / days.length;
@@ -241,10 +258,11 @@ class StatsRepository {
     }
   }
 
-  static double? _onTimeAverageOf(List<DayStats> all) {
+  static double? _onTimeAverageOf(List<DayStats> all, {DateTime? before}) {
     final todayDate = today();
     final days = all
         .where((s) => s.timeliness != null && !s.date.isAfter(todayDate))
+        .where((s) => before == null || s.date.isBefore(before))
         .toList();
     if (days.isEmpty) return null;
     return days.fold<double>(0, (a, s) => a + s.timeliness!) / days.length;
@@ -573,6 +591,14 @@ final allTimeAverageProvider = StreamProvider<double?>((ref) {
 
 final allTimeOnTimeAverageProvider = StreamProvider<double?>((ref) {
   return ref.watch(statsRepositoryProvider).watchAllTimeOnTimeAverage();
+});
+
+final weekStartAverageProvider = StreamProvider<double?>((ref) {
+  return ref.watch(statsRepositoryProvider).watchAverageBeforeThisWeek();
+});
+
+final weekStartOnTimeAverageProvider = StreamProvider<double?>((ref) {
+  return ref.watch(statsRepositoryProvider).watchOnTimeAverageBeforeThisWeek();
 });
 
 final bestPeriodsProvider =

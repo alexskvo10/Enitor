@@ -9,7 +9,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'data/repositories/goal_repository.dart';
 import 'data/repositories/profile_repository.dart';
-import 'data/repositories/stats_repository.dart';
 import 'data/repositories/task_repository.dart';
 import 'data/sources/local/local_storage.dart';
 import 'features/integrations/core/command_handler.dart';
@@ -137,15 +136,6 @@ Future<void> main(List<String> args) async {
 
   // Гарантируем, что профиль создан при первом запуске.
   await container.read(profileRepositoryProvider).ensureProfile();
-
-  // Недельная дельта: если началась новая неделя, фиксируем текущие средние
-  // как базу. Делаем это до runApp — пользователь ещё не действовал на этой
-  // неделе, поэтому значение соответствует концу прошлой недели.
-  final stats = container.read(statsRepositoryProvider);
-  await container.read(profileRepositoryProvider).maybeRollWeeklyDelta(
-        currentProductivity: await stats.averageAllTime(),
-        currentOnTime: await stats.onTimeAverageAllTime(),
-      );
 
   // Тихое списание зависших копий (перенесённых, но так и не выполненных)
   // из прошлых дней/периодов — безопасно делать до runApp, не требует UI.
